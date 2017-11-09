@@ -33,6 +33,8 @@ ssdkvFile ssdkvOpenFile(const char * fileName);
 int ssdkvCloseFile(const char * fileName);
 
 
+
+
 /**
  * ssdkvRead - Read data from an open file.
  * @param file The file handle.
