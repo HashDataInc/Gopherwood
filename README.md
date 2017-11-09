@@ -9,7 +9,7 @@
 上图是存储的逻辑结构和物理结构图。根据配置文件，可以配置总体使用的扩展内存的大小，主要由以下配置信息组成(其他配置在此省略).根据配置文件会初始化为上图所示的结构。
 
 
-| parameter        | value           | explain  |
+| Parameters        | value           | Description  |
 | ------------- |:-------------:| -----:|
 | ssdkv.total.cache.size   | 20GB              |   总的使用的扩展内存的大小 |
 | ssdkv.bucket.cache.size  | 2MB               |   每一个bucket的大小 |
@@ -28,12 +28,23 @@
  - 7.写入成功后，将KV从内存中的RAMCache中删除.
 
 读流程主要包含如下3步：
-  - 1.首选从RAMCache中查找，因为所有新写入的数据都在RAMCache中；
-  - 2.如果在RAMCache中没有读到，则根据key去backingMap中读取其offset；
-  - 3.根据步骤2中返回的offset从IOEngine模块中的文件中去读取数据。
+- 1.首选从RAMCache中查找，因为所有新写入的数据都在RAMCache中；
+- 2.如果在RAMCache中没有读到，则根据key去backingMap中读取其offset；
+- 3.根据步骤2中返回的offset从IOEngine模块中的文件中去读取数据。
 
 ### 1.3 数据的删除(evict)流程
+![delete-evict](docs/ssdkv-evict.png)
 
+数据的删除(换出)流程比读写流程简单:
+ - 1.如果在RAMCache中找到，则在RAMCache中进行删除；
+ - 2.如果在RAMCache中没有找到，则根据key去BackingMap中查找，如果找到，返回其物理的offset；
+ - 3.根据在BackingMap中找到的offset，去释放在Allocator中已经分配的空间。这样这块空间就可以被其他KV使用。
+
+### 1.4 一些使用接口
+- int();//根据配置参数，初始化bucket的逻辑组成结构
+- setKV(key,value);//插入一个KV
+- getValue(key);// 根据key，获取value
+- deleteKey(key);//删除一个key，value对
 
 
 
