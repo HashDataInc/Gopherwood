@@ -1,0 +1,10 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libgopherwood
+Description: Infinite Space Buffer Support
+Version: 0.0.1
+Libs: -L${libdir} -lgopherwood
+Cflags: -I${includedir}

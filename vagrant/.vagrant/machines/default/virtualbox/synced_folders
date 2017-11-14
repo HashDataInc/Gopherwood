@@ -1,0 +1,1 @@
+{"virtualbox":{"/gopherwood":{"owner":555,"group":555,"guestpath":"/gopherwood","hostpath":"/Users/wuxin/eric/hashdata/dev/gopherwood","disabled":false,"__vagrantfile":true},"/vagrant":{"guestpath":"/vagrant","hostpath":"/Users/wuxin/eric/hashdata/dev/gopherwood/vagrant","disabled":false,"__vagrantfile":true}}}
