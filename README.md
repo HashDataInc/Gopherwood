@@ -10,8 +10,7 @@ The project is created to help on-premise system easily transform to cloud-orien
 store service will help solve the data high availability issues and lower the disk cost by configuring a 
 minimum local disk quota.
 
-See the [github wiki](https://github.com/neuyilan/Gopherwood/wiki) for detailed document, design and using .
-experience.
+See the [github wiki](https://github.com/neuyilan/Gopherwood/wiki) for detailed documentations, developer guides and FAQs.
 
 ## Installation
 ### Requirement
