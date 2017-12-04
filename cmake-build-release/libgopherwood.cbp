@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="libgopherwood"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\CMake\;CMake Files\cmake-build-release\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command=" -f &quot;/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/qhl/cmakeworkspace/Gopherwood/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/qhl/cmakeworkspace/Gopherwood/CMake/Platform.cmake">
+			<Option virtualFolder="CMake Files\CMake\"/>
+		</Unit>
+		<Unit filename="/home/qhl/cmakeworkspace/Gopherwood/CMake/Functions.cmake">
+			<Option virtualFolder="CMake Files\CMake\"/>
+		</Unit>
+		<Unit filename="/home/qhl/cmakeworkspace/Gopherwood/CMake/Options.cmake">
+			<Option virtualFolder="CMake Files\CMake\"/>
+		</Unit>
+		<Unit filename="/home/qhl/cmakeworkspace/Gopherwood/CMake/CMakeTestCompileStrerror.cpp">
+			<Option virtualFolder="CMake Files\CMake\"/>
+		</Unit>
+		<Unit filename="/home/qhl/cmakeworkspace/Gopherwood/CMake/CMakeTestCompileSteadyClock.cpp">
+			<Option virtualFolder="CMake Files\CMake\"/>
+		</Unit>
+		<Unit filename="/home/qhl/cmakeworkspace/Gopherwood/CMake/CMakeTestCompileNestedException.cpp">
+			<Option virtualFolder="CMake Files\CMake\"/>
+		</Unit>
+		<Unit filename="/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/test.cpp">
+			<Option virtualFolder="CMake Files\cmake-build-release\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

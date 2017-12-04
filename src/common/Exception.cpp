@@ -26,20 +26,13 @@
 
 namespace Gopherwood {
 
-GopherwoodException::GopherwoodException(const std::string & arg, const char * file,
-                             int line, const char * stack) :
-    std::runtime_error(arg) {
-    std::ostringstream ss;
-    ss << file << ": " << line << ": " << arg << std::endl << stack;
-    detail = ss.str();
-}
+    GopherwoodException::GopherwoodException(const std::string &arg, const char *file,
+                                             int line, const char *stack) :
+            std::runtime_error(arg) {
+        std::ostringstream ss;
+        ss << file << ": " << line << ": " << arg << std::endl << stack;
+        detail = ss.str();
+    }
 
-GopherwoodIOException::GopherwoodIOException(const std::string & arg, const char * file,
-                             int line, const char * stack) :
-    std::runtime_error(arg) {
-    std::ostringstream ss;
-    ss << file << ": " << line << ": " << arg << std::endl << stack;
-    detail = ss.str();
-}
 
 }

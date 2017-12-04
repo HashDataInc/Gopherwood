@@ -1,0 +1,73 @@
+Determining if the function dladdr exists failed with the following output:
+Change Dir: /gopherwood/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/gmake "cmTryCompileExec1335231995/fast"
+/usr/bin/gmake -f CMakeFiles/cmTryCompileExec1335231995.dir/build.make CMakeFiles/cmTryCompileExec1335231995.dir/build
+gmake[1]: Entering directory `/gopherwood/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /gopherwood/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1335231995.dir/CheckFunctionExists.c.o
+/usr/bin/gcc   -DCHECK_FUNCTION_EXISTS=dladdr   -o CMakeFiles/cmTryCompileExec1335231995.dir/CheckFunctionExists.c.o   -c /usr/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec1335231995
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1335231995.dir/link.txt --verbose=1
+/usr/bin/gcc   -DCHECK_FUNCTION_EXISTS=dladdr    CMakeFiles/cmTryCompileExec1335231995.dir/CheckFunctionExists.c.o  -o cmTryCompileExec1335231995 -rdynamic 
+CMakeFiles/cmTryCompileExec1335231995.dir/CheckFunctionExists.c.o: In function `main':
+CheckFunctionExists.c:(.text+0x15): undefined reference to `dladdr'
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [cmTryCompileExec1335231995] Error 1
+gmake[1]: Leaving directory `/gopherwood/build/CMakeFiles/CMakeTmp'
+gmake: *** [cmTryCompileExec1335231995/fast] Error 2
+
+
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /gopherwood/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/gmake "cmTryCompileExec1458289500/fast"
+/usr/bin/gmake -f CMakeFiles/cmTryCompileExec1458289500.dir/build.make CMakeFiles/cmTryCompileExec1458289500.dir/build
+gmake[1]: Entering directory `/gopherwood/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /gopherwood/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1458289500.dir/CheckSymbolExists.c.o
+/usr/bin/gcc   -fno-strict-aliasing    -o CMakeFiles/cmTryCompileExec1458289500.dir/CheckSymbolExists.c.o   -c /gopherwood/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec1458289500
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1458289500.dir/link.txt --verbose=1
+/usr/bin/gcc   -fno-strict-aliasing     CMakeFiles/cmTryCompileExec1458289500.dir/CheckSymbolExists.c.o  -o cmTryCompileExec1458289500 -rdynamic 
+CMakeFiles/cmTryCompileExec1458289500.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x16): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [cmTryCompileExec1458289500] Error 1
+gmake[1]: Leaving directory `/gopherwood/build/CMakeFiles/CMakeTmp'
+gmake: *** [cmTryCompileExec1458289500/fast] Error 2
+
+File /gopherwood/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /gopherwood/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/gmake "cmTryCompileExec365937761/fast"
+/usr/bin/gmake -f CMakeFiles/cmTryCompileExec365937761.dir/build.make CMakeFiles/cmTryCompileExec365937761.dir/build
+gmake[1]: Entering directory `/gopherwood/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /gopherwood/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec365937761.dir/CheckFunctionExists.c.o
+/usr/bin/gcc   -fno-strict-aliasing -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTryCompileExec365937761.dir/CheckFunctionExists.c.o   -c /usr/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec365937761
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec365937761.dir/link.txt --verbose=1
+/usr/bin/gcc   -fno-strict-aliasing -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTryCompileExec365937761.dir/CheckFunctionExists.c.o  -o cmTryCompileExec365937761 -rdynamic -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [cmTryCompileExec365937761] Error 1
+gmake[1]: Leaving directory `/gopherwood/build/CMakeFiles/CMakeTmp'
+gmake: *** [cmTryCompileExec365937761/fast] Error 2
+
+

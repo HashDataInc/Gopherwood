@@ -1,0 +1,40 @@
+FILE(REMOVE_RECURSE
+  "CMakeFiles/function.dir/__/__/gtest/src/gtest-port.cc.o"
+  "CMakeFiles/function.dir/__/__/gtest/src/gtest-death-test.cc.o"
+  "CMakeFiles/function.dir/__/__/gtest/src/gtest-printers.cc.o"
+  "CMakeFiles/function.dir/__/__/gtest/src/gtest.cc.o"
+  "CMakeFiles/function.dir/__/__/gtest/src/gtest-test-part.cc.o"
+  "CMakeFiles/function.dir/__/__/gtest/src/gtest-filepath.cc.o"
+  "CMakeFiles/function.dir/__/__/gtest/src/gtest-typed-test.cc.o"
+  "CMakeFiles/function.dir/__/__/gmock/src/gmock-matchers.cc.o"
+  "CMakeFiles/function.dir/__/__/gmock/src/gmock-cardinalities.cc.o"
+  "CMakeFiles/function.dir/__/__/gmock/src/gmock-internal-utils.cc.o"
+  "CMakeFiles/function.dir/__/__/gmock/src/gmock.cc.o"
+  "CMakeFiles/function.dir/__/__/gmock/src/gmock-spec-builders.cc.o"
+  "CMakeFiles/function.dir/__/__/src/network/TcpSocket.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/OutputStreamImpl.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/FileSystem.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/InputStream.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/SharedMemoryManager.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/FileSystemImpl.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/InputStreamImpl.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/FSConfig.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/gopherwood.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/core/OutputStream.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/common/ExceptionInternal.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/common/StackPrinter.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/common/Exception.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/common/XmlConfig.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/common/Thread.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/common/Hash.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/common/Configuration.cpp.o"
+  "CMakeFiles/function.dir/__/__/src/common/Logger.cpp.o"
+  "CMakeFiles/function.dir/TestFileSystem.cpp.o"
+  "function.pdb"
+  "function"
+)
+
+# Per-language clean rules from dependency scanning.
+FOREACH(lang CXX)
+  INCLUDE(CMakeFiles/function.dir/cmake_clean_${lang}.cmake OPTIONAL)
+ENDFOREACH(lang)

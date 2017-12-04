@@ -1,5 +1,11 @@
 /********************************************************************
- * 2016 -
+ * Copyright (c) 2013 - 2014, Pivotal Inc.
+ * All rights reserved.
+ *
+ * Author: Zhanwei Wang
+ ********************************************************************/
+/********************************************************************
+ * 2014 -
  * open source under Apache License Version 2.0
  ********************************************************************/
 /**
@@ -19,8 +25,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_EXCEPTION_EXCEPTIONINTERNAL_H_
-#define _GOPHERWOOD_EXCEPTION_EXCEPTIONINTERNAL_H_
+
+#ifndef _GOPHERWOOD_COMMON__EXCEPTIONINTERNAL_H_
+#define _GOPHERWOOD_COMMON__EXCEPTIONINTERNAL_H_
 
 #include "platform.h"
 
@@ -50,20 +57,6 @@ inline static const char * SkipPathPrefix(const char * path) {
     assert(i > 0 && i < len);
     return path + i + 1;
 }
-
-#ifndef ERROR_MESSAGE_BUFFER_SIZE
-#define ERROR_MESSAGE_BUFFER_SIZE 4096
-#endif
-
-extern THREAD_LOCAL char ErrorMessage[ERROR_MESSAGE_BUFFER_SIZE];
-
-#define PARAMETER_ASSERT(para, retval, eno) \
-    if (!(para)) { \
-        SetErrorMessage(Gopherwood::Internal::GetSystemErrorInfo(eno)); \
-        errno = eno; \
-        return retval; \
-    }
-
 
 #ifdef NEED_BOOST  //  include headers
 #include <boost/exception/all.hpp>
@@ -261,9 +254,6 @@ class GopherwoodException;
 namespace Gopherwood {
 namespace Internal {
 
-void SetErrorMessage(const char *msg);
-void SetLastException(Gopherwood::exception_ptr e);
-
 /**
  * Check if a slow operation has been canceled by the user.
  * @throw return false if operation is not canceled, else throw GopherwoodCanceled.
@@ -307,4 +297,4 @@ const char * GetSystemErrorInfo(int eno);
 #define NESTED_THROW(throwable, fmt, ...) \
     Gopherwood::Internal::ThrowException<throwable>(true, __FILE__, __LINE__, #throwable, fmt, ##__VA_ARGS__);
 
-#endif /* _GOPHERWOOD_EXCEPTION_EXCEPTIONINTERNAL_H_ */
+#endif /* _GOPHERWOOD_COMMON__EXCEPTIONINTERNAL_H_ */

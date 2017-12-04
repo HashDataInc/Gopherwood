@@ -3,8 +3,10 @@
 set -x
 
 # Create hashdata user
+#sudo groupadd -g 555 hashdata
+#sudo useradd -u 555 -g 555 hashdata
 sudo groupadd -g 555 hashdata
-sudo adduser -u 555 -g 555 hashdata
+sudo useradd -u 555 -g 555 hashdata
 sudo echo "%hashdata ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/hashdata
 
 SSH_DIR=/home/hashdata/.ssh

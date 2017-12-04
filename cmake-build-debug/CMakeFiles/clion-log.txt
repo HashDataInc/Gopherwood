@@ -1,0 +1,17 @@
+/home/qhl/software/clion-2017.2.3/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/lib/c++ -G "CodeBlocks - Unix Makefiles" /home/qhl/cmakeworkspace/Gopherwood
+-- The CXX compiler identification is unknown
+CMake Error at CMakeLists.txt:3 (PROJECT):
+  The CMAKE_CXX_COMPILER:
+
+    /usr/lib/c++
+
+  is not a full path to an existing compiler tool.
+
+  Tell CMake where to find the compiler by setting either the environment
+  variable "CXX" or the CMake cache entry CMAKE_CXX_COMPILER to the full path
+  to the compiler, or to the compiler name if it is in the PATH.
+
+
+-- Configuring incomplete, errors occurred!
+See also "/home/qhl/cmakeworkspace/Gopherwood/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/home/qhl/cmakeworkspace/Gopherwood/cmake-build-debug/CMakeFiles/CMakeError.log".

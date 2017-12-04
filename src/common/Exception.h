@@ -1,5 +1,11 @@
 /********************************************************************
- * 2016 -
+ * Copyright (c) 2013 - 2014, Pivotal Inc.
+ * All rights reserved.
+ *
+ * Author: Zhanwei Wang
+ ********************************************************************/
+/********************************************************************
+ * 2014 -
  * open source under Apache License Version 2.0
  ********************************************************************/
 /**
@@ -19,12 +25,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_COMMON_EXCEPTION_H_
-#define _GOPHERWOOD_COMMON_EXCEPTION_H_
+#ifndef _Gopherwood_LIBGopherwood3_COMMON_EXCEPTION_H_
+#define _Gopherwood_LIBGopherwood3_COMMON_EXCEPTION_H_
 
 #include <stdexcept>
 #include <string>
-
 
 namespace Gopherwood {
 
@@ -44,20 +49,18 @@ protected:
     std::string detail;
 };
 
-class GopherwoodIOException: public std::runtime_error {
+class GopherwoodIOException: public GopherwoodException {
 public:
     GopherwoodIOException(const std::string & arg, const char * file, int line,
-                    const char * stack);
+                    const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
 
     ~GopherwoodIOException() throw () {
     }
 
-    virtual const char * msg() const {
-        return detail.c_str();
-    }
-
-protected:
-    std::string detail;
+public:
+    static const char * ReflexName;
 };
 
 class GopherwoodNetworkException: public GopherwoodIOException {
@@ -68,17 +71,6 @@ public:
     }
 
     ~GopherwoodNetworkException() throw () {
-    }
-};
-
-class GopherwoodRetryException: public GopherwoodIOException {
-public:
-	GopherwoodRetryException(const std::string & arg, const char * file, int line,
-                         const char * stack) :
-        GopherwoodIOException(arg, file, line, stack) {
-    }
-
-    ~GopherwoodRetryException() throw () {
     }
 };
 
@@ -102,6 +94,9 @@ public:
 
     ~AccessControlException() throw () {
     }
+
+public:
+    static const char * ReflexName;
 };
 
 class AlreadyBeingCreatedException: public GopherwoodException {
@@ -113,61 +108,34 @@ public:
 
     ~AlreadyBeingCreatedException() throw () {
     }
+
+public:
+    static const char * ReflexName;
 };
 
-class BlockAlreadyExistsException: public GopherwoodException {
+class ChecksumException: public GopherwoodException {
 public:
-	BlockAlreadyExistsException(const std::string & arg, const char * file,
-                                 int line, const char * stack) :
+    ChecksumException(const std::string & arg, const char * file, int line,
+                      const char * stack) :
         GopherwoodException(arg, file, line, stack) {
     }
 
-    ~BlockAlreadyExistsException() throw () {
+    ~ChecksumException() throw () {
     }
 };
 
-class BlockDoesNotExistException: public GopherwoodException {
+class DSQuotaExceededException: public GopherwoodException {
 public:
-	BlockDoesNotExistException(const std::string & arg, const char * file,
-                                 int line, const char * stack) :
+    DSQuotaExceededException(const std::string & arg, const char * file,
+                             int line, const char * stack) :
         GopherwoodException(arg, file, line, stack) {
     }
 
-    ~BlockDoesNotExistException() throw () {
+    ~DSQuotaExceededException() throw () {
     }
-};
 
-class BlockInfoException: public GopherwoodException {
 public:
-	BlockInfoException(const std::string & arg, const char * file,
-                                 int line, const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~BlockInfoException() throw () {
-    }
-};
-
-class ConnectionFailedException: public GopherwoodException {
-public:
-	ConnectionFailedException(const std::string & arg, const char * file,
-                                 int line, const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~ConnectionFailedException() throw () {
-    }
-};
-
-class DependencyDoesNotExistException: public GopherwoodException {
-public:
-	DependencyDoesNotExistException(const std::string & arg, const char * file,
-                                 int line, const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~DependencyDoesNotExistException() throw () {
-    }
+    static const char * ReflexName;
 };
 
 class FileAlreadyExistsException: public GopherwoodException {
@@ -179,138 +147,99 @@ public:
 
     ~FileAlreadyExistsException() throw () {
     }
+
+public:
+    static const char * ReflexName;
 };
 
-class FileDoesNotExistException: public GopherwoodException {
+class FileNotFoundException: public GopherwoodException {
 public:
-	FileDoesNotExistException(const std::string & arg, const char * file, int line,
+    FileNotFoundException(const std::string & arg, const char * file, int line,
                           const char * stack) :
         GopherwoodException(arg, file, line, stack) {
     }
 
-    ~FileDoesNotExistException() throw () {
+    ~FileNotFoundException() throw () {
     }
+
+public:
+    static const char * ReflexName;
 };
 
-class DirectoryNotEmptyException: public GopherwoodException {
+class GopherwoodBadBoolFoumat: public GopherwoodException {
 public:
-	DirectoryNotEmptyException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
+    GopherwoodBadBoolFoumat(const std::string & arg, const char * file, int line,
+                      const char * stack) :
         GopherwoodException(arg, file, line, stack) {
     }
 
-    ~DirectoryNotEmptyException() throw () {
+    ~GopherwoodBadBoolFoumat() throw () {
     }
 };
 
-class FailedToCheckpointException: public GopherwoodException {
+class GopherwoodBadConfigFoumat: public GopherwoodException {
 public:
-	FailedToCheckpointException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
+    GopherwoodBadConfigFoumat(const std::string & arg, const char * file, int line,
+                        const char * stack) :
         GopherwoodException(arg, file, line, stack) {
     }
 
-    ~FailedToCheckpointException() throw () {
+    ~GopherwoodBadConfigFoumat() throw () {
     }
 };
 
-class FileAlreadyCompletedException: public GopherwoodException {
+class GopherwoodBadNumFoumat: public GopherwoodException {
 public:
-	FileAlreadyCompletedException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
+    GopherwoodBadNumFoumat(const std::string & arg, const char * file, int line,
+                     const char * stack) :
         GopherwoodException(arg, file, line, stack) {
     }
 
-    ~FileAlreadyCompletedException() throw () {
+    ~GopherwoodBadNumFoumat() throw () {
     }
 };
 
-class InvalidFileSizeException: public GopherwoodException {
+class GopherwoodCanceled: public GopherwoodException {
 public:
-	InvalidFileSizeException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
+    GopherwoodCanceled(const std::string & arg, const char * file, int line,
+                 const char * stack) :
         GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~InvalidFileSizeException() throw () {
-    }
-};
-
-class InvalidPathException: public GopherwoodException {
-public:
-	InvalidPathException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~InvalidPathException() throw () {
-    }
-};
-
-class InvalidWorkerStateException: public GopherwoodException {
-public:
-	InvalidWorkerStateException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~InvalidWorkerStateException() throw () {
-    }
-};
-
-class LineageDeletionException: public GopherwoodException {
-public:
-	LineageDeletionException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~LineageDeletionException() throw () {
-    }
-};
-
-class LineageDoesNotExistException: public GopherwoodException {
-public:
-	LineageDoesNotExistException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~LineageDoesNotExistException() throw () {
-    }
-};
-
-class NoWorkerException: public GopherwoodException {
-public:
-	NoWorkerException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~NoWorkerException() throw () {
-    }
-};
-
-class WorkerOutOfSpaceException: public GopherwoodException {
-public:
-	WorkerOutOfSpaceException(const std::string & arg, const char * file, int line,
-                          const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~WorkerOutOfSpaceException() throw () {
-    }
-};
-
-
-class GopherwoodCanceled: public GopherwoodIOException {
-public:
-	GopherwoodCanceled(const std::string & arg, const char * file, int line,
-                    const char * stack) :
-        GopherwoodIOException(arg, file, line, stack) {
     }
 
     ~GopherwoodCanceled() throw () {
+    }
+};
+
+class GopherwoodFileSystemClosed: public GopherwoodException {
+public:
+    GopherwoodFileSystemClosed(const std::string & arg, const char * file, int line,
+                         const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodFileSystemClosed() throw () {
+    }
+};
+
+class GopherwoodConfigInvalid: public GopherwoodException {
+public:
+    GopherwoodConfigInvalid(const std::string & arg, const char * file, int line,
+                      const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodConfigInvalid() throw () {
+    }
+};
+
+class GopherwoodConfigNotFound: public GopherwoodException {
+public:
+    GopherwoodConfigNotFound(const std::string & arg, const char * file, int line,
+                       const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodConfigNotFound() throw () {
     }
 };
 
@@ -322,6 +251,35 @@ public:
     }
 
     ~GopherwoodEndOfStream() throw () {
+    }
+};
+
+class GopherwoodInvalidBlockToken: public GopherwoodException {
+public:
+    GopherwoodInvalidBlockToken(const std::string & arg, const char * file, int line,
+                          const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodInvalidBlockToken() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+/**
+ * This will wrap GopherwoodNetworkConnectionException and GopherwoodTimeoutException.
+ * This exception will be caught and attempt will be performed to recover in HA case.
+ */
+class GopherwoodFailoverException: public GopherwoodException {
+public:
+    GopherwoodFailoverException(const std::string & arg, const char * file, int line,
+                          const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodFailoverException() throw () {
     }
 };
 
@@ -374,48 +332,210 @@ private:
     std::string errMsg;
 };
 
-class GopherwoodTimeoutException: public GopherwoodIOException {
+class GopherwoodTimeoutException: public GopherwoodException {
 public:
     GopherwoodTimeoutException(const std::string & arg, const char * file, int line,
                          const char * stack) :
-        GopherwoodIOException(arg, file, line, stack) {
-    };
+        GopherwoodException(arg, file, line, stack) {
+    }
 
     ~GopherwoodTimeoutException() throw () {
     }
 };
 
-class GopherwoodIllegalStateException: public GopherwoodException {
+class InvalidParameter: public GopherwoodException {
 public:
-	GopherwoodIllegalStateException(const std::string & arg, const char * file, int line,
-                         const char * stack) :
-        GopherwoodException(arg, file, line, stack) {
-    }
-
-    ~GopherwoodIllegalStateException() throw () {
-    }
-};
-
-class InvalidParameterException: public GopherwoodException {
-public:
-	InvalidParameterException(const std::string & arg, const char * file, int line,
+    InvalidParameter(const std::string & arg, const char * file, int line,
                      const char * stack) :
         GopherwoodException(arg, file, line, stack) {
     }
 
-    ~InvalidParameterException() throw () {
+    ~InvalidParameter() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class HadoopIllegalArgumentException : public InvalidParameter {
+public:
+    HadoopIllegalArgumentException(const std::string& arg, const char* file,
+                                   int line, const char* stack)
+        : InvalidParameter(arg, file, line, stack) {
+    }
+
+    ~HadoopIllegalArgumentException() throw() {
+    }
+
+public:
+    static const char* ReflexName;
+};
+
+class InvalidPath: public GopherwoodException {
+public:
+    InvalidPath(const std::string & arg, const char * file, int line,
+                const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~InvalidPath() throw () {
     }
 };
 
-class RpcNoSuchMethodException: public GopherwoodIOException {
+class NotReplicatedYetException: public GopherwoodException {
+public:
+    NotReplicatedYetException(const std::string & arg, const char * file,
+                              int line, const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~NotReplicatedYetException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class NSQuotaExceededException: public GopherwoodException {
+public:
+    NSQuotaExceededException(const std::string & arg, const char * file,
+                             int line, const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~NSQuotaExceededException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class ParentNotDirectoryException: public GopherwoodException {
+public:
+    ParentNotDirectoryException(const std::string & arg, const char * file,
+                                int line, const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~ParentNotDirectoryException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class ReplicaNotFoundException: public GopherwoodException {
+public:
+    ReplicaNotFoundException(const std::string & arg, const char * file,
+                             int line, const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~ReplicaNotFoundException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class SafeModeException: public GopherwoodException {
+public:
+    SafeModeException(const std::string & arg, const char * file, int line,
+                      const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~SafeModeException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class UnresolvedLinkException: public GopherwoodException {
+public:
+    UnresolvedLinkException(const std::string & arg, const char * file,
+                            int line, const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~UnresolvedLinkException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class UnsupportedOperationException: public GopherwoodException {
+public:
+    UnsupportedOperationException(const std::string & arg, const char * file,
+                                  int line, const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~UnsupportedOperationException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class SaslException: public GopherwoodException {
+public:
+    SaslException(const std::string & arg, const char * file, int line,
+                  const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~SaslException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class NameNodeStandbyException: public GopherwoodException {
+public:
+    NameNodeStandbyException(const std::string & arg, const char * file,
+                             int line, const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~NameNodeStandbyException() throw () {
+    }
+
+public:
+    static const char * ReflexName;
+};
+
+class RpcNoSuchMethodException: public GopherwoodException {
 public:
     RpcNoSuchMethodException(const std::string & arg, const char * file,
-                             int line, const char * stack);
+                             int line, const char * stack) :
+        GopherwoodException(arg, file, line, stack) {
+    }
 
     ~RpcNoSuchMethodException() throw () {
     }
+
+public:
+    static const char * ReflexName;
+};
+
+class RecoveryInProgressException : public GopherwoodException {
+ public:
+  RecoveryInProgressException(const std::string & arg, const char * file,
+                              int line, const char * stack)
+      : GopherwoodException(arg, file, line, stack) {
+  }
+
+  ~RecoveryInProgressException() throw () {
+  }
+
+ public:
+  static const char * ReflexName;
 };
 
 }
 
-#endif /* _GOPHERWOOD_COMMON_EXCEPTION_H_ */
+#endif /* _Gopherwood_LIBGopherwood3_COMMON_EXCEPTION_H_ */

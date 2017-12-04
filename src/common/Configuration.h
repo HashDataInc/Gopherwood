@@ -24,10 +24,10 @@
 #define _GOPHERWOOD_COMMON_CONFIGURATION_H_
 
 namespace Gopherwood {
-namespace Internal {
-class Configuration {
-};
-}
+    namespace Internal {
+        class Configuration {
+        };
+    }
 }
 
 

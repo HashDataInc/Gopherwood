@@ -1,0 +1,7 @@
+/gopherwood/build/CMakeFiles/doc.dir
+/gopherwood/build/test/function/CMakeFiles/function.dir
+/gopherwood/build/test/CMakeFiles/functiontest.dir
+/gopherwood/build/src/CMakeFiles/libgopherwood-shared.dir
+/gopherwood/build/src/CMakeFiles/libgopherwood-static.dir
+/gopherwood/build/CMakeFiles/style.dir
+/gopherwood/build/test/CMakeFiles/test.dir

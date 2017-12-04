@@ -22,3 +22,29 @@ ADD_CUSTOM_TARGET(test
 )
 
 SET(function_SOURCES ${function_SOURCES} PARENT_SCOPE)
+
+# the following is added by qihouliang
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -23,9 +23,9 @@
 #include "Configuration.h"
 
 namespace Gopherwood {
-namespace Internal {
+    namespace Internal {
 
-}
+    }
 }
 
 

@@ -1,0 +1,6 @@
+/usr/local/lib/libgopherwood.a
+/usr/local/lib/libgopherwood.so.0.0.1
+/usr/local/lib/libgopherwood.so.1
+/usr/local/lib/libgopherwood.so
+/usr/local/include/gopherwood/gopherwood.h
+/usr/local/lib/pkgconfig/libgopherwood.pc

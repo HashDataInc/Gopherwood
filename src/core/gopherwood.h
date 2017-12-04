@@ -1,88 +1,113 @@
-#ifndef _LIBGOPHERWOOD_H_INCLUDED
-#define _LIBGOPHERWOOD_H_INCLUDED
+
+#ifndef _GOPHERWOOD_CORE_GOPHERWOOD_H_
+#define _GOPHERWOOD_CORE_GOPHERWOOD_H_
 
 
+#include <cstdio>
+#include <cstdint>
 
-#endif // SSDKVCLIENT_H_INCLUDED
+//#include "FileSystem.h"
+//#include "InputStream.h"
+//#include "OutputStream.h"
+//#include "Exception.h"
+//#include "Logger.h"
+//#include "XmlConfig.h"
+//#include "fcntl.h"
+
+//#ifndef O_RDONLY
+//#define O_RDONLY 1
+//#endif
+//
+//#ifndef O_WRONLY
+//#define O_WRONLY 2
+//#endif
+//
+//#ifndef EINTERNAL
+//#define EINTERNAL 255
+//#endif
+
+/** All APIs set errno to meaningful values */
+
+
 
 typedef int32_t tSize; /// size of data for read/write io ops
 typedef int64_t tOffset; /// offset within the file
 
-struct SSDKVFileInternalWrapper;
-typedef struct SSDKVFileInternalWrapper * ssdkvFile;
+
+struct GWFileSystemInternalWrapper;
+typedef struct GWFileSystemInternalWrapper *gopherwoodFS;
+
+struct GWFileInternalWrapper;
+typedef struct GWFileInternalWrapper *gwFile;
+
 
 /**
- * ssdkvDeleteFile - Delete file.
+ * gwCreateContext - Connect to a gopherwood file system.
+ * @param fileName   the file name
+ */
+gopherwoodFS gwCreateContext( char *fileName);
+
+
+/**
+ * gwRead - Read data from an open file.
  * @param fs The configured filesystem handle.
- * @return Returns 0 on success, -1 on error.
- */
-int ssdkvDeleteFile(ssdkvFile fs);
-
-/**
- * ssdkvOpenFile - Open a ssdkvFile according to the fileName
- * @param fileName The name of the file to be opened
- * @return Returns the handle to the open file or NULL on error.
- */
-ssdkvFile ssdkvOpenFile(const char * fileName);
-
-/**
- * ssdkvCloseFile - Close an open file.
- * @param fileName The name of the file to be closed
- * @return Returns 0 on success, -1 on error.
- */
-int ssdkvCloseFile(const char * fileName);
-
-
-
-
-/**
- * ssdkvRead - Read data from an open file.
  * @param file The file handle.
  * @param buffer The buffer to copy read bytes into.
  * @param length The length of the buffer.
- * @return      On success, a positive number indicating how many bytes were read.
+ * @return      On success, a positive number indicating how many bytes
+ *              were read.
  *              On end-of-file, 0.
- *              On error, -1.
+ *              On error, -1.  Errno will be set to the error code.
+ *              Just like the POSIX read function, hdfsRead will return -1
+ *              and set errno to EINTR if data is temporarily unavailable,
+ *              but we are not yet at the end of the file.
  */
-tSize ssdkvRead(ssdkvFile file, void * buffer, tSize length);
+tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length);
 
 
 /**
- * ssdkvWrite - Write data into an open file.
+ * gwWrite - Write data into an open file.
+ * @param fs The configured filesystem handle.
  * @param file The file handle.
  * @param buffer The data.
  * @param length The no. of bytes to write.
  * @return Returns the number of bytes written, -1 on error.
  */
-tSize ssdkvWrite(ssdkvFile file, const void * buffer, tSize length);
+tSize gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length);
 
 
 /**
- * ssdkvSeek - Seek to given offset in file.
+ * gwFlush - Flush the data.
+ * @param fs The configured filesystem handle.
+ * @param file The file handle.
+ * @return Returns 0 on success, -1 on error.
+ */
+int gwFlush(gopherwoodFS fs, gwFile file);
+
+
+/**
+ * gwOpenFile - Open a gopherwood file in given mode.
+ * @param fs The configured filesystem handle.
+ * @param fileName The file name.
+ * @param flags - an | of bits/fcntl.h file flags - supported flags are O_RDONLY, O_WRONLY (meaning create or overwrite i.e., implies O_TRUNCAT),
+ * O_WRONLY|O_APPEND and O_SYNC. Other flags are generally ignored other than (O_RDWR || (O_EXCL & O_CREAT)) which return NULL and set errno equal ENOTSUP.
+ * @param bufferSize Size of buffer for read/write - pass 0 if you want
+ * to use the default configured values.
+ * @return Returns the handle to the open file or NULL on error.
+ */
+gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags, int bufferSize);
+
+
+
+/**
+ * gwSeek - Seek to given offset in file.
+ * This works only for files opened in read-only mode.
  * @param file The file handle.
  * @param desiredPos Offset into the file to seek into.
  * @return Returns 0 on success, -1 on error.
  */
-int ssdkvSeek(ssdkvFile file, tOffset desiredPos);
+//TODO in this implement, only the read-only mode can seek the file,
+//TODO write mode are not allowed.
+int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos);
 
-
-/**
- * ssdkvFlush - flush the data of the file to persistent storage.
- * @param file The file handle.
- * @return Returns 0 on success, -1 on error.
- */
-int ssdkvFlush(ssdkvFile file);
-
-
-/**
- * init - init the storage according to the conf.
- * @return Returns 0 on success, -1 on error.
- */
-int init();
-
-
-/**
- * isExist - whether the storage file exist or not?
- * @return Returns true on exist, false otherwise.
- */
-bool isExist();
+#endif /* _GOPHERWOOD_CORE_GOPHERWOOD_H_ */

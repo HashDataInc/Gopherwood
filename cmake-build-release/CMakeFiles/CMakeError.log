@@ -1,0 +1,161 @@
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/bin/c++flit 
+Build flags: 
+Id flags:  
+
+The output was:
+No such file or directory
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/bin/c++flit 
+Build flags: 
+Id flags: -c 
+
+The output was:
+No such file or directory
+
+
+Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/include/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+Permission denied
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/include/c++ 
+Build flags: 
+Id flags: -c 
+
+The output was:
+Permission denied
+
+
+Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+Determining if the CXX compiler works failed with the following output:
+Change Dir: /home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_87eed/fast"
+/usr/bin/make -f CMakeFiles/cmTC_87eed.dir/build.make CMakeFiles/cmTC_87eed.dir/build
+make[1]: Entering directory `/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_87eed.dir/testCXXCompiler.cxx.o
+/usr/include/c++     -o CMakeFiles/cmTC_87eed.dir/testCXXCompiler.cxx.o -c /home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+make[1]: execvp: /usr/include/c++: Permission denied
+make[1]: *** [CMakeFiles/cmTC_87eed.dir/testCXXCompiler.cxx.o] Error 127
+make[1]: Leaving directory `/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp'
+make: *** [cmTC_87eed/fast] Error 2
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/include/c++/4.8.1 
+Build flags: 
+Id flags:  
+
+The output was:
+Permission denied
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/include/c++/4.8.1 
+Build flags: 
+Id flags: -c 
+
+The output was:
+Permission denied
+
+
+Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+Determining if the CXX compiler works failed with the following output:
+Change Dir: /home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_4d9c1/fast"
+/usr/bin/make -f CMakeFiles/cmTC_4d9c1.dir/build.make CMakeFiles/cmTC_4d9c1.dir/build
+make[1]: Entering directory `/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_4d9c1.dir/testCXXCompiler.cxx.o
+/usr/include/c++/4.8.1     -o CMakeFiles/cmTC_4d9c1.dir/testCXXCompiler.cxx.o -c /home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+make[1]: execvp: /usr/include/c++/4.8.1: Permission denied
+make[1]: *** [CMakeFiles/cmTC_4d9c1.dir/testCXXCompiler.cxx.o] Error 127
+make[1]: Leaving directory `/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp'
+make: *** [cmTC_4d9c1/fast] Error 2
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/bin/X11/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+No such file or directory
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/bin/X11/c++ 
+Build flags: 
+Id flags: -c 
+
+The output was:
+No such file or directory
+
+
+Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/bin/X11/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+No such file or directory
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/bin/X11/c++ 
+Build flags: 
+Id flags: -c 
+
+The output was:
+No such file or directory
+
+
+Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/bin/X11/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+No such file or directory
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /usr/bin/X11/c++ 
+Build flags: 
+Id flags: -c 
+
+The output was:
+No such file or directory
+
+
+Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+Determining if the function dladdr exists failed with the following output:
+Change Dir: /home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_1a6a1/fast"
+/usr/bin/make -f CMakeFiles/cmTC_1a6a1.dir/build.make CMakeFiles/cmTC_1a6a1.dir/build
+make[1]: Entering directory `/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_1a6a1.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=dladdr   -o CMakeFiles/cmTC_1a6a1.dir/CheckFunctionExists.c.o   -c /home/qhl/software/clion-2017.2.3/bin/cmake/share/cmake-3.8/Modules/CheckFunctionExists.c
+Linking C executable cmTC_1a6a1
+/home/qhl/software/clion-2017.2.3/bin/cmake/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1a6a1.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=dladdr    -rdynamic CMakeFiles/cmTC_1a6a1.dir/CheckFunctionExists.c.o  -o cmTC_1a6a1 
+CMakeFiles/cmTC_1a6a1.dir/CheckFunctionExists.c.o: In function `main':
+CheckFunctionExists.c:(.text+0x10): undefined reference to `dladdr'
+collect2: error: ld returned 1 exit status
+make[1]: *** [cmTC_1a6a1] Error 1
+make[1]: Leaving directory `/home/qhl/cmakeworkspace/Gopherwood/cmake-build-release/CMakeFiles/CMakeTmp'
+make: *** [cmTC_1a6a1/fast] Error 2
+
+
