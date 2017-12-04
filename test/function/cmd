@@ -1,3 +1,0 @@
-gcc -c FunctionTestMain.cpp
-g++  FunctionTestMain.o -std=c++11 -L /usr/local/lib  -lgopherwood -lgtest -lpthread
-g++ -o TestFileSystem TestFileSystem.cpp -std=c++11 -L /usr/local/lib  -lgopherwood -lgtest -lpthread
