@@ -52,8 +52,7 @@ namespace Gopherwood {
             std::filebuf fbuf;
             fbuf.open(SHARED_MEMORY_PATH_FILE_NAME, std::ios_base::in | std::ios_base::out
                                                     | std::ios_base::trunc | std::ios_base::binary);
-            fbuf.pubseekoff(SM_FILE_SIZE - 1, std::ios_base::beg);
-//            fbuf.sputc(0);
+//            fbuf.pubseekoff(SM_FILE_SIZE - 1, std::ios_base::beg);
             for (int i = 0; i < SM_FILE_SIZE; i++) {
                 fbuf.sputc(0);
             }
@@ -87,19 +86,22 @@ namespace Gopherwood {
 
 
 //            Get the address of the mapped region
+
             void *addr = regionPtr->get_address();
             std::size_t size = regionPtr->get_size();
 
 
             const char *mem = static_cast<char *> (addr);
 
-            LOG(INFO, "before size mem is= %d", strlen(mem));
+            int length = 0;
+            int type = *((int *) (mem + length));
+            LOG(INFO, "semaphore flag = %d", type);
 
-            for (int i = 0; i < SM_FILE_SIZE; i++) {
-                char c = mem[i];
-                for (int j = 7; j >= 0; j--) {
-                    LOG(INFO, "*mem++ = %d", ((c >> j) & 1));
-                }
+            length = length + 4;
+            while (length < SM_FILE_SIZE) {
+                int type = *((int *) (mem + length));
+                LOG(INFO, "type = %d", type);
+                length = length + 4 + 255;
             }
         }
 
@@ -114,6 +116,103 @@ namespace Gopherwood {
             }
         }
 
+
+        bool SharedMemoryManager::checkAndSetSMOne() {
+            char *mem = static_cast<char *>(regionPtr->get_address());
+//            char c = mem[0];
+//            LOG(INFO, "checkAndSetSM1 before *mem = %d", *mem);
+//            LOG(INFO, "checkAndSetSM1 before *mem  first = %d", ((c >> 0) & 1));
+            if (*((int *) (mem)) != 0) {
+                LOG(LOG_ERROR, "shared memory is broken");
+                return true;
+            } else {
+                int *tmp = (int *) (mem);
+                *tmp = 1;
+//                bitSet(mem, 1, 1);
+            }
+//            c = mem[0];
+//            LOG(INFO, "checkAndSetSM1 after *mem = %d", *mem);
+//            LOG(INFO, "checkAndSetSM1 after *mem  first = %d", ((c >> 0) & 1));
+            return false;
+        }
+
+        void SharedMemoryManager::checkAndSetSMZero() {
+            char *mem = static_cast<char *>(regionPtr->get_address());
+//            char c = mem[0];
+//            LOG(INFO, " checkAndSetSM0 before *mem = %d", *mem);
+//            LOG(INFO, " checkAndSetSM0 before *mem  first = %d", ((c >> 0) & 1));
+
+            int *tmp = (int *) (mem);
+            *tmp = 0;
+////            bitSet(mem, 1, 0);
+//            c = mem[0];
+//            LOG(INFO, "checkAndSetSM0 after *mem = %d", *mem);
+//            LOG(INFO, "checkAndSetSM0 after *mem  first = %d", ((c >> 0) & 1));
+        }
+
+
+        int SharedMemoryManager::acquireNewBlock() {
+
+            LOG(INFO, "acquireNewBlock method");
+            if (!semaphoreP()) {
+                LOG(LOG_ERROR, "can not acquire the semaphore, acquireNewBlock failure");
+            }
+
+            if (checkAndSetSMOne()) {
+                LOG(LOG_ERROR, "acquireNewBlock failed, shared memory is broken");
+                return -1;
+            }
+
+            int i = 1;
+            int length = 4;
+            char *mem = static_cast<char *>(regionPtr->get_address());
+
+            int semFlag = *((int *) (mem));
+            LOG(INFO, "semFlag = %d", semFlag);
+            while (length < SM_FILE_SIZE) {
+                int type = *((int *) (mem + length));
+                if (type == 0) {
+                    int *tmp = (int *) (mem + length);
+                    *tmp = 1;
+
+                    length = length + 4;
+                    char *tmpFile = generateStr(50);
+
+
+                    memcpy(mem + length, tmpFile, strlen(tmpFile));
+                    LOG(INFO, "i = %d,length = %d,tmpFile=%s", i, length, tmpFile);
+
+
+                    char tmpName[255];
+                    memcpy(tmpName, mem + length, sizeof(tmpName));
+                    LOG(INFO, "type = %d, name = %s", type, tmpName);
+
+                    break;
+                }
+
+                char tmpName[255];
+                memcpy(tmpName, mem + length + 4, sizeof(tmpName));
+                LOG(INFO, "type = %d, name = %s", type, tmpName);
+
+                i++;
+                length = length + 4 + 255;
+            }
+
+
+            checkAndSetSMZero();
+
+            if (!semaphoreV()) {
+                LOG(LOG_ERROR, "can not release the semaphore, acquireNewBlock failure");
+            }
+
+            if (length >= SM_FILE_SIZE) {
+                LOG(INFO, "no enough room for the ssd bucket");
+            }
+
+            return i;
+
+        }
+
         void SharedMemoryManager::bitSet(char *p_data, int32_t position, int flag) {
             if (position > 8 || position < 1 || (flag != 0 && flag != 1)) {
                 LOG(LOG_ERROR, "in the bitSet method, the position is illegal");
@@ -125,32 +224,37 @@ namespace Gopherwood {
         }
 
 
-        bool SharedMemoryManager::checkAndSetSMOne() {
-            char *mem = static_cast<char *>(regionPtr->get_address());
-            char c = mem[0];
-            LOG(INFO, "checkAndSetSM1 before *mem = %d", *mem);
-            LOG(INFO, "checkAndSetSM1 before *mem  first = %d", ((c >> 0) & 1));
-            if ((int) (*mem) != 0) {
-                LOG(LOG_ERROR, "shared memory is broken");
-                return true;
-            } else {
-                bitSet(mem, 1, 1);
+        char *SharedMemoryManager::generateStr(int length) {
+            char str[length + 1];
+            int i, flag;
+
+            srand(time(NULL));
+            for (i = 0; i < length; i++) {
+                flag = rand() % 3;
+                switch (flag) {
+                    case 0:
+                        str[i] = rand() % 26 + 'a';
+                        break;
+                    case 1:
+                        str[i] = rand() % 26 + 'A';
+                        break;
+                    case 2:
+                        str[i] = rand() % 10 + '0';
+                        break;
+                }
             }
-            LOG(INFO, "checkAndSetSM1 after *mem = %d", *mem);
-            LOG(INFO, "checkAndSetSM1 after *mem  first = %d", ((c >> 0) & 1));
-            return false;
+            return str;
         }
 
-        void SharedMemoryManager::checkAndSetSMZero() {
-            char *mem = static_cast<char *>(regionPtr->get_address());
-            char c = mem[0];
-            LOG(INFO, " checkAndSetSM0 before *mem = %d", *mem);
-            LOG(INFO, " checkAndSetSM0 before *mem  first = %d", ((c >> 0) & 1));
 
-            bitSet(mem, 1, 0);
-            LOG(INFO, "checkAndSetSM0 after *mem = %d", *mem);
-            LOG(INFO, "checkAndSetSM0 after *mem  first = %d", ((c >> 0) & 1));
-        }
+
+
+
+
+
+
+        /**
+
 
 
         int SharedMemoryManager::acquireNewBlock() {
@@ -177,7 +281,7 @@ namespace Gopherwood {
 //                    LOG(INFO, "the if condition= %d",((c >> j)^1));
                     if (((c >> j) ^ 1) == 1) {
                         bitSet(&c, j + 1, 1);
-                        LOG(INFO, "i = %d,j = %d",i,j);
+//                        LOG(INFO, "i = %d,j = %d",i,j);
                         flag = false;
                         break;
                     }
@@ -201,15 +305,15 @@ namespace Gopherwood {
             }
 
             int res = i * 8 + j - BUCKET_ID_BASE_OFFSET;
-            LOG(LOG_ERROR, "the really bucket num = %d",res);
+//            LOG(INFO, "the really bucket num = %d",res);
             return i * 8 + j - BUCKET_ID_BASE_OFFSET;
 
         }
 
+         **/
+
+
         // ******************* semaphore **************************
-
-
-
 
         int SharedMemoryManager::checkSemaphore() {
             key_t key = ftok(SHARED_MEMORY_PATH_FILE_NAME, 1);

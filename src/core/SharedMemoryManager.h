@@ -110,6 +110,7 @@ namespace Gopherwood {
             int checkSemaphore();
             bool checkAndSetSMOne();
             void checkAndSetSMZero();
+            char* generateStr(int length);
 
         };
 
