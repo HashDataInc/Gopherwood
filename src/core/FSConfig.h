@@ -15,20 +15,16 @@ namespace Gopherwood {
 
 
         extern int32_t SHM_SIZE;//the size of shared memory
-        extern int32_t SIZE_OF_FILE;//= 20 * 1024 * 1024 * 1024;//the size of the SSD file, default is 20GB
-        extern int32_t SIZE_OF_BLOCK;// = 64 * 1024 * 1024; //the size of the bucket size
-//const int32_t BIT_MAP_SIZE=SIZE_OF_FILE/(SIZE_OF_BLOCK*8);
-        extern int32_t BIT_MAP_SIZE;// = 40;
+        extern int32_t SIZE_OF_FILE;//the size of the SSD file, default is 20GB
+        extern int32_t SIZE_OF_BLOCK;
+        extern int32_t BIT_MAP_SIZE;
 
-        extern char *bucketFilePath;// = "/ssdfile/ssdkv/gopherwood";
-        extern char *sharedMemoryFileName;// = "smFile";// the file which save the key of the shared memory
+        extern char *BUCKET_PATH_FILE_NAME;
 
-        extern char *sharedMemoryPath;// = "/ssdfile/ssdkv/sharedMemory/";
-
-
-        extern char *smPathFileName;// = "/ssdfile/ssdkv/sharedMemory/smFile";
+        extern char *SHARED_MEMORY_PATH_FILE_NAME;
         extern int SM_FILE_SIZE;
-//        extern char *SHARED_MEMORY_KEY;
+        extern char * FILE_LOG_PERSISTENCE_PATH;
+        extern int BUCKET_ID_BASE_OFFSET;
     }
 
 

@@ -11,17 +11,17 @@ namespace Gopherwood {
 
         int32_t BIT_MAP_SIZE = 40;
 
-        char *bucketFilePath = "/ssdfile/ssdkv/gopherwood";
-        char *sharedMemoryPath = "/ssdfile/ssdkv/sharedMemory/";
+        char *BUCKET_PATH_FILE_NAME = "/ssdfile/ssdkv/gopherwood";
+//        char *sharedMemoryPath = "/ssdfile/ssdkv/sharedMemory/";
+//
+//        char *sharedMemoryFileName = "smFile";// the file which save the key of the shared memory
 
-        char *sharedMemoryFileName = "smFile";// the file which save the key of the shared memory
 
+        char *SHARED_MEMORY_PATH_FILE_NAME = "/ssdfile/ssdkv/sharedMemory/smFile";
 
-        char *smPathFileName = "/ssdfile/ssdkv/sharedMemory/smFile";
-
-        int SM_FILE_SIZE = 40;
-
-//        char *SHARED_MEMORY_KEY = "gopherwood_shared_memory_key";
+        char *FILE_LOG_PERSISTENCE_PATH = "/ssdfile/ssdkv/logPersistence/";
+        int SM_FILE_SIZE = 2;
+        int BUCKET_ID_BASE_OFFSET = 8;
     }
 
 

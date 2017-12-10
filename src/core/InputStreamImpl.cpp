@@ -193,7 +193,7 @@ namespace Gopherwood {
         //TODO,
         void InputStreamImpl::close() {
 
-            filesystem->closeFile();
+            filesystem->closeFile((char*)fileName.data());
 
 
         }

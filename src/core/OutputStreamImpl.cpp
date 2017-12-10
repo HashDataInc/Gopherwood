@@ -43,7 +43,14 @@ namespace Gopherwood {
             LOG(INFO, "getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",status->getBlockIdVector().size(),status->getLastBucket(),status->getEndOffsetOfBucket());
             int64_t endOfOffset = filesystem->getTheEOFOffset(fileName);
             LOG(INFO, "endOfOffset = %d",endOfOffset);
-            seek(endOfOffset);
+
+            if(status->getBlockIdVector().size()==0){
+                LOG(INFO, "openFile do not seek, because the file do not contain any bucket");
+                //do nothing, because the file do not contain any bucket.
+            }else{
+                seek(endOfOffset);
+            }
+
         }
 
         OutputStreamImpl::~OutputStreamImpl() {
@@ -56,9 +63,9 @@ namespace Gopherwood {
                 LOG(INFO, "Invalid parameter.");
 //                THROW(InvalidParameter, "Invalid parameter.");
             }
-
-            checkStatus();
-
+            if(status->getBlockIdVector().size()==0){
+                seek(0);
+            }
             try {
                 writeInternal((char *) buf, size);
             } catch (...) {
@@ -69,22 +76,20 @@ namespace Gopherwood {
 
 
         void OutputStreamImpl::writeInternal(char *buf, int64_t size) {
-//            LOG(INFO, "come in the writeInternal method in OutputStreamImpl");
+            LOG(INFO, "come in the writeInternal method in OutputStreamImpl");
             int64_t remainOffsetInBlock = SIZE_OF_BLOCK - cursorOffset;
 //            LOG(INFO, "cursorOffset = %d, cursorIndex=%d,cursorBucketID=%d",cursorOffset,cursorIndex,cursorBucketID);
 //            LOG(INFO, "data write size = %d, remainOffsetInBlock=%d",size,remainOffsetInBlock);
             if (size <= remainOffsetInBlock) {
                 filesystem->writeDataToBucket(buf, size);
                 cursorOffset += size;
-
-                //set the cursorOffset
-                status->setEndOffsetOfBucket(cursorOffset+size);
             } else {
                 int64_t remainOffsetTotal = getRemainLength();
                 //TODO, this maybe wrong, because, I don't know when acquire a block, it will sync with the filesystem/FileStatus or not.
                 //TODO, if it does not work, we should check the code and try another method.
-                while (size > remainOffsetTotal) {
 
+
+                while ((size > remainOffsetTotal)) {
                     //1&2 acquire one block, sync to the shared memory and LOG system.
                     filesystem->acquireNewBlock((char *) fileName.data());
                     remainOffsetTotal += SIZE_OF_BLOCK;
@@ -110,13 +115,13 @@ namespace Gopherwood {
                         remainSize -= remainSize;
                         haveWriteSize += remainSize;
 
-                        //set the cursorOffset
-                        status->setEndOffsetOfBucket(remainSize);
                     }
                 }
 
+                //3. set the EndOffsetOfBucket
+                status->setEndOffsetOfBucket(cursorOffset);
 
-                //3. TODO. write new file status to the LOG system.
+                //4. TODO. write new file status to the LOG system.
 
             }
         }
@@ -153,7 +158,7 @@ namespace Gopherwood {
 
 
         void OutputStreamImpl::close() {
-            filesystem->closeFile();
+            filesystem->closeFile((char*)fileName.data());
         }
 
         void OutputStreamImpl::seek(int64_t pos) {
@@ -165,14 +170,14 @@ namespace Gopherwood {
             }
         }
 
+
+
         void OutputStreamImpl::seekInternal(int64_t pos) {
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
-            if(theEOFOffset==0){
-                LOG(INFO, "the file do not contain any one bucket");
-                return ;
-            }
+            LOG(INFO, "theEOFOffset = %d",theEOFOffset);
 
-            if (theEOFOffset> pos) {
+
+            if (pos>theEOFOffset) {
                 //todo, throw error
                 LOG(LOG_ERROR, "error, the given pos exceed the size of the file");
             }
@@ -202,7 +207,10 @@ namespace Gopherwood {
 
 
         void OutputStreamImpl::checkStatus() {
-
+            if(status->getBlockIdVector().size()==0){
+                LOG(INFO, "checkStatus, the file do not contain any bucket, so create new one for write");
+                filesystem->acquireNewBlock((char*)fileName.data());
+            }
         }
 
         void OutputStreamImpl::seekToNextBlock() {

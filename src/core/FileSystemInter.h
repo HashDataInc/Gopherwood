@@ -101,7 +101,7 @@ namespace Gopherwood {
 
             virtual int32_t fsSeek(int64_t offset, int whence)=0;
 
-            virtual void closeFile()=0;
+            virtual void closeFile(char *fileName)=0;
             virtual void stopSystem() = 0;
             virtual std::shared_ptr<FileStatus> getFileStatus(char *fileName)=0;
 

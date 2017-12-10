@@ -35,14 +35,14 @@ namespace Gopherwood {
         std::unordered_map<string, std::shared_ptr<FileStatus>>
         FileSystemImpl::rebuildFileStatusFromLog(char *fileName) {
             std::unordered_map<string, std::shared_ptr<FileStatus>> tmp;
-            return  tmp;
+            return tmp;
         };
 
         //TODO
         std::unordered_map<string, std::shared_ptr<FileStatus>>
         FileSystemImpl::catchUpFileStatusFromLog(int64_t logOffset) {
             std::unordered_map<string, std::shared_ptr<FileStatus>> tmp;
-            return  tmp;
+            return tmp;
         };
 
         bool FileSystemImpl::checkFileExist(char *fileName) {
@@ -60,6 +60,10 @@ namespace Gopherwood {
                 status.reset(new FileStatus());
             }
             status->setFileName(fileName);
+
+            string tmpFileName = fileStatusMap[fileName]->getFileName();
+            LOG(INFO, "FileSystemImpl::createFile fileName = %s", tmpFileName.data());
+
 //            acquireNewBlock(fileName);
         }
 
@@ -89,10 +93,7 @@ namespace Gopherwood {
         int64_t FileSystemImpl::getTheEOFOffset(const char *fileName) {
             vector<int32_t> blockIDVector = fileStatusMap[fileName]->getBlockIdVector();
 
-            //just create the file, do not allocate bucket
-            if(blockIDVector.size()==0){
-                return 0;
-            }
+
             int32_t lastBucket = fileStatusMap[fileName]->getLastBucket();
             int64_t endOffsetOfBucket = fileStatusMap[fileName]->getEndOffsetOfBucket();
 
@@ -134,8 +135,8 @@ namespace Gopherwood {
         void FileSystemImpl::checkBucketFileOpen() {
             int flags = O_CREAT | O_RDWR;
             if (bucketFd == -1) {
-                LOG(INFO, "the ssd file do not open, so create one");
-                bucketFd = open(bucketFilePath, flags, 0644);
+                LOG(INFO, "the ssd file do not open, so open it");
+                bucketFd = open(BUCKET_PATH_FILE_NAME, flags, 0644);
             }
         }
 
@@ -159,8 +160,36 @@ namespace Gopherwood {
         }
 
         //TODO, flush, write log and so on
-        void FileSystemImpl::closeFile() {
+        void FileSystemImpl::closeFile(char *fileName) {
+            LOG(INFO, "come in the closeFile");
+            persistentFileLog(fileName);
 
+        }
+
+        void FileSystemImpl::persistentFileLog(char *fileName) {
+
+            int flags = O_CREAT | O_RDWR | O_TRUNC;
+            char *filePathName = static_cast<char *>(malloc(strlen(fileName) + strlen(FILE_LOG_PERSISTENCE_PATH) + 1));
+            strcpy(filePathName, FILE_LOG_PERSISTENCE_PATH);
+            strcat(filePathName, fileName);
+            LOG(INFO, "filePathName = %s", filePathName);
+            int logFd = open(filePathName, flags, 0644);
+
+            std::shared_ptr<FileStatus> status = fileStatusMap[fileName];
+
+            char *tmpRes = status->serializeFileStatus();
+            int tmpTotalLength = *((int *) tmpRes);
+
+
+            char buf[tmpTotalLength + 4];
+            memcpy(buf, tmpRes, tmpTotalLength + 4);
+
+
+            LOG(INFO, "FileSystemImpl::persistentFileLog buf size= %d", tmpTotalLength + 4);
+
+            int32_t length = write(logFd, buf, tmpTotalLength + 4);
+
+            LOG(INFO, "FileSystemImpl::persistentFileLog write size = %d", length);
         }
 
 

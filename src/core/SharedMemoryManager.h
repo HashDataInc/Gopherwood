@@ -5,6 +5,14 @@
 #ifndef _GOPHERWOOD_CORE_SHAREDMEMORYMANAGER_H_
 #define _GOPHERWOOD_CORE_SHAREDMEMORYMANAGER_H_
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/sem.h>
 #include <memory>
 #include <cstdint>
 #include <vector>
@@ -81,9 +89,27 @@ namespace Gopherwood {
             std::shared_ptr<shared_memory_object> shmPtr;
             std::shared_ptr<mapped_region> regionPtr;
 
+            union semun {
+                int val;
+                struct semid_ds *buf;
+                unsigned short *arry;
+            };
+
+            int semaphoreID = 0;
+
         private:
-            void bitSet(char *p_data, char position, int flag);
+            void bitSet(char *p_data, int position, int flag);
+
             bool checkSharedMemoryInFile();
+
+            int createSemaphore();
+            int setSemaphoreValue();
+            void delSemaphoreValue();
+            int semaphoreP();
+            int semaphoreV();
+            int checkSemaphore();
+            bool checkAndSetSMOne();
+            void checkAndSetSMZero();
 
         };
 

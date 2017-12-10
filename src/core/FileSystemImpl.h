@@ -89,10 +89,13 @@ namespace Gopherwood {
 
             void closeBucketFile();
 
-            void closeFile();
+            void closeFile(char *fileName);
+
             void stopSystem();
 
             std::shared_ptr<FileStatus> getFileStatus(char *fileName);
+
+            void persistentFileLog(char * fileName);
 
         };
 
