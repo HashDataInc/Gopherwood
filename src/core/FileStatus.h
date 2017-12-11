@@ -66,9 +66,8 @@ namespace Gopherwood {
             FileStatus::fileName = fileName;
 //            LOG(Gopherwood::Internal::INFO, "setFileName ,FileStatus::fileName = % s", FileStatus::fileName.data());
         }
-
+        
         char* serializeFileStatus();
-
         FileStatus *deSerializeFileStatus(char *res);
 
 

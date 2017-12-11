@@ -3,6 +3,7 @@
 //
 
 #include "FileStatus.h"
+
 namespace Gopherwood {
     namespace Internal {
 
