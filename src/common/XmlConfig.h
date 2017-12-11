@@ -25,7 +25,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef _GOPHERWOOD_COMMON_XMLCONFIG_H_
+#define _GOPHERWOOD_COMMON_XMLCONFIG_H_
 
 #include <stdint.h>
 #include <string>
@@ -189,3 +190,4 @@ namespace Gopherwood {
 }
 
 
+#endif //_GOPHERWOOD_COMMON_XMLCONFIG_H_

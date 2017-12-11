@@ -14,7 +14,6 @@
 #include <iostream>
 
 #include "FileSystemInter.h"
-#include "SharedMemoryBucket.h"
 #include "FileStatus.h"
 #include "FSConfig.h"
 #include "Exception.h"

@@ -35,7 +35,6 @@
 #include <unordered_map>
 #include <memory>
 #include "FileStatus.h"
-#include "SharedMemoryBucket.h"
 
 
 namespace Gopherwood {

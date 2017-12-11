@@ -26,8 +26,7 @@
  * limitations under the License.
  */
 
-#ifndef _GOPHERWOOD_COMMON_XMLCONFIG_H_
-#define _GOPHERWOOD_COMMON_XMLCONFIG_H_
+
 
 
 #include "Exception.h"
@@ -399,4 +398,3 @@ namespace Gopherwood {
 
 }
 
-#endif //_GOPHERWOOD_COMMON_XMLCONFIG_H_

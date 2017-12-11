@@ -25,8 +25,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _Gopherwood_LIBGopherwood3_COMMON_EXCEPTION_H_
-#define _Gopherwood_LIBGopherwood3_COMMON_EXCEPTION_H_
+#ifndef _GOPHERWOOD_COMMON_EXCEPTION_H_
+#define _GOPHERWOOD_COMMON_EXCEPTION_H_
 
 #include <stdexcept>
 #include <string>
@@ -538,4 +538,4 @@ class RecoveryInProgressException : public GopherwoodException {
 
 }
 
-#endif /* _Gopherwood_LIBGopherwood3_COMMON_EXCEPTION_H_ */
+#endif /* _GOPHERWOOD_COMMON_EXCEPTION_H_ */

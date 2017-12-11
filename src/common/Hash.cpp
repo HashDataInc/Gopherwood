@@ -66,34 +66,34 @@ boost::hash<std::string> StringHasher;
 #include <functional>
 
 namespace Gopherwood {
-namespace Internal {
+    namespace Internal {
 
 /**
  * A hash function object used to hash a boolean value.
  */
-std::hash<bool> BoolHasher;
+        std::hash<bool> BoolHasher;
 
 /**
  * A hash function object used to hash an int value.
  */
-std::hash<int> Int32Hasher;
+        std::hash<int> Int32Hasher;
 
 /**
  * A hash function object used to hash an 64 bit int value.
  */
-std::hash<int64_t> Int64Hasher;
+        std::hash<int64_t> Int64Hasher;
 
 /**
  * A hash function object used to hash a size_t value.
  */
-std::hash<size_t> SizeHasher;
+        std::hash<size_t> SizeHasher;
 
 /**
  * A hash function object used to hash a std::string object.
  */
-std::hash<std::string> StringHasher;
+        std::hash<std::string> StringHasher;
 
-}
+    }
 }
 
 #endif
