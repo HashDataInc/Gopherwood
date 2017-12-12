@@ -16,8 +16,13 @@ namespace Gopherwood {
             SharedMemoryManager *smm = new SharedMemoryManager();
             std::shared_ptr<SharedMemoryManager> tmpsmm(smm);
             sharedMemoryManager = tmpsmm;
-            sharedMemoryManager->checkSharedMemory();
 
+            LogFormat *lf = new LogFormat();
+            std::shared_ptr<LogFormat> tmplf(lf);
+            logFormat = tmplf;
+
+
+            sharedMemoryManager->checkSharedMemory();
             sharedMemoryManager->openSMBucket();
         }
 
@@ -74,20 +79,33 @@ namespace Gopherwood {
         void FileSystemImpl::acquireNewBlock(char *fileName) {
 
             //1. set the shared memory
-            int blockID = sharedMemoryManager->acquireNewBlock();
+            vector<int> blockIDVector = sharedMemoryManager->acquireNewBlock();
 
+            assert(blockIDVector.size()==QUOTA_SIZE);
 
-            LOG(INFO, "the acquired id block is = %d", blockID);
+            for (int i = 0; i < blockIDVector.size(); i++) {
+                LOG(INFO, "the acquired id block list index = %d, blockID = %d ", i, blockIDVector[i]);
+            }
+
             auto &status = fileStatusMap[fileName];
             vector<int32_t> tmpVector = status->getBlockIdVector();
-            tmpVector.push_back(blockID);
+            tmpVector.insert(tmpVector.end(), blockIDVector.begin(), blockIDVector.end());
+
 
             //TODO, the above two line is the same as next line, however the code is wrong, why? @code status->getBlockIdVector().push_back(i);
 
             status->setBlockIdVector(tmpVector);
-            status->setLastBucket(blockID);
+
+            if(blockIDVector.size()>0){
+                status->setLastBucket(blockIDVector[blockIDVector.size() - 1]);
+            }
 
             //2. TODO , write the new file status to Log.
+            LOG(INFO, "write the new file status to Log ");
+            char * res = logFormat->serializeLog(LogFormat::RecordType::acquireNewBlock,blockIDVector);
+            writeFileStatusToLog(fileName,res);
+
+
         }
 
         int64_t FileSystemImpl::getTheEOFOffset(const char *fileName) {
@@ -167,11 +185,8 @@ namespace Gopherwood {
         }
 
         void FileSystemImpl::persistentFileLog(char *fileName) {
-
             int flags = O_CREAT | O_RDWR | O_TRUNC;
-            char *filePathName = static_cast<char *>(malloc(strlen(fileName) + strlen(FILE_LOG_PERSISTENCE_PATH) + 1));
-            strcpy(filePathName, FILE_LOG_PERSISTENCE_PATH);
-            strcat(filePathName, fileName);
+            char *filePathName = getFilePath(fileName);
             LOG(INFO, "filePathName = %s", filePathName);
             int logFd = open(filePathName, flags, 0644);
 
@@ -189,7 +204,33 @@ namespace Gopherwood {
 
             int32_t length = write(logFd, buf, tmpTotalLength + 4);
 
+            close(logFd);
+
             LOG(INFO, "FileSystemImpl::persistentFileLog write size = %d", length);
+        }
+
+        char *FileSystemImpl::getFilePath(char *fileName) {
+            char *filePathName = static_cast<char *>(malloc(strlen(fileName) + strlen(FILE_LOG_PERSISTENCE_PATH) + 1));
+            strcpy(filePathName, FILE_LOG_PERSISTENCE_PATH);
+            strcat(filePathName, fileName);
+            return filePathName;
+        }
+
+
+        void FileSystemImpl::writeFileStatusToLog(char *fileName, char *data) {
+            int flags = O_CREAT | O_RDWR;
+
+            char *filePathName = getFilePath(fileName);
+            LOG(INFO, "filePathName = %s", filePathName);
+
+            int logFd = open(filePathName, flags, 0644);
+
+
+            int32_t length = write(logFd, data, strlen(data));
+
+            close(logFd);
+
+            LOG(INFO, "FileSystemImpl::writeFileStatusToLog write size = %d", length);
         }
 
 
