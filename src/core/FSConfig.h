@@ -25,6 +25,7 @@ namespace Gopherwood {
         extern int SM_FILE_SIZE;
         extern char * FILE_LOG_PERSISTENCE_PATH;
         extern int BUCKET_ID_BASE_OFFSET;
+        extern int QUOTA_SIZE;
     }
 
 

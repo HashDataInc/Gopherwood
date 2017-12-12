@@ -31,7 +31,7 @@
 
 #include "Logger.h"
 #include "FSConfig.h"
-
+#include "LogFormat.h"
 namespace Gopherwood {
     namespace Internal {
         using namespace std;
@@ -76,7 +76,7 @@ namespace Gopherwood {
 
             void closeSMBucket();
 
-            int acquireNewBlock();
+            std::vector<int> acquireNewBlock();
 
             void closeSMFile();
 

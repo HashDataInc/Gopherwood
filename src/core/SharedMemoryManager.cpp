@@ -151,7 +151,7 @@ namespace Gopherwood {
         }
 
 
-        int SharedMemoryManager::acquireNewBlock() {
+        std::vector<int> SharedMemoryManager::acquireNewBlock() {
 
             LOG(INFO, "acquireNewBlock method");
             if (!semaphoreP()) {
@@ -160,39 +160,45 @@ namespace Gopherwood {
 
             if (checkAndSetSMOne()) {
                 LOG(LOG_ERROR, "acquireNewBlock failed, shared memory is broken");
-                return -1;
             }
+
+
+            std::vector<int> resVector;
 
             int i = 1;
             int length = 4;
             char *mem = static_cast<char *>(regionPtr->get_address());
+//
+//            int semFlag = *((int *) (mem));
+//            LOG(INFO, "semFlag = %d", semFlag);
 
-            int semFlag = *((int *) (mem));
-            LOG(INFO, "semFlag = %d", semFlag);
+            // 1. acquire new block lists
             while (length < SM_FILE_SIZE) {
                 int type = *((int *) (mem + length));
                 if (type == 0) {
                     int *tmp = (int *) (mem + length);
                     *tmp = 1;
+                    resVector.push_back(i - 1);
+//                    length = length + 4;
+//                    char *tmpFile = generateStr(50);
+//                    memcpy(mem + length, tmpFile, strlen(tmpFile));
+//                    LOG(INFO, "i = %d,length = %d,tmpFile=%s", i, length, tmpFile);
 
-                    length = length + 4;
-                    char *tmpFile = generateStr(50);
+//                    char tmpName[255];
+//                    memcpy(tmpName, mem + length, sizeof(tmpName));
+//                    LOG(INFO, "type = %d, name = %s", type, tmpName);
 
 
-                    memcpy(mem + length, tmpFile, strlen(tmpFile));
-                    LOG(INFO, "i = %d,length = %d,tmpFile=%s", i, length, tmpFile);
-
-
-                    char tmpName[255];
-                    memcpy(tmpName, mem + length, sizeof(tmpName));
-                    LOG(INFO, "type = %d, name = %s", type, tmpName);
-
-                    break;
+                    if (resVector.size() > QUOTA_SIZE) {
+                        break;
+                    }
                 }
 
-                char tmpName[255];
-                memcpy(tmpName, mem + length + 4, sizeof(tmpName));
-                LOG(INFO, "type = %d, name = %s", type, tmpName);
+//                char tmpName[255];
+//                memcpy(tmpName, mem + length + 4, sizeof(tmpName));
+//                LOG(INFO, "type = %d, name = %s", type, tmpName);
+
+
 
                 i++;
                 length = length + 4 + 255;
@@ -209,47 +215,43 @@ namespace Gopherwood {
                 LOG(INFO, "no enough room for the ssd bucket");
             }
 
-            return i;
+            return resVector;
 
         }
 
-        void SharedMemoryManager::bitSet(char *p_data, int32_t position, int flag) {
-            if (position > 8 || position < 1 || (flag != 0 && flag != 1)) {
-                LOG(LOG_ERROR, "in the bitSet method, the position is illegal");
-                return;
-            }
-            if (flag != (*p_data >> (position - 1) & 1)) {
-                *p_data ^= 1 << (position - 1);
-            }
-        }
+
+//        void SharedMemoryManager::bitSet(char *p_data, int32_t position, int flag) {
+//            if (position > 8 || position < 1 || (flag != 0 && flag != 1)) {
+//                LOG(LOG_ERROR, "in the bitSet method, the position is illegal");
+//                return;
+//            }
+//            if (flag != (*p_data >> (position - 1) & 1)) {
+//                *p_data ^= 1 << (position - 1);
+//            }
+//        }
 
 
-        char *SharedMemoryManager::generateStr(int length) {
-            char str[length + 1];
-            int i, flag;
-
-            srand(time(NULL));
-            for (i = 0; i < length; i++) {
-                flag = rand() % 3;
-                switch (flag) {
-                    case 0:
-                        str[i] = rand() % 26 + 'a';
-                        break;
-                    case 1:
-                        str[i] = rand() % 26 + 'A';
-                        break;
-                    case 2:
-                        str[i] = rand() % 10 + '0';
-                        break;
-                }
-            }
-            return str;
-        }
-
-
-
-
-
+//        char *SharedMemoryManager::generateStr(int length) {
+//            char str[length + 1];
+//            int i, flag;
+//
+//            srand(time(NULL));
+//            for (i = 0; i < length; i++) {
+//                flag = rand() % 3;
+//                switch (flag) {
+//                    case 0:
+//                        str[i] = rand() % 26 + 'a';
+//                        break;
+//                    case 1:
+//                        str[i] = rand() % 26 + 'A';
+//                        break;
+//                    case 2:
+//                        str[i] = rand() % 10 + '0';
+//                        break;
+//                }
+//            }
+//            return str;
+//        }
 
 
 

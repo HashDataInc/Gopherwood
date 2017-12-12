@@ -59,6 +59,7 @@ namespace Gopherwood {
             unordered_map<string, std::shared_ptr<FileStatus>> fileStatusMap; // the file status' map
 
             std::shared_ptr<SharedMemoryManager> sharedMemoryManager;
+            std::shared_ptr<LogFormat> logFormat;
 
 //            static const int32_t BIT_MAP_SIZE = 40;
 //            uint64_t filesize_;
@@ -94,7 +95,11 @@ namespace Gopherwood {
 
             std::shared_ptr<FileStatus> getFileStatus(char *fileName);
 
-            void persistentFileLog(char * fileName);
+            void persistentFileLog(char *fileName);
+
+            void writeFileStatusToLog(char *fileName, char *data);
+
+            char *getFilePath(char *fileName);
 
         };
 
