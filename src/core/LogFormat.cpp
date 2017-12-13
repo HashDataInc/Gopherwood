@@ -7,7 +7,10 @@
 #include "Logger.h"
 #include <unistd.h>
 #include <string.h>
+
+
 #include "../common/Logger.h"
+#include "../util/Coding.h"
 
 namespace Gopherwood {
     namespace Internal {
@@ -21,12 +24,20 @@ namespace Gopherwood {
         }
 
 
-        char *LogFormat::serializeBlockIDVector(const std::vector<int32_t> &blockIdVector) {
-            int totalLength = 4/**num. of blocks**/+ 4 * (int) blockIdVector.size();
+        /**
+        std::string LogFormat::serializeBlockIDVector(const std::vector<int32_t> &blockIdVector) {
+            std::string res;
 
-            char *res = (char *) (malloc(totalLength));
+
+//            int totalLength = 4+ 4 * (int) blockIdVector.size();
+
+//            char *res = (char *) (malloc(totalLength));
+
+            char res[totalLength];
+
 
             int length = 0;
+            PutVarint32(&res, blockIdVector.size());
 
             int *tmp = (int *) (res + length);
 
@@ -34,18 +45,48 @@ namespace Gopherwood {
             length += 4;
 
             for (int i = 0; i < blockIdVector.size(); i++) {
+                PutVarint32(&res, blockIdVector[i]);
                 tmp = (int *) (res + length);
                 *tmp = blockIdVector[i];
                 LOG(INFO, "*********blockIdVector= %d", *((int *) (res + length)));
                 length += 4;
             }
+
+
+
+            //****************test for output**********************
+
+
+            int tmpll = 0;
+
+            int tmpTotalSizeOfBlockID = *((int *) (res + tmpll));
+            tmpll += 4;
+            LOG(INFO, "tmpTotalSizeOfBlockID  size = %d", tmpTotalSizeOfBlockID);
+            for (int i = 0; i < tmpTotalSizeOfBlockID; i++) {
+                int tmpBlockID = *((int *) (res + tmpll));
+                LOG(INFO, "&&&&&&&&&&&&tmpBlockID= %d", tmpBlockID);
+                tmpll += 4;
+            }
+            //****************test for output******************
+
+            LOG(INFO, "serializeBlockIDVector   sizeof = %d", sizeof(res));
+            LOG(INFO, "serializeBlockIDVector   strlen = %d", strlen(res));
             return res;
         }
 
+**/
 
-        char *LogFormat::serializeAcquireNewBlock(const std::vector<int32_t> &blockIdVector) {
-            char *tmpRes = serializeBlockIDVector(blockIdVector);
-            LOG(INFO, "blockIdVector serialize  size = %d", strlen(tmpRes));
+
+
+
+        /**
+        std::string LogFormat::serializeAcquireNewBlock(const std::vector<int32_t> &blockIdVector) {
+            std::string tmpStr = serializeBlockIDVector(blockIdVector);
+            char *tmpRes = (char*)tmpStr.data();
+            LOG(INFO, "blockIdVector serialize  tmpStr size = %d", tmpStr.size());
+            LOG(INFO, "blockIdVector serialize  tmpStr  = %s", tmpStr.data());
+            LOG(INFO, "blockIdVector serialize  strlen = %d", strlen(tmpRes));
+            LOG(INFO, "blockIdVector serialize  sizeof = %d", sizeof(tmpRes));
             int pid = getpid();
 
             int length = 0;
@@ -56,7 +97,7 @@ namespace Gopherwood {
             length + length + 4;
 
             char *tmpChar = (res + length);
-            *tmpChar =acquireNewBlock & 0x0F;
+            *tmpChar = acquireNewBlock & 0x0F;
             length = length + 1;
 
             memcpy(tmpChar + length, tmpRes, strlen(tmpRes));
@@ -70,13 +111,47 @@ namespace Gopherwood {
             return res;
         }
 
+         **/
 
-        char *LogFormat::serializeLog(RecordType type, const std::vector<int32_t> &blockIdVector) {
-            LOG(INFO, "LogFormat::serializeLog, and the RecordType =  %d, blockIdVector size = ", type,
+
+        std::string LogFormat::serializeBlockIDVector(const std::vector<int32_t> &blockIdVector) {
+            std::string res;
+            PutFixed32(&res, blockIdVector.size());
+
+            LOG(INFO, "1, LogFormat res size = %d", res.size());
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                PutFixed32(&res, blockIdVector[i]);
+                LOG(INFO, "2, LogFormat res size = %d", res.size());
+            }
+            return res;
+        }
+
+        std::string LogFormat::serializeAcquireNewBlock(const std::vector<int32_t> &blockIdVector) {
+            std::string tmpStr = serializeBlockIDVector(blockIdVector);
+            LOG(INFO, "3, LogFormat res size = %d", tmpStr.size());
+            std::string res;
+
+            PutFixed32(&res, tmpStr.size());
+            LOG(INFO, "4, LogFormat res size = %d", res.size());
+
+
+            res.append(1,acquireNewBlock & 0x0F);
+            LOG(INFO, "5, LogFormat res size = %d", res.size());
+
+            res.append(tmpStr.data(), tmpStr.size());
+
+            LOG(INFO, "6, LogFormat res size = %d", res.size());
+            return res;
+        }
+
+
+        std::string LogFormat::serializeLog(RecordType type, const std::vector<int32_t> &blockIdVector) {
+            LOG(INFO, "LogFormat::serializeLog, and the RecordType =  %d, blockIdVector size = %d", type,
                 blockIdVector.size());
             switch (type) {
                 case acquireNewBlock:
-                    char *res = serializeAcquireNewBlock(blockIdVector);
+                    std::string res = serializeAcquireNewBlock(blockIdVector);
+                    LOG(INFO, "7, LogFormat res size = %d", res.size());
                     return res;
             }
         }

@@ -6,7 +6,7 @@
 #include <vector>
 #include <stdio.h>
 #include <stdint.h>
-
+#include <string>
 namespace Gopherwood {
     namespace Internal {
 
@@ -44,11 +44,11 @@ namespace Gopherwood {
 
         public:
 
-            char *serializeBlockIDVector(const std::vector<int32_t> &blockIdVector);
+            std::string serializeBlockIDVector(const std::vector<int32_t> &blockIdVector);
 
-            char *serializeLog(RecordType type, const std::vector<int32_t> &blockIdVector);
+            std::string serializeLog(RecordType type, const std::vector<int32_t> &blockIdVector);
 
-            char *serializeAcquireNewBlock(const std::vector<int32_t> &blockIdVector);
+            std::string serializeAcquireNewBlock(const std::vector<int32_t> &blockIdVector);
 
         };
 
