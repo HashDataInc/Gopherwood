@@ -102,7 +102,7 @@ namespace Gopherwood {
             }
 
             //2. TODO , write the new file status to Log.
-            string res = logFormat->serializeLog(LogFormat::RecordType::acquireNewBlock, blockIDVector);
+            string res = logFormat->serializeLog(blockIDVector,LogFormat::RecordType::acquireNewBlock);
             LOG(INFO, "8, LogFormat res size = %d", res.size());
             writeFileStatusToLog(fileName, res);
 
@@ -249,11 +249,11 @@ namespace Gopherwood {
 
             int32_t length = read(logFd, bufLength, sizeof(bufLength));
 
-            uint32_t dataSize = DecodeFixed32(bufLength);
+            int32_t dataSize = DecodeFixed32(bufLength);
             LOG(INFO, "FileSystemImpl::readFileStatusFromLog first read length  = %d", length);
             LOG(INFO, "FileSystemImpl::readFileStatusFromLog dataSize  = %d", dataSize);
 
-            char res[dataSize+1];
+            char res[dataSize+1+4];
             length = read(logFd, res, sizeof(res));
             LOG(INFO, "FileSystemImpl::readFileStatusFromLog second read length  = %d", length);
 
@@ -262,16 +262,18 @@ namespace Gopherwood {
 
             int offset = 1;
 
-            uint32_t numOfBlocks = DecodeFixed32(res+offset);
+            int32_t numOfBlocks = DecodeFixed32(res+offset);
             offset+=4;
             LOG(INFO, "FileSystemImpl::readFileStatusFromLog numOfBlocks   = %d", numOfBlocks);
 
             for(int i=0;i<numOfBlocks;i++){
-                uint32_t blockID =DecodeFixed32(res+offset);
+                int32_t blockID =DecodeFixed32(res+offset);
                 LOG(INFO, "FileSystemImpl::readFileStatusFromLog numOfBlocks   = %d", blockID);
                 offset+=4;
             }
 
+            int pid = DecodeFixed32(res+offset);
+            LOG(INFO, "FileSystemImpl::readFileStatusFromLog pid   = %d", pid);
             close(logFd);
 
 

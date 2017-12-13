@@ -126,33 +126,69 @@ namespace Gopherwood {
             return res;
         }
 
-        std::string LogFormat::serializeAcquireNewBlock(const std::vector<int32_t> &blockIdVector) {
+
+        std::string
+        LogFormat::serializeHeaderAndBlockIds(const std::vector<int32_t> &blockIdVector, RecordType recordType) {
             std::string tmpStr = serializeBlockIDVector(blockIdVector);
-            LOG(INFO, "3, LogFormat res size = %d", tmpStr.size());
             std::string res;
 
             PutFixed32(&res, tmpStr.size());
-            LOG(INFO, "4, LogFormat res size = %d", res.size());
 
-
-            res.append(1,acquireNewBlock & 0x0F);
-            LOG(INFO, "5, LogFormat res size = %d", res.size());
+            res.append(1, recordType & 0x0F);
 
             res.append(tmpStr.data(), tmpStr.size());
-
-            LOG(INFO, "6, LogFormat res size = %d", res.size());
+            LOG(INFO, "3, LogFormat res size = %d", res.size());
             return res;
         }
 
 
-        std::string LogFormat::serializeLog(RecordType type, const std::vector<int32_t> &blockIdVector) {
+        std::string
+        LogFormat::serializeAcquireNewBlock(const std::vector<int32_t> &blockIdVector, RecordType recordType) {
+            std::string res = serializeHeaderAndBlockIds(blockIdVector, recordType);
+            int pid = getpid();
+            PutFixed32(&res, pid);
+
+            LOG(INFO, "4, LogFormat res size = %d, pid = %d ", res.size(), pid);
+            return res;
+        }
+
+
+        std::string
+        LogFormat::serializeInactiveBlock(const std::vector<int32_t> &blockIdVector, RecordType recordType) {
+            std::string res = serializeHeaderAndBlockIds(blockIdVector, recordType);
+            return res;
+        }
+
+        std::string LogFormat::serializeReleaseBlock(const std::vector<int32_t> &blockIdVector, RecordType recordType) {
+            std::string res = serializeHeaderAndBlockIds(blockIdVector, recordType);
+            return res;
+        }
+
+        std::string LogFormat::serializeEvictBlock(const std::vector<int32_t> &blockIdVector, RecordType recordType) {
+            std::string res = serializeHeaderAndBlockIds(blockIdVector, recordType);
+            return res;
+        }
+
+        std::string LogFormat::serializeRemoteBlock(const std::vector<int32_t> &blockIdVector, RecordType recordType) {
+            std::string res = serializeHeaderAndBlockIds(blockIdVector, recordType);
+            return res;
+        }
+
+
+        std::string LogFormat::serializeLog(const std::vector<int32_t> &blockIdVector, RecordType type) {
             LOG(INFO, "LogFormat::serializeLog, and the RecordType =  %d, blockIdVector size = %d", type,
                 blockIdVector.size());
             switch (type) {
                 case acquireNewBlock:
-                    std::string res = serializeAcquireNewBlock(blockIdVector);
-                    LOG(INFO, "7, LogFormat res size = %d", res.size());
-                    return res;
+                    return serializeAcquireNewBlock(blockIdVector, type);
+                case inactiveBlock:
+                    return serializeInactiveBlock(blockIdVector, type);
+                case releaseBlock:
+                    return serializeReleaseBlock(blockIdVector, type);
+                case evictBlock:
+                    return serializeEvictBlock(blockIdVector, type);
+                case remoteBlock:
+                    return serializeRemoteBlock(blockIdVector, type);
             }
         }
     }
@@ -160,7 +196,6 @@ namespace Gopherwood {
 
 
 //header
-
 /**
 -----------------------------------------------------
 |   size  of data  | type                           |
@@ -169,7 +204,6 @@ namespace Gopherwood {
 -----------------------------------------------------
 |   4 byte         | 1 byte                         |
 **/
-
 
 
 
