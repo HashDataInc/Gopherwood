@@ -6,6 +6,7 @@
 
 #include "FileSystemImpl.h"
 #include "../common/Logger.h"
+#include "../util/Coding.h"
 
 
 namespace Gopherwood {
@@ -81,7 +82,7 @@ namespace Gopherwood {
             //1. set the shared memory
             vector<int> blockIDVector = sharedMemoryManager->acquireNewBlock();
 
-            assert(blockIDVector.size()==QUOTA_SIZE);
+            assert(blockIDVector.size() == QUOTA_SIZE);
 
             for (int i = 0; i < blockIDVector.size(); i++) {
                 LOG(INFO, "the acquired id block list index = %d, blockID = %d ", i, blockIDVector[i]);
@@ -96,14 +97,14 @@ namespace Gopherwood {
 
             status->setBlockIdVector(tmpVector);
 
-            if(blockIDVector.size()>0){
+            if (blockIDVector.size() > 0) {
                 status->setLastBucket(blockIDVector[blockIDVector.size() - 1]);
             }
 
             //2. TODO , write the new file status to Log.
-            LOG(INFO, "write the new file status to Log ");
-            char * res = logFormat->serializeLog(LogFormat::RecordType::acquireNewBlock,blockIDVector);
-            writeFileStatusToLog(fileName,res);
+            string res = logFormat->serializeLog(LogFormat::RecordType::acquireNewBlock, blockIDVector);
+            LOG(INFO, "8, LogFormat res size = %d", res.size());
+            writeFileStatusToLog(fileName, res);
 
 
         }
@@ -217,20 +218,63 @@ namespace Gopherwood {
         }
 
 
-        void FileSystemImpl::writeFileStatusToLog(char *fileName, char *data) {
+        void FileSystemImpl::writeFileStatusToLog(char *fileName, std::string dataStr) {
             int flags = O_CREAT | O_RDWR;
 
             char *filePathName = getFilePath(fileName);
             LOG(INFO, "filePathName = %s", filePathName);
 
             int logFd = open(filePathName, flags, 0644);
-
-
-            int32_t length = write(logFd, data, strlen(data));
+            LOG(INFO, "9, LogFormat dataStr size = %d", dataStr.size());
+            int32_t length = write(logFd, dataStr.data(), dataStr.size());
 
             close(logFd);
 
             LOG(INFO, "FileSystemImpl::writeFileStatusToLog write size = %d", length);
+
+
+            readFileStatusFromLog(fileName);
+        }
+
+
+        void FileSystemImpl::readFileStatusFromLog(char *fileName) {
+            int flags = O_CREAT | O_RDWR;
+
+            char *filePathName = getFilePath(fileName);
+
+            int logFd = open(filePathName, flags, 0644);
+
+
+            char bufLength[4];
+
+            int32_t length = read(logFd, bufLength, sizeof(bufLength));
+
+            uint32_t dataSize = DecodeFixed32(bufLength);
+            LOG(INFO, "FileSystemImpl::readFileStatusFromLog first read length  = %d", length);
+            LOG(INFO, "FileSystemImpl::readFileStatusFromLog dataSize  = %d", dataSize);
+
+            char res[dataSize+1];
+            length = read(logFd, res, sizeof(res));
+            LOG(INFO, "FileSystemImpl::readFileStatusFromLog second read length  = %d", length);
+
+            char type = *res;
+            LOG(INFO, "FileSystemImpl::readFileStatusFromLog type   = %d", type);
+
+            int offset = 1;
+
+            uint32_t numOfBlocks = DecodeFixed32(res+offset);
+            offset+=4;
+            LOG(INFO, "FileSystemImpl::readFileStatusFromLog numOfBlocks   = %d", numOfBlocks);
+
+            for(int i=0;i<numOfBlocks;i++){
+                uint32_t blockID =DecodeFixed32(res+offset);
+                LOG(INFO, "FileSystemImpl::readFileStatusFromLog numOfBlocks   = %d", blockID);
+                offset+=4;
+            }
+
+            close(logFd);
+
+
         }
 
 

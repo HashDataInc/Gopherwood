@@ -97,7 +97,9 @@ namespace Gopherwood {
 
             void persistentFileLog(char *fileName);
 
-            void writeFileStatusToLog(char *fileName, char *data);
+            void writeFileStatusToLog(char *fileName, std::string data);
+
+            void readFileStatusFromLog(char *fileName);
 
             char *getFilePath(char *fileName);
 

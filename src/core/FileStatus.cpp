@@ -3,13 +3,12 @@
 //
 
 #include "FileStatus.h"
-
 namespace Gopherwood {
     namespace Internal {
 
     }
 
-    char * FileStatus::serializeFileStatus() {
+    char* FileStatus::serializeFileStatus() {
         int32_t totalLength =
                 4/**filename size**/+ fileName.size() + 4/**lastBucket**/+ 8/**endOffsetOfBucket**/+
                 4/**num. of blocks**/+ 4 * blockIdVector.size();
