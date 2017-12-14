@@ -175,6 +175,13 @@ namespace Gopherwood {
         }
 
 
+        //TODO, this is not completed
+        std::string LogFormat::serializeCloseFile(const std::vector<int32_t> &blockIdVector, RecordType recordType) {
+            std::string res = serializeHeaderAndBlockIds(blockIdVector, recordType);
+            return res;
+        }
+
+
         std::string LogFormat::serializeLog(const std::vector<int32_t> &blockIdVector, RecordType type) {
             LOG(INFO, "LogFormat::serializeLog, and the RecordType =  %d, blockIdVector size = %d", type,
                 blockIdVector.size());
@@ -189,6 +196,8 @@ namespace Gopherwood {
                     return serializeEvictBlock(blockIdVector, type);
                 case remoteBlock:
                     return serializeRemoteBlock(blockIdVector, type);
+                case closeFile:
+                    return serializeCloseFile(blockIdVector, type);
             }
         }
     }

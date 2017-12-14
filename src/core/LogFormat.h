@@ -61,6 +61,8 @@ namespace Gopherwood {
             std::string serializeEvictBlock(const std::vector<int32_t> &blockIdVector, RecordType type);
 
             std::string serializeRemoteBlock(const std::vector<int32_t> &blockIdVector, RecordType type);
+
+            std::string serializeCloseFile(const std::vector<int32_t> &blockIdVector, RecordType recordType);
         };
 
 

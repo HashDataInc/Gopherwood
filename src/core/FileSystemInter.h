@@ -74,25 +74,20 @@ namespace Gopherwood {
             virtual int32_t checkSSDFile()=0;
 
 
-
-
             /**
              * rebuild the FileStatus from the log file
              * @param fileName  the file name
              * @return the file status of the file
              */
-            virtual unordered_map<string, std::shared_ptr<FileStatus>> rebuildFileStatusFromLog(char *fileName)=0;
-            virtual unordered_map<string, std::shared_ptr<FileStatus>> catchUpFileStatusFromLog(int64_t logOffset)=0;
+            virtual unordered_map <string, std::shared_ptr<FileStatus>> rebuildFileStatusFromLog(char *fileName)=0;
+
+            virtual unordered_map <string, std::shared_ptr<FileStatus>> catchUpFileStatusFromLog(int64_t logOffset)=0;
 
             virtual bool checkFileExist(char *fileName)=0;
 
             virtual void createFile(char *fileName)=0;
 
-            virtual void acquireNewBlock(char *fileName)=0;
-
             virtual int64_t getTheEOFOffset(const char *fileName)=0;
-
-            virtual std::shared_ptr<FileStatus> getFileStatus(const char *fileName)=0;
 
             virtual int32_t readDataFromBucket(char *buf, int32_t size)=0;
 
@@ -101,8 +96,19 @@ namespace Gopherwood {
             virtual int32_t fsSeek(int64_t offset, int whence)=0;
 
             virtual void closeFile(char *fileName)=0;
+
             virtual void stopSystem() = 0;
-            virtual std::shared_ptr<FileStatus> getFileStatus(char *fileName)=0;
+
+            virtual std::shared_ptr<FileStatus> getFileStatus(const char *fileName)=0;
+
+            virtual void acquireNewBlock(char *fileName)=0;
+
+            virtual void inactiveBlock(char *fileName, int blockID)=0;
+
+            virtual void releaseBlock(char *fileName, int blockID)=0;
+
+            virtual void evictBlock(char *fileName, int blockID)=0;
+
 
         };
 

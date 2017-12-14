@@ -20,9 +20,9 @@ namespace Gopherwood {
         char *SHARED_MEMORY_PATH_FILE_NAME = "/ssdfile/ssdkv/sharedMemory/smFile";
 
         char *FILE_LOG_PERSISTENCE_PATH = "/ssdfile/ssdkv/logPersistence/";
-        int SM_FILE_SIZE = 1+(1+255)*100;
-        int BUCKET_ID_BASE_OFFSET = 8;
-        int QUOTA_SIZE = 4;
+        int FILENAME_MAX_LENGTH =255;
+        int SM_FILE_SIZE = 1+(1+8+255)*20;//char+(char+long+char[255])
+        int QUOTA_SIZE = 5;
     }
 
 

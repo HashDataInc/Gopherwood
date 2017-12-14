@@ -53,8 +53,10 @@ namespace Gopherwood {
             fbuf.open(SHARED_MEMORY_PATH_FILE_NAME, std::ios_base::in | std::ios_base::out
                                                     | std::ios_base::trunc | std::ios_base::binary);
 //            fbuf.pubseekoff(SM_FILE_SIZE - 1, std::ios_base::beg);
+
+            //IMPORTANT,init the shared memory to '0', not 0
             for (int i = 0; i < SM_FILE_SIZE; i++) {
-                fbuf.sputc(0);
+                fbuf.sputc('0');
             }
 
             if (!semaphoreV()) {
@@ -80,30 +82,31 @@ namespace Gopherwood {
             LOG(INFO, "come in the openSMBucket");
             file_mapping m_file(SHARED_MEMORY_PATH_FILE_NAME, read_write);
 
-//            mapped_region region(m_file, read_write);
             std::shared_ptr<mapped_region> tmp(new mapped_region(m_file, read_write));
             regionPtr = tmp;
 
+//            printSMStatus();
+        }
 
-//            Get the address of the mapped region
+
+        void SharedMemoryManager::printSMStatus() {
 
             void *addr = regionPtr->get_address();
-            std::size_t size = regionPtr->get_size();
-
+//            std::size_t size = regionPtr->get_size();
 
             const char *mem = static_cast<char *> (addr);
 
             int length = 0;
-            int type = *((int *) (mem + length));
-            LOG(INFO, "semaphore flag = %d", type);
-
-            length = length + 4;
+            char type = *(mem + length);
+            LOG(INFO, "semaphore flag = %c", type);
+            length = length + 1;
             while (length < SM_FILE_SIZE) {
-                int type = *((int *) (mem + length));
-                LOG(INFO, "type = %d", type);
-                length = length + 4 + 255;
+                type = *(mem + length);
+                LOG(INFO, "type = %c", type);
+                length = length + 1 + 8 + FILENAME_MAX_LENGTH;
             }
         }
+
 
         void SharedMemoryManager::closeSMFile() {
             close(sharedMemoryID);
@@ -122,6 +125,18 @@ namespace Gopherwood {
 //            char c = mem[0];
 //            LOG(INFO, "checkAndSetSM1 before *mem = %d", *mem);
 //            LOG(INFO, "checkAndSetSM1 before *mem  first = %d", ((c >> 0) & 1));
+
+            if (*(mem) != '0') {
+                LOG(LOG_ERROR, "shared memory is broken");
+                return true;
+            } else {
+                *mem = '1';
+            }
+
+
+            /**
+             * this is int
+             *
             if (*((int *) (mem)) != 0) {
                 LOG(LOG_ERROR, "shared memory is broken");
                 return true;
@@ -130,6 +145,7 @@ namespace Gopherwood {
                 *tmp = 1;
 //                bitSet(mem, 1, 1);
             }
+             **/
 //            c = mem[0];
 //            LOG(INFO, "checkAndSetSM1 after *mem = %d", *mem);
 //            LOG(INFO, "checkAndSetSM1 after *mem  first = %d", ((c >> 0) & 1));
@@ -142,8 +158,11 @@ namespace Gopherwood {
 //            LOG(INFO, " checkAndSetSM0 before *mem = %d", *mem);
 //            LOG(INFO, " checkAndSetSM0 before *mem  first = %d", ((c >> 0) & 1));
 
-            int *tmp = (int *) (mem);
-            *tmp = 0;
+//            int *tmp = (int *) (mem);
+//            *tmp = 0;
+
+            *mem = '0';
+
 ////            bitSet(mem, 1, 0);
 //            c = mem[0];
 //            LOG(INFO, "checkAndSetSM0 after *mem = %d", *mem);
@@ -151,73 +170,164 @@ namespace Gopherwood {
         }
 
 
-        std::vector<int> SharedMemoryManager::acquireNewBlock() {
-
+        std::vector<int> SharedMemoryManager::acquireNewBlock(char *fileName) {
             LOG(INFO, "acquireNewBlock method");
+            if (strlen(fileName) > FILENAME_MAX_LENGTH) {
+                LOG(LOG_ERROR, "fileName name size cannot be larger than %d, ", FILENAME_MAX_LENGTH);
+            }
+
             if (!semaphoreP()) {
                 LOG(LOG_ERROR, "can not acquire the semaphore, acquireNewBlock failure");
             }
-
             if (checkAndSetSMOne()) {
                 LOG(LOG_ERROR, "acquireNewBlock failed, shared memory is broken");
             }
 
-
             std::vector<int> resVector;
 
             int i = 1;
-            int length = 4;
+            int length = 1;
             char *mem = static_cast<char *>(regionPtr->get_address());
-//
-//            int semFlag = *((int *) (mem));
-//            LOG(INFO, "semFlag = %d", semFlag);
 
             // 1. acquire new block lists
             while (length < SM_FILE_SIZE) {
-                int type = *((int *) (mem + length));
-                if (type == 0) {
-                    int *tmp = (int *) (mem + length);
-                    *tmp = 1;
+                char type = *(mem + length);
+                if (type == '0') {
+                    //1.write type
+                    *(mem + length) = '1';
+
+                    //2. write start time
+
+                    //3. write fileName
+                    length = length + 1 + 8;
+                    memcpy(mem + length, fileName, strlen(fileName));
+                    LOG(INFO, "file size = %d", strlen(fileName));
+
+
                     resVector.push_back(i - 1);
-//                    length = length + 4;
-//                    char *tmpFile = generateStr(50);
-//                    memcpy(mem + length, tmpFile, strlen(tmpFile));
-//                    LOG(INFO, "i = %d,length = %d,tmpFile=%s", i, length, tmpFile);
+                    length = length + FILENAME_MAX_LENGTH;
 
-//                    char tmpName[255];
-//                    memcpy(tmpName, mem + length, sizeof(tmpName));
-//                    LOG(INFO, "type = %d, name = %s", type, tmpName);
-
-
-                    if (resVector.size() > QUOTA_SIZE) {
+                    if (resVector.size() >= QUOTA_SIZE) {
                         break;
                     }
+                } else {
+                    length = length + 1 + 8 + FILENAME_MAX_LENGTH;
                 }
 
-//                char tmpName[255];
-//                memcpy(tmpName, mem + length + 4, sizeof(tmpName));
-//                LOG(INFO, "type = %d, name = %s", type, tmpName);
-
-
-
                 i++;
-                length = length + 4 + 255;
             }
 
-
             checkAndSetSMZero();
-
             if (!semaphoreV()) {
                 LOG(LOG_ERROR, "can not release the semaphore, acquireNewBlock failure");
             }
 
             if (length >= SM_FILE_SIZE) {
-                LOG(INFO, "no enough room for the ssd bucket");
+                LOG(LOG_ERROR, "no enough room for the ssd bucket");
             }
 
+            printSMStatus();
             return resVector;
 
         }
+
+
+        void SharedMemoryManager::inactiveBlock(int blockID) {
+            if (!checkBlockIDIsLegal(blockID)) {
+                return;
+            }
+
+            if (!semaphoreP()) {
+                LOG(LOG_ERROR, "can not acquire the semaphore, acquireNewBlock failure");
+            }
+            if (checkAndSetSMOne()) {
+                LOG(LOG_ERROR, "acquireNewBlock failed, shared memory is broken");
+            }
+
+            int length = 1;
+            char *mem = static_cast<char *>(regionPtr->get_address());
+            length = length + (1 + 8 + FILENAME_MAX_LENGTH) * blockID;
+
+            *(mem + length) = '2';
+
+            if (length >= SM_FILE_SIZE) {
+                LOG(LOG_ERROR, "given block id = %d exceed the max size which is ");
+            }
+
+            checkAndSetSMZero();
+            if (!semaphoreV()) {
+                LOG(LOG_ERROR, "can not release the semaphore, acquireNewBlock failure");
+            }
+
+            printSMStatus();
+        }
+
+
+        void SharedMemoryManager::releaseBlock(int blockID) {
+
+            if (!checkBlockIDIsLegal(blockID)) {
+                return;
+            }
+
+            if (!semaphoreP()) {
+                LOG(LOG_ERROR, "can not acquire the semaphore, acquireNewBlock failure");
+            }
+            if (checkAndSetSMOne()) {
+                LOG(LOG_ERROR, "acquireNewBlock failed, shared memory is broken");
+            }
+
+            int length = 1;
+            char *mem = static_cast<char *>(regionPtr->get_address());
+            length = length + (1 + 8 + FILENAME_MAX_LENGTH) * blockID;
+
+            *(mem + length) = '0';
+
+            checkAndSetSMZero();
+            if (!semaphoreV()) {
+                LOG(LOG_ERROR, "can not release the semaphore, acquireNewBlock failure");
+            }
+
+            printSMStatus();
+        }
+
+
+        void SharedMemoryManager::evictBlock(int blockID) {
+            if (!checkBlockIDIsLegal(blockID)) {
+                return;
+            }
+
+            if (!semaphoreP()) {
+                LOG(LOG_ERROR, "can not acquire the semaphore, acquireNewBlock failure");
+            }
+            if (checkAndSetSMOne()) {
+                LOG(LOG_ERROR, "acquireNewBlock failed, shared memory is broken");
+            }
+
+            int length = 1;
+            char *mem = static_cast<char *>(regionPtr->get_address());
+            length = length + (1 + 8 + FILENAME_MAX_LENGTH) * blockID;
+
+            *(mem + length) = '1';
+
+
+            checkAndSetSMZero();
+            if (!semaphoreV()) {
+                LOG(LOG_ERROR, "can not release the semaphore, acquireNewBlock failure");
+            }
+            printSMStatus();
+        }
+
+        bool SharedMemoryManager::checkBlockIDIsLegal(int blockID) {
+            int maxBlockID = (SM_FILE_SIZE - 1) / (1 + 8 + FILENAME_MAX_LENGTH);
+            if (blockID >= maxBlockID) {
+                LOG(LOG_ERROR, "given block id %d exceed the max size which is %d ", blockID, maxBlockID);
+                return false;
+            }
+            return true;
+        }
+
+
+
 
 
 //        void SharedMemoryManager::bitSet(char *p_data, int32_t position, int flag) {
