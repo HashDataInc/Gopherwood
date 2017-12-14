@@ -132,9 +132,13 @@ namespace Gopherwood {
             std::string tmpStr = serializeBlockIDVector(blockIdVector);
             std::string res;
 
-            PutFixed32(&res, tmpStr.size());
+            if(recordType==RecordType::acquireNewBlock){
+                PutFixed32(&res, tmpStr.size() + 1 + 4); //total size = 1(type)+tmpStr.size()+4(pid)
+            }else{
+                PutFixed32(&res, tmpStr.size() + 1); //total size = 1(type)+tmpStr.size()
+            }
 
-            res.append(1, recordType & 0x0F);
+            res.append(1, static_cast<char>(recordType));
 
             res.append(tmpStr.data(), tmpStr.size());
             LOG(INFO, "3, LogFormat res size = %d", res.size());
@@ -190,15 +194,114 @@ namespace Gopherwood {
                     return serializeAcquireNewBlock(blockIdVector, type);
                 case inactiveBlock:
                     return serializeInactiveBlock(blockIdVector, type);
+                    break;
                 case releaseBlock:
                     return serializeReleaseBlock(blockIdVector, type);
+                    break;
                 case evictBlock:
                     return serializeEvictBlock(blockIdVector, type);
+                    break;
                 case remoteBlock:
                     return serializeRemoteBlock(blockIdVector, type);
+                    break;
                 case closeFile:
                     return serializeCloseFile(blockIdVector, type);
+                    break;
             }
+        }
+
+
+        void LogFormat::deserializeLog(std::string val) {
+
+            char *res = (char *) val.data();
+
+            char type = *res;
+
+            int iType = type;
+            LOG(INFO, "deserializeLog  int iType   = %d", iType);
+            switch (iType) {
+                case acquireNewBlock:
+                    deserializeAcquireNewBlock(val);
+                    break;
+                case inactiveBlock:
+                    deserializeInactiveBlock(val);
+                    break;
+                case releaseBlock:
+                    deserializeReleaseBlock(val);
+                    break;
+                case evictBlock:
+                    deserializeEvictBlock(val);
+                    break;
+                case remoteBlock:
+                    deserializeRemoteBlock(val);
+                    break;
+                case closeFile:
+                    deserializeCloseFile(val);
+                    break;
+            }
+        }
+
+
+        int LogFormat::deserializeHeaderAndBlockIds(std::string val) {
+            char *res = (char *) val.data();
+            char type = *res;
+            int iType = type;
+//            LOG(INFO, "deserializeHeaderAndBlockIds  type   = %d", iType);
+
+            int offset = 1;
+
+            int32_t numOfBlocks = DecodeFixed32(res + offset);
+            offset += 4;
+            LOG(INFO, "deserializeHeaderAndBlockIds numOfBlocks  = %d", numOfBlocks);
+
+            for (int i = 0; i < numOfBlocks; i++) {
+                int32_t blockID = DecodeFixed32(res + offset);
+                LOG(INFO, "deserializeHeaderAndBlockIds numOfBlocks id  = %d", blockID);
+                offset += 4;
+            }
+            return offset;
+        }
+
+
+        void LogFormat::deserializeAcquireNewBlock(std::string val) {
+            LOG(INFO, "*******deserializeAcquireNewBlock*******");
+            int offset = deserializeHeaderAndBlockIds(val);
+            char *res = (char *) val.data();
+            int pid = DecodeFixed32(res + offset);
+            LOG(INFO, "deserializeAcquireNewBlock pid   = %d", pid);
+            LOG(INFO, "*******deserializeAcquireNewBlock*******");
+        }
+
+
+        void LogFormat::deserializeInactiveBlock(std::string val) {
+            LOG(INFO, "*******deserializeInactiveBlock*******");
+            int offset = deserializeHeaderAndBlockIds(val);
+            LOG(INFO, "*******deserializeInactiveBlock*******");
+        }
+
+        void LogFormat::deserializeReleaseBlock(std::string val) {
+            LOG(INFO, "*******deserializeReleaseBlock*******");
+            int offset = deserializeHeaderAndBlockIds(val);
+            LOG(INFO, "*******deserializeReleaseBlock*******");
+        }
+
+        void LogFormat::deserializeEvictBlock(std::string val) {
+            LOG(INFO, "*******deserializeEvictBlock*******");
+            int offset = deserializeHeaderAndBlockIds(val);
+            LOG(INFO, "*******deserializeEvictBlock*******");
+        }
+
+        void LogFormat::deserializeRemoteBlock(std::string val) {
+            LOG(INFO, "*******deserializeRemoteBlock*******");
+            int offset = deserializeHeaderAndBlockIds(val);
+            LOG(INFO, "*******deserializeRemoteBlock*******");
+        }
+
+        //TODO , this is not complete
+        void LogFormat::deserializeCloseFile(std::string val) {
+            LOG(INFO, "*******deserializeCloseFile*******");
+            int offset = deserializeHeaderAndBlockIds(val);
+            LOG(INFO, "*******deserializeCloseFile*******");
         }
     }
 }
@@ -207,7 +310,7 @@ namespace Gopherwood {
 //header
 /**
 -----------------------------------------------------
-|   size  of data  | type                           |
+|size of total data| type                           |
 -----------------------------------------------------
 |   4536           |RecordType::acquireNewBlock     |
 -----------------------------------------------------

@@ -103,11 +103,11 @@ namespace Gopherwood {
 
             virtual void acquireNewBlock(char *fileName)=0;
 
-            virtual void inactiveBlock(char *fileName, int blockID)=0;
+            virtual void inactiveBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
 
-            virtual void releaseBlock(char *fileName, int blockID)=0;
+            virtual void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
 
-            virtual void evictBlock(char *fileName, int blockID)=0;
+            virtual void evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
 
 
         };

@@ -100,23 +100,44 @@ namespace Gopherwood {
                 status->setLastBucket(blockIDVector[blockIDVector.size() - 1]);
             }
 
-            //2. TODO , write the new file status to Log.
-            string res = logFormat->serializeLog(blockIDVector,LogFormat::RecordType::acquireNewBlock);
+            //2.  write the new file status to Log.
+            string res = logFormat->serializeLog(blockIDVector, LogFormat::RecordType::acquireNewBlock);
             LOG(INFO, "8, LogFormat res size = %d", res.size());
             writeFileStatusToLog(fileName, res);
         }
 
 
-        void FileSystemImpl::inactiveBlock(char *fileName, int blockID) {
-            sharedMemoryManager->inactiveBlock(blockID);
+        void FileSystemImpl::inactiveBlock(char *fileName, const std::vector<int32_t> &blockIdVector) {
+            //1. set the shared memory
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                sharedMemoryManager->inactiveBlock(blockIdVector[i]);
+            }
+            //2.  write the new file status to Log.
+            string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::inactiveBlock);
+            writeFileStatusToLog(fileName, res);
+
         }
 
-        void FileSystemImpl::releaseBlock(char *fileName, int blockID){
-            sharedMemoryManager->releaseBlock(blockID);
+        void FileSystemImpl::releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector) {
+            //1. set the shared memory
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                sharedMemoryManager->releaseBlock(blockIdVector[i]);
+            }
+
+            //2.  write the new file status to Log.
+            string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::releaseBlock);
+            writeFileStatusToLog(fileName, res);
         }
 
-        void FileSystemImpl::evictBlock(char *fileName, int blockID){
-            sharedMemoryManager->evictBlock(blockID);
+        void FileSystemImpl::evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector) {
+            //1. set the shared memory
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                sharedMemoryManager->evictBlock(blockIdVector[i]);
+            }
+
+            //2.  write the new file status to Log.
+            string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::evictBlock);
+            writeFileStatusToLog(fileName, res);
         }
 
 
@@ -230,7 +251,7 @@ namespace Gopherwood {
 
 
         void FileSystemImpl::writeFileStatusToLog(char *fileName, std::string dataStr) {
-            int flags = O_CREAT | O_RDWR;
+            int flags = O_CREAT | O_RDWR | O_APPEND;
 
             char *filePathName = getFilePath(fileName);
             LOG(INFO, "filePathName = %s", filePathName);
@@ -243,9 +264,11 @@ namespace Gopherwood {
 
             LOG(INFO, "FileSystemImpl::writeFileStatusToLog write size = %d", length);
 
-
             readFileStatusFromLog(fileName);
         }
+
+
+
 
 
         void FileSystemImpl::readFileStatusFromLog(char *fileName) {
@@ -257,36 +280,50 @@ namespace Gopherwood {
 
 
             char bufLength[4];
-
             int32_t length = read(logFd, bufLength, sizeof(bufLength));
 
-            int32_t dataSize = DecodeFixed32(bufLength);
-            LOG(INFO, "FileSystemImpl::readFileStatusFromLog first read length  = %d", length);
-            LOG(INFO, "FileSystemImpl::readFileStatusFromLog dataSize  = %d", dataSize);
+            while(length==4){
+                LOG(INFO, "FileSystemImpl::readFileStatusFromLog read length = %d", length);
+                int32_t dataSize = DecodeFixed32(bufLength);
+                std::string logRecord;
+                char res[dataSize];
+                read(logFd, res, sizeof(res));
+                logRecord.append(res,dataSize);
+                logFormat->deserializeLog(logRecord);
 
-            char res[dataSize+1+4];
-            length = read(logFd, res, sizeof(res));
-            LOG(INFO, "FileSystemImpl::readFileStatusFromLog second read length  = %d", length);
-
-            char type = *res;
-            LOG(INFO, "FileSystemImpl::readFileStatusFromLog type   = %d", type);
-
-            int offset = 1;
-
-            int32_t numOfBlocks = DecodeFixed32(res+offset);
-            offset+=4;
-            LOG(INFO, "FileSystemImpl::readFileStatusFromLog numOfBlocks   = %d", numOfBlocks);
-
-            for(int i=0;i<numOfBlocks;i++){
-                int32_t blockID =DecodeFixed32(res+offset);
-                LOG(INFO, "FileSystemImpl::readFileStatusFromLog numOfBlocks   = %d", blockID);
-                offset+=4;
+                length = read(logFd, bufLength, sizeof(bufLength));
             }
+            LOG(INFO, "FileSystemImpl::readFileStatusFromLog out read length = %d", length);
 
-            int pid = DecodeFixed32(res+offset);
-            LOG(INFO, "FileSystemImpl::readFileStatusFromLog pid   = %d", pid);
             close(logFd);
 
+
+//
+//            LOG(INFO, "FileSystemImpl::readFileStatusFromLog first read length  = %d", length);
+//            LOG(INFO, "FileSystemImpl::readFileStatusFromLog dataSize  = %d", dataSize);
+//
+//
+//            length = read(logFd, res, sizeof(res));
+//            LOG(INFO, "FileSystemImpl::readFileStatusFromLog second read length  = %d", length);
+//
+//            char type = *res;
+//            LOG(INFO, "FileSystemImpl::readFileStatusFromLog type   = %d", type);
+//
+//            int offset = 1;
+//
+//            int32_t numOfBlocks = DecodeFixed32(res + offset);
+//            offset += 4;
+//            LOG(INFO, "FileSystemImpl::readFileStatusFromLog numOfBlocks   = %d", numOfBlocks);
+//
+//            for (int i = 0; i < numOfBlocks; i++) {
+//                int32_t blockID = DecodeFixed32(res + offset);
+//                LOG(INFO, "FileSystemImpl::readFileStatusFromLog numOfBlocks   = %d", blockID);
+//                offset += 4;
+//            }
+//
+//            int pid = DecodeFixed32(res + offset);
+//            LOG(INFO, "FileSystemImpl::readFileStatusFromLog pid   = %d", pid);
+//            close(logFd);
 
         }
 

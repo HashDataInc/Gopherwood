@@ -60,13 +60,19 @@ TEST_F(TestSharedMemoryManager, acquireNewBlock) {
     cout<<endl;
 
     //1->2
-    filesystem->inactiveBlock(fileName,filestatus->getBlockIdVector()[0]);
+    vector<int> tmpVector;
+    tmpVector.push_back(filestatus->getBlockIdVector()[0]);
+    filesystem->inactiveBlock(fileName,tmpVector);
 
     //1->0
-    filesystem->releaseBlock(fileName,filestatus->getBlockIdVector()[1]);
+    tmpVector.clear();
+    tmpVector.push_back(filestatus->getBlockIdVector()[1]);
+    filesystem->releaseBlock(fileName,tmpVector);
 
     //2->1
-    filesystem->evictBlock(fileName,filestatus->getBlockIdVector()[0]);
+    tmpVector.clear();
+    tmpVector.push_back(filestatus->getBlockIdVector()[0]);
+    filesystem->evictBlock(fileName,tmpVector);
 
 
 }

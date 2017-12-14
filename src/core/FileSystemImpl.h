@@ -75,11 +75,11 @@ namespace Gopherwood {
 
             void acquireNewBlock(char *fileName);
 
-            void inactiveBlock(char *fileName, int blockID);
+            void inactiveBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-            void releaseBlock(char *fileName, int blockID);
+            void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-            void evictBlock(char *fileName, int blockID);
+            void evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
 
             int64_t getTheEOFOffset(const char *fileName);

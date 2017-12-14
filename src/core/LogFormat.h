@@ -39,12 +39,14 @@ namespace Gopherwood {
             const int kHeaderSize = 4 + 1;
 
         private:
-            int length; // the length of the type;
-            RecordType type;
-            char data[1]; // the real data
+//            int length; // the length of the type;
+//            RecordType type;
+//            char data[1]; // the real data
 
         public:
             std::string serializeLog(const std::vector<int32_t> &blockIdVector, RecordType type);
+
+            void deserializeLog(std::string val);
 
 
         private:
@@ -63,6 +65,20 @@ namespace Gopherwood {
             std::string serializeRemoteBlock(const std::vector<int32_t> &blockIdVector, RecordType type);
 
             std::string serializeCloseFile(const std::vector<int32_t> &blockIdVector, RecordType recordType);
+
+            int deserializeHeaderAndBlockIds(std::string val);
+
+            void deserializeAcquireNewBlock(std::string val);
+
+            void deserializeInactiveBlock(std::string val);
+
+            void deserializeReleaseBlock(std::string val);
+
+            void deserializeEvictBlock(std::string val);
+
+            void deserializeRemoteBlock(std::string val);
+
+            void deserializeCloseFile(std::string val);
         };
 
 
