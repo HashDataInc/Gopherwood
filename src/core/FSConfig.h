@@ -23,8 +23,8 @@ namespace Gopherwood {
 
         extern char *SHARED_MEMORY_PATH_FILE_NAME;
         extern int SM_FILE_SIZE;
-        extern char * FILE_LOG_PERSISTENCE_PATH;
-        extern int BUCKET_ID_BASE_OFFSET;
+        extern char *FILE_LOG_PERSISTENCE_PATH;
+        extern int FILENAME_MAX_LENGTH;
         extern int QUOTA_SIZE;
     }
 

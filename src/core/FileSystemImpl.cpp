@@ -78,9 +78,8 @@ namespace Gopherwood {
         }
 
         void FileSystemImpl::acquireNewBlock(char *fileName) {
-
             //1. set the shared memory
-            vector<int> blockIDVector = sharedMemoryManager->acquireNewBlock();
+            vector<int> blockIDVector = sharedMemoryManager->acquireNewBlock(fileName);
 
             assert(blockIDVector.size() == QUOTA_SIZE);
 
@@ -105,9 +104,21 @@ namespace Gopherwood {
             string res = logFormat->serializeLog(blockIDVector,LogFormat::RecordType::acquireNewBlock);
             LOG(INFO, "8, LogFormat res size = %d", res.size());
             writeFileStatusToLog(fileName, res);
-
-
         }
+
+
+        void FileSystemImpl::inactiveBlock(char *fileName, int blockID) {
+            sharedMemoryManager->inactiveBlock(blockID);
+        }
+
+        void FileSystemImpl::releaseBlock(char *fileName, int blockID){
+            sharedMemoryManager->releaseBlock(blockID);
+        }
+
+        void FileSystemImpl::evictBlock(char *fileName, int blockID){
+            sharedMemoryManager->evictBlock(blockID);
+        }
+
 
         int64_t FileSystemImpl::getTheEOFOffset(const char *fileName) {
             vector<int32_t> blockIDVector = fileStatusMap[fileName]->getBlockIdVector();

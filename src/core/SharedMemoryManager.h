@@ -32,6 +32,7 @@
 #include "Logger.h"
 #include "FSConfig.h"
 #include "LogFormat.h"
+
 namespace Gopherwood {
     namespace Internal {
         using namespace std;
@@ -76,7 +77,14 @@ namespace Gopherwood {
 
             void closeSMBucket();
 
-            std::vector<int> acquireNewBlock();
+            std::vector<int> acquireNewBlock(char *fileName);
+
+            void inactiveBlock(int blockID);
+
+            void releaseBlock(int blockID);
+
+            void evictBlock(int blockID);
+
 
             void closeSMFile();
 
@@ -102,14 +110,26 @@ namespace Gopherwood {
             bool checkSharedMemoryInFile();
 
             int createSemaphore();
+
             int setSemaphoreValue();
+
             void delSemaphoreValue();
+
             int semaphoreP();
+
             int semaphoreV();
+
             int checkSemaphore();
+
             bool checkAndSetSMOne();
+
             void checkAndSetSMZero();
-            char* generateStr(int length);
+
+            char *generateStr(int length);
+
+            bool checkBlockIDIsLegal(int blockID);
+
+            void printSMStatus();
 
         };
 

@@ -173,6 +173,11 @@ namespace Gopherwood {
 
 
         void OutputStreamImpl::seekInternal(int64_t pos) {
+            if(status->getBlockIdVector().size()<=0){
+                LOG(LOG_ERROR, "the block vector size is less than zero");
+                return;
+            }
+
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
             LOG(INFO, "theEOFOffset = %d",theEOFOffset);
 
@@ -188,6 +193,7 @@ namespace Gopherwood {
             this->status = filesystem->getFileStatus(fileName.data());
             this->cursorIndex = bucketIDIndex;
             LOG(INFO, "OutputStreamImpl cursorIndex = %d",cursorIndex);
+
             this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
             LOG(INFO, "OutputStreamImpl cursorBucketID = %d",cursorBucketID);
             this->cursorOffset = bucketOffset;

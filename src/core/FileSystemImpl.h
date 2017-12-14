@@ -75,6 +75,13 @@ namespace Gopherwood {
 
             void acquireNewBlock(char *fileName);
 
+            void inactiveBlock(char *fileName, int blockID);
+
+            void releaseBlock(char *fileName, int blockID);
+
+            void evictBlock(char *fileName, int blockID);
+
+
             int64_t getTheEOFOffset(const char *fileName);
 
             std::shared_ptr<FileStatus> getFileStatus(const char *fileName);
