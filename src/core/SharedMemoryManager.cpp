@@ -232,7 +232,7 @@ namespace Gopherwood {
         }
 
 
-        void SharedMemoryManager::inactiveBlock(int blockID) {
+        void SharedMemoryManager::inactiveBlock(int blockID, char *fileName) {
             if (!checkBlockIDIsLegal(blockID)) {
                 return;
             }
@@ -248,7 +248,14 @@ namespace Gopherwood {
             char *mem = static_cast<char *>(regionPtr->get_address());
             length = length + (1 + 8 + FILENAME_MAX_LENGTH) * blockID;
 
+            //1.change the type
             *(mem + length) = '2';
+
+            //skip to the fileName offset
+            length = length+1+8;
+
+            //2.write the fileName
+            memcpy(mem + length, fileName, strlen(fileName));
 
             if (length >= SM_FILE_SIZE) {
                 LOG(LOG_ERROR, "given block id = %d exceed the max size which is ");

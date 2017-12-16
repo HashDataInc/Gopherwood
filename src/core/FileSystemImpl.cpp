@@ -4,6 +4,7 @@
 
 
 
+#include <sstream>
 #include "FileSystemImpl.h"
 #include "../common/Logger.h"
 #include "../util/Coding.h"
@@ -22,6 +23,10 @@ namespace Gopherwood {
             std::shared_ptr<LogFormat> tmplf(lf);
             logFormat = tmplf;
 
+
+            QingStoreReadWrite *qsrw = new QingStoreReadWrite();
+            std::shared_ptr<QingStoreReadWrite> tmpqsrw(qsrw);
+            qsReadWrite = tmpqsrw;
 
             sharedMemoryManager->checkSharedMemory();
             sharedMemoryManager->openSMBucket();
@@ -110,7 +115,7 @@ namespace Gopherwood {
         void FileSystemImpl::inactiveBlock(char *fileName, const std::vector<int32_t> &blockIdVector) {
             //1. set the shared memory
             for (int i = 0; i < blockIdVector.size(); i++) {
-                sharedMemoryManager->inactiveBlock(blockIdVector[i]);
+                sharedMemoryManager->inactiveBlock(blockIdVector[i], fileName);
             }
             //2.  write the new file status to Log.
             string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::inactiveBlock);
@@ -135,9 +140,69 @@ namespace Gopherwood {
                 sharedMemoryManager->evictBlock(blockIdVector[i]);
             }
 
-            //2.  write the new file status to Log.
+
+            //2. evict data to OSS, like QingStor, S3.
+            writeDate2OSS(fileName, blockIdVector);
+
+
+            //3.  write the new file status to Log.
             string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::evictBlock);
             writeFileStatusToLog(fileName, res);
+        }
+
+
+        std::string FileSystemImpl::constructFileKey(std::string str, int index) {
+            stringstream ss;
+            ss << str << "-" << index;
+            return ss.str();
+        }
+
+
+        void FileSystemImpl::writeDate2OSS(char *fileName, const std::vector<int32_t> &blockIdVector) {
+            qsReadWrite->initContext();
+
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                int blockID = blockIdVector[i];
+                int index = getIndexAccordingBlockID(fileName, blockID);
+
+
+                string fileKey;
+                fileKey.append(fileName, strlen(fileName));
+
+                fileKey = constructFileKey(fileKey, index);
+
+                LOG(INFO, "index = %d, fileKey = %s", index, fileKey.data());
+                qsReadWrite->getPutObject((char *) fileKey.data());
+                fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+
+                char *buffer = (char *) malloc(READ_BUFFER_SIZE * sizeof(char));
+                const int iter = (int) (SIZE_OF_BLOCK / READ_BUFFER_SIZE);
+
+
+                int64_t baseOffsetInBucket = blockID * SIZE_OF_BLOCK;
+                int j;
+                for (j = 0; j < iter; j++) {
+                    int32_t readBytes = readDataFromBucket(buffer, READ_BUFFER_SIZE);
+                    LOG(INFO, "readBytes = %d", readBytes);
+                    if (readBytes <= 0) {
+                        break;
+                    }
+                    qsReadWrite->qsWrite((char *) fileKey.data(), buffer, readBytes);
+                    baseOffsetInBucket += READ_BUFFER_SIZE;
+                    fsSeek(baseOffsetInBucket, SEEK_SET);
+                }
+                qsReadWrite->closePutObject();
+            }
+            qsReadWrite->destroyContext();
+        }
+
+        int FileSystemImpl::getIndexAccordingBlockID(char *fileName, int blockID) {
+            std::shared_ptr<FileStatus> fileStatus = fileStatusMap[fileName];;
+            for (int i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
+                if (fileStatus->getBlockIdVector()[i] == blockID) {
+                    return i;
+                }
+            }
         }
 
 
@@ -167,16 +232,16 @@ namespace Gopherwood {
         }
 
 
-        int32_t FileSystemImpl::readDataFromBucket(char *buf, int32_t size) {
+        int64_t FileSystemImpl::readDataFromBucket(char *buf, int32_t size) {
             checkBucketFileOpen();
-            int32_t length = read(bucketFd, buf, size);
+            int64_t length = read(bucketFd, buf, size);
             return length;
         }
 
 
         void FileSystemImpl::writeDataToBucket(char *buf, int64_t size) {
             checkBucketFileOpen();
-            int res = write(bucketFd, buf, size);
+            int64_t res = write(bucketFd, buf, size);
             if (res == -1) {
                 LOG(INFO, "some error occur, can not write to the ssd file");
             }
@@ -191,9 +256,9 @@ namespace Gopherwood {
             }
         }
 
-        int32_t FileSystemImpl::fsSeek(int64_t offset, int whence = SEEK_SET) {
+        int32_t FileSystemImpl::fsSeek(int64_t offset, int whence) {
             checkBucketFileOpen();
-            int res = lseek(bucketFd, offset, whence);
+            int64_t res = lseek(bucketFd, offset, whence);
             if (res == -1) {
                 LOG(INFO, "fsSeek error");
             }
@@ -268,9 +333,6 @@ namespace Gopherwood {
         }
 
 
-
-
-
         void FileSystemImpl::readFileStatusFromLog(char *fileName) {
             int flags = O_CREAT | O_RDWR;
 
@@ -282,13 +344,13 @@ namespace Gopherwood {
             char bufLength[4];
             int32_t length = read(logFd, bufLength, sizeof(bufLength));
 
-            while(length==4){
+            while (length == 4) {
                 LOG(INFO, "FileSystemImpl::readFileStatusFromLog read length = %d", length);
                 int32_t dataSize = DecodeFixed32(bufLength);
                 std::string logRecord;
                 char res[dataSize];
                 read(logFd, res, sizeof(res));
-                logRecord.append(res,dataSize);
+                logRecord.append(res, dataSize);
                 logFormat->deserializeLog(logRecord);
 
                 length = read(logFd, bufLength, sizeof(bufLength));

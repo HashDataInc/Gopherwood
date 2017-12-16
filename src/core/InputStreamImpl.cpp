@@ -1,10 +1,9 @@
 //
-// Created by root on 11/18/17.
+// Created by neuyilan@163.com on 11/18/17.
 //
 
 
 #include "InputStreamImpl.h"
-#include "../common/Logger.h"
 
 using namespace std;
 namespace Gopherwood {
@@ -161,9 +160,9 @@ namespace Gopherwood {
 
         void InputStreamImpl::seekInternal(int64_t pos) {
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
-            if(theEOFOffset==0){
+            if (theEOFOffset == 0) {
                 LOG(INFO, "the file do not contain any one bucket");
-                return ;
+                return;
             }
 
             if (theEOFOffset > pos) {
@@ -175,9 +174,9 @@ namespace Gopherwood {
             //TODO, should this in the FileSystem or in the InputStream?
             this->status = filesystem->getFileStatus(fileName.data());
             this->cursorIndex = bucketIDIndex;
-            LOG(INFO, "InputStreamImpl cursorIndex = %d",cursorIndex);
+            LOG(INFO, "InputStreamImpl cursorIndex = %d", cursorIndex);
             this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
-            LOG(INFO, "InputStreamImpl cursorBucketID = %d",cursorBucketID);
+            LOG(INFO, "InputStreamImpl cursorBucketID = %d", cursorBucketID);
             this->cursorOffset = bucketOffset;
 
             //seek the offset of the bucket file
@@ -193,7 +192,7 @@ namespace Gopherwood {
         //TODO,
         void InputStreamImpl::close() {
 
-            filesystem->closeFile((char*)fileName.data());
+            filesystem->closeFile((char *) fileName.data());
 
 
         }

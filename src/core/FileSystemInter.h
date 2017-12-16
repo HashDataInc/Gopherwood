@@ -89,7 +89,7 @@ namespace Gopherwood {
 
             virtual int64_t getTheEOFOffset(const char *fileName)=0;
 
-            virtual int32_t readDataFromBucket(char *buf, int32_t size)=0;
+            virtual int64_t readDataFromBucket(char *buf, int32_t size)=0;
 
             virtual void writeDataToBucket(char *buf, int64_t size)=0;
 
@@ -109,6 +109,7 @@ namespace Gopherwood {
 
             virtual void evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
 
+            virtual int getIndexAccordingBlockID(char *fileName, int blockID)=0;
 
         };
 
