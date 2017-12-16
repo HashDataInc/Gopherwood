@@ -79,7 +79,7 @@ namespace Gopherwood {
 
             std::vector<int> acquireNewBlock(char *fileName);
 
-            void inactiveBlock(int blockID);
+            void inactiveBlock(int blockID,char* fileName);
 
             void releaseBlock(int blockID);
 

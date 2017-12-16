@@ -53,6 +53,19 @@ TEST_F(TestSharedMemoryManager, acquireNewBlock) {
         return;
     }
 
+    char *buf="hello gopherwoodaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccc";
+
+    int blockID = filestatus->getBlockIdVector()[1];
+    int index = filesystem->getIndexAccordingBlockID(fileName,blockID);
+    int64_t  baseOffset = index*SIZE_OF_BLOCK;
+    for(int i=0;i<10;i++)
+    {
+
+        filesystem->fsSeek(baseOffset,SEEK_SET);
+        filesystem->writeDataToBucket(buf, strlen(buf));
+        baseOffset+=strlen(buf);
+    }
+
     cout << "the acquired block id is :" << endl;
     for (int i = 0; i < filestatus->getBlockIdVector().size(); i++) {
         cout << filestatus->getBlockIdVector()[i] << "\t";
@@ -61,17 +74,17 @@ TEST_F(TestSharedMemoryManager, acquireNewBlock) {
 
     //1->2
     vector<int> tmpVector;
-    tmpVector.push_back(filestatus->getBlockIdVector()[0]);
+    tmpVector.push_back(filestatus->getBlockIdVector()[1]);
     filesystem->inactiveBlock(fileName,tmpVector);
 
     //1->0
     tmpVector.clear();
-    tmpVector.push_back(filestatus->getBlockIdVector()[1]);
+    tmpVector.push_back(filestatus->getBlockIdVector()[2]);
     filesystem->releaseBlock(fileName,tmpVector);
 
     //2->1
     tmpVector.clear();
-    tmpVector.push_back(filestatus->getBlockIdVector()[0]);
+    tmpVector.push_back(filestatus->getBlockIdVector()[1]);
     filesystem->evictBlock(fileName,tmpVector);
 
 

@@ -1,5 +1,5 @@
 //
-// Created by root on 11/17/17.
+// Created by neuyilan@163.com on 11/17/17.
 //
 
 #ifndef _GOPHERWOOD_CORE_FILESYSTEMIMPL_H_
@@ -19,6 +19,7 @@
 #include "Exception.h"
 #include "Logger.h"
 #include "SharedMemoryManager.h"
+#include "QingStoreReadWrite.h"
 
 namespace Gopherwood {
     namespace Internal {
@@ -60,7 +61,7 @@ namespace Gopherwood {
 
             std::shared_ptr<SharedMemoryManager> sharedMemoryManager;
             std::shared_ptr<LogFormat> logFormat;
-
+            std::shared_ptr<QingStoreReadWrite> qsReadWrite;
 //            static const int32_t BIT_MAP_SIZE = 40;
 //            uint64_t filesize_;
 //            string fileName;
@@ -86,7 +87,7 @@ namespace Gopherwood {
 
             std::shared_ptr<FileStatus> getFileStatus(const char *fileName);
 
-            int32_t readDataFromBucket(char *buf, int32_t size);
+            int64_t readDataFromBucket(char *buf, int32_t size);
 
             void writeDataToBucket(char *buf, int64_t size);
 
@@ -109,6 +110,13 @@ namespace Gopherwood {
             void readFileStatusFromLog(char *fileName);
 
             char *getFilePath(char *fileName);
+
+            void writeDate2OSS(char *fileName, const std::vector<int32_t> &blockIdVector);
+
+            int getIndexAccordingBlockID(char *fileName, int blockID);
+
+            std::string constructFileKey(std::string, int index);
+
 
         };
 

@@ -14,9 +14,9 @@ namespace Gopherwood {
     namespace Internal {
 
 
-        extern int32_t SHM_SIZE;//the size of shared memory
-        extern int32_t SIZE_OF_FILE;//the size of the SSD file, default is 20GB
-        extern int32_t SIZE_OF_BLOCK;
+        extern int64_t SHM_SIZE;//the size of shared memory
+        extern int64_t SIZE_OF_FILE;//the size of the SSD file, default is 20GB
+        extern int64_t SIZE_OF_BLOCK;
         extern int32_t BIT_MAP_SIZE;
 
         extern char *BUCKET_PATH_FILE_NAME;
@@ -26,6 +26,10 @@ namespace Gopherwood {
         extern char *FILE_LOG_PERSISTENCE_PATH;
         extern int FILENAME_MAX_LENGTH;
         extern int QUOTA_SIZE;
+
+        extern int QINGSTOR_BUFFER_SIZE;
+        extern int32_t READ_BUFFER_SIZE;
+        extern int WRITE_BUFFER_SIZE;
     }
 
 
