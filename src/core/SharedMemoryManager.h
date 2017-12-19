@@ -79,14 +79,16 @@ namespace Gopherwood {
 
             std::vector<int> acquireNewBlock(char *fileName);
 
-            void inactiveBlock(int blockID,char* fileName);
+            void inactiveBlock(int blockID, char *fileName);
 
             void releaseBlock(int blockID);
 
-            void evictBlock(int blockID);
+            void evictBlock(int blockID,char* fileName);
 
 
             void closeSMFile();
+
+            std::string getFileNameAccordingBlockID(int blockID);
 
         private:
             int32_t sharedMemoryFd = -1;// the shared memory file descriptor

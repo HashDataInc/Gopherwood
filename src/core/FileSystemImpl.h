@@ -62,9 +62,6 @@ namespace Gopherwood {
             std::shared_ptr<SharedMemoryManager> sharedMemoryManager;
             std::shared_ptr<LogFormat> logFormat;
             std::shared_ptr<QingStoreReadWrite> qsReadWrite;
-//            static const int32_t BIT_MAP_SIZE = 40;
-//            uint64_t filesize_;
-//            string fileName;
 
         private:
 
@@ -103,15 +100,13 @@ namespace Gopherwood {
 
             std::shared_ptr<FileStatus> getFileStatus(char *fileName);
 
-            void persistentFileLog(char *fileName);
+            void persistentFileLog(char *fileName,std::shared_ptr<FileStatus> fileStatus);
 
             void writeFileStatusToLog(char *fileName, std::string data);
 
-            void readFileStatusFromLog(char *fileName);
-
             char *getFilePath(char *fileName);
 
-            void writeDate2OSS(char *fileName, const std::vector<int32_t> &blockIdVector);
+            void writeDate2OSS(char *fileName, int blockID);
 
             int getIndexAccordingBlockID(char *fileName, int blockID);
 

@@ -1,8 +1,3 @@
-//
-// Created by root on 11/18/17.
-//
-
-
 
 #include "OutputStreamImpl.h"
 #include "../common/Logger.h"
@@ -19,12 +14,12 @@ namespace Gopherwood {
             //1.check the file exist in the fileStatusMap or not
             bool exist = filesystem->checkFileExist(fileName);
             if (!exist) {
-                LOG(INFO,"fileStatusMap do not contain the file, so rebuild the fileStatusMap and find again");
+                LOG(INFO, "fileStatusMap do not contain the file, so rebuild the fileStatusMap and find again");
                 //1.1. rebuild fileStatusMap from log .
                 filesystem->rebuildFileStatusFromLog(fileName);
                 //1.2 check again
                 bool existAgain = filesystem->checkFileExist(fileName);
-                if(!existAgain){
+                if (!existAgain) {
                     LOG(INFO, "no file named = %s, so create new one ", fileName);
                     //1.3 create new one
                     filesystem->createFile(fileName);
@@ -32,7 +27,7 @@ namespace Gopherwood {
                     //TODO 1.4 sync new file status to log
 
                 }
-            }else{
+            } else {
                 //2. the fileName exist in the fileStatusMap, so catch up the fileStatus from LOG.
                 //TODO ,we should mark the offset that last time catch.
                 filesystem->catchUpFileStatusFromLog(0);
@@ -40,14 +35,15 @@ namespace Gopherwood {
             }
             status = filesystem->getFileStatus(fileName);
             //3. default seek to the end of the file
-            LOG(INFO, "getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",status->getBlockIdVector().size(),status->getLastBucket(),status->getEndOffsetOfBucket());
+            LOG(INFO, "getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",
+                status->getBlockIdVector().size(), status->getLastBucket(), status->getEndOffsetOfBucket());
             int64_t endOfOffset = filesystem->getTheEOFOffset(fileName);
-            LOG(INFO, "endOfOffset = %d",endOfOffset);
+            LOG(INFO, "endOfOffset = %d", endOfOffset);
 
-            if(status->getBlockIdVector().size()==0){
+            if (status->getBlockIdVector().size() == 0) {
                 LOG(INFO, "openFile do not seek, because the file do not contain any bucket");
                 //do nothing, because the file do not contain any bucket.
-            }else{
+            } else {
                 seek(endOfOffset);
             }
 
@@ -63,7 +59,7 @@ namespace Gopherwood {
                 LOG(INFO, "Invalid parameter.");
 //                THROW(InvalidParameter, "Invalid parameter.");
             }
-            if(status->getBlockIdVector().size()==0){
+            if (status->getBlockIdVector().size() == 0) {
                 seek(0);
             }
             try {
@@ -158,7 +154,7 @@ namespace Gopherwood {
 
 
         void OutputStreamImpl::close() {
-            filesystem->closeFile((char*)fileName.data());
+            filesystem->closeFile((char *) fileName.data());
         }
 
         void OutputStreamImpl::seek(int64_t pos) {
@@ -171,18 +167,16 @@ namespace Gopherwood {
         }
 
 
-
         void OutputStreamImpl::seekInternal(int64_t pos) {
-            if(status->getBlockIdVector().size()<=0){
+            if (status->getBlockIdVector().size() <= 0) {
                 LOG(LOG_ERROR, "the block vector size is less than zero");
                 return;
             }
 
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
-            LOG(INFO, "theEOFOffset = %d",theEOFOffset);
+            LOG(INFO, "theEOFOffset = %d", theEOFOffset);
 
-
-            if (pos>theEOFOffset) {
+            if (pos > theEOFOffset) {
                 //todo, throw error
                 LOG(LOG_ERROR, "error, the given pos exceed the size of the file");
             }
@@ -192,10 +186,10 @@ namespace Gopherwood {
             //TODO, should this in the FileSystem or in the InputStream?
             this->status = filesystem->getFileStatus(fileName.data());
             this->cursorIndex = bucketIDIndex;
-            LOG(INFO, "OutputStreamImpl cursorIndex = %d",cursorIndex);
+            LOG(INFO, "OutputStreamImpl cursorIndex = %d", cursorIndex);
 
             this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
-            LOG(INFO, "OutputStreamImpl cursorBucketID = %d",cursorBucketID);
+            LOG(INFO, "OutputStreamImpl cursorBucketID = %d", cursorBucketID);
             this->cursorOffset = bucketOffset;
 
             //seek the offset of the bucket file
@@ -206,24 +200,21 @@ namespace Gopherwood {
         string OutputStreamImpl::toString() {
 
         }
-//
-//        void OutputStreamImpl::setError(const exception_ptr &error) {
-//
-//        }
-
 
         void OutputStreamImpl::checkStatus() {
-            if(status->getBlockIdVector().size()==0){
+            if (status->getBlockIdVector().size() == 0) {
                 LOG(INFO, "checkStatus, the file do not contain any bucket, so create new one for write");
-                filesystem->acquireNewBlock((char*)fileName.data());
+                filesystem->acquireNewBlock((char *) fileName.data());
             }
         }
 
         void OutputStreamImpl::seekToNextBlock() {
             this->cursorIndex++;
             this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
+            //1. set the last bucket
+            status->setLastBucket(cursorBucketID);
             this->cursorOffset = 0;
-            //seek the offset of the bucket file
+            //2. seek the offset of the bucket file
             this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
         }
 

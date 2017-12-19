@@ -20,28 +20,9 @@ namespace Gopherwood {
 
         }
 
-//        void QingStoreReadWrite::qsRead(char *filename) {
-//            LOG(INFO, "testGetObject  file name = %s", filename);
-//            if (getObject) {
-//                char *buffer = (char *) malloc(read_buffer_size * sizeof(char));
-//                const int iter = (int) (file_length / read_buffer_size);
-//                int i;
-//                for (i = 0; i < iter; i++) {
-//                    int32_t bytesReadLeft = read_buffer_size;
-//                    int32_t read_bytes = 0;
-//                    int32_t off = 0;
-//                    do {
-//                        read_bytes = qingstorRead(qsContext, getObject, buffer + off, bytesReadLeft);
-//                        bytesReadLeft -= read_bytes;
-//                        off += read_bytes;
-//                    } while (read_bytes > 0 && bytesReadLeft > 0);
-//                }
-//                free(buffer);
-//            } else {
-//                LOG(LOG_ERROR, "qingstor get object failed with error message: %s", qingstorGetLastError());
-//            }
-//            return;
-//        }
+        void QingStoreReadWrite::qsRead(char *filename) {
+
+        }
 
 
         int64_t QingStoreReadWrite::getCurrenttime() {

@@ -10,6 +10,7 @@
 #include "FileStatus.h"
 #include "FileSystemInter.h"
 #include "FileSystemImpl.h"
+
 namespace Gopherwood {
     namespace Internal {
         struct FileSystemWrapper;
@@ -74,21 +75,6 @@ namespace Gopherwood {
         friend class OutputStream;
 
     private:
-        /**
-       *  create the shared memory
-       * @return the key of the shared memory
-//       */
-//        int32_t createSharedMemory();
-//
-//
-//        /**
-//         * rebuild the FileStatus from the log file
-//         * @param fileName  the file name
-//         * @return the file status of the file
-//         */
-//        unordered_map<string, std::shared_ptr<FileStatus>> rebuildFileStatusFromLog(char *fileName);
-//
-//        unordered_map<string, std::shared_ptr<FileStatus>> chaseFileStatusFromLog(int64_t logOffset);
 
     };
 
