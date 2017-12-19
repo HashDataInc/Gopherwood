@@ -102,6 +102,11 @@ namespace Gopherwood {
 
             void persistentFileLog(char *fileName,std::shared_ptr<FileStatus> fileStatus);
 
+            //TODO JUST FOR TEST
+            void readCloseFileSatus(char *fileName,std::shared_ptr<FileStatus> fileStatus);
+
+
+
             void writeFileStatusToLog(char *fileName, std::string data);
 
             char *getFilePath(char *fileName);

@@ -81,16 +81,15 @@ namespace Gopherwood {
                 cursorOffset += size;
             } else {
                 int64_t remainOffsetTotal = getRemainLength();
+
                 //TODO, this maybe wrong, because, I don't know when acquire a block, it will sync with the filesystem/FileStatus or not.
                 //TODO, if it does not work, we should check the code and try another method.
-
-
                 while ((size > remainOffsetTotal)) {
                     //1&2 acquire one block, sync to the shared memory and LOG system.
                     filesystem->acquireNewBlock((char *) fileName.data());
-                    remainOffsetTotal += SIZE_OF_BLOCK;
+                    remainOffsetTotal = getRemainLength();
+                    LOG(INFO, "remainOffsetTotal=%d", remainOffsetTotal);
                 }
-
 
                 //write remainOffsetInBlock data to the bucket first;
                 filesystem->writeDataToBucket(buf, remainOffsetInBlock);
@@ -110,16 +109,15 @@ namespace Gopherwood {
                         cursorOffset = remainSize;
                         remainSize -= remainSize;
                         haveWriteSize += remainSize;
-
                     }
                 }
-
-                //3. set the EndOffsetOfBucket
-                status->setEndOffsetOfBucket(cursorOffset);
-
-                //4. TODO. write new file status to the LOG system.
-
             }
+
+            //3. set the endOffsetOfBucket
+            status->setEndOffsetOfBucket(cursorOffset);
+            LOG(INFO, "cursorOffset=%d", cursorOffset);
+
+            //4. TODO. write new file status to the LOG system.
         }
 
 

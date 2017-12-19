@@ -18,6 +18,7 @@
 #include "../../src/core/SharedMemoryManager.h"
 #include "../../src/core/FileSystemInter.h"
 #include "../../src/core/FileSystemImpl.h"
+#include "../../src/core/OutputStream.h"
 
 
 using namespace Gopherwood;
@@ -37,24 +38,34 @@ public:
 protected:
     std::shared_ptr<FileSystemInter> filesystem;
     std::shared_ptr<FileStatus> filestatus;
+    std::shared_ptr<OutputStreamImpl> osImpl;
+
 };
 
 TEST_F(TestSharedMemoryManager, acquireNewBlock) {
     char *fileName = "TestSharedMemoryManager-acquireNewBlock";
     filesystem = std::shared_ptr<FileSystemInter>(new FileSystemImpl(fileName));
-    filesystem->createFile(fileName);
 
+    int internalFlags = Gopherwood::ReadWrite;
+    osImpl = std::shared_ptr<OutputStreamImpl>(new OutputStreamImpl(filesystem, fileName, internalFlags));
+
+    filesystem->createFile(fileName);
 
     filesystem->acquireNewBlock(fileName);
 
     filestatus = filesystem->getFileStatus(fileName);
-    if(filestatus->getBlockIdVector().size()!=QUOTA_SIZE){
+    if (filestatus->getBlockIdVector().size() != QUOTA_SIZE) {
         cout << "error, block vector size != QUOTA_SIZE  :" << endl;
         return;
     }
 
-    char *buf="hello gopherwoodaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccc";
+    char *buf = "hello gopherwoodaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccc";
 
+    for (int i = 0; i < 10; i++) {
+        osImpl->write(buf, strlen(buf));
+    }
+
+    /**
     int blockID = filestatus->getBlockIdVector()[1];
     int index = filesystem->getIndexAccordingBlockID(fileName,blockID);
     int64_t  baseOffset = index*SIZE_OF_BLOCK;
@@ -65,27 +76,25 @@ TEST_F(TestSharedMemoryManager, acquireNewBlock) {
         filesystem->writeDataToBucket(buf, strlen(buf));
         baseOffset+=strlen(buf);
     }
+     **/
+
 
     cout << "the acquired block id is :" << endl;
     for (int i = 0; i < filestatus->getBlockIdVector().size(); i++) {
         cout << filestatus->getBlockIdVector()[i] << "\t";
     }
-    cout<<endl;
+    cout << endl;
 
     //1->2
     vector<int> tmpVector;
-    tmpVector.push_back(filestatus->getBlockIdVector()[1]);
-    filesystem->inactiveBlock(fileName,tmpVector);
+    tmpVector.push_back(filestatus->getBlockIdVector()[0]);
+    filesystem->inactiveBlock(fileName, tmpVector);
 
-    //1->0
-    tmpVector.clear();
-    tmpVector.push_back(filestatus->getBlockIdVector()[2]);
-    filesystem->releaseBlock(fileName,tmpVector);
 
     //2->1
     tmpVector.clear();
-    tmpVector.push_back(filestatus->getBlockIdVector()[1]);
-    filesystem->evictBlock(fileName,tmpVector);
+    tmpVector.push_back(filestatus->getBlockIdVector()[0]);
+    filesystem->evictBlock(fileName, tmpVector);
 
     filesystem->closeFile(fileName);
 

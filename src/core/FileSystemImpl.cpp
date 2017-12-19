@@ -92,7 +92,9 @@ namespace Gopherwood {
 
 
             //set the first block to the lastBucket
-            if (blockIDVector.size() > 0) {
+            if (tmpVector.size() == 0 && blockIDVector.size() > 0) {
+                LOG(INFO,
+                    "this is the first time acquire the new block, so set the last bucket to the first block id that acquired");
                 status->setLastBucket(blockIDVector[0]);
             }
 
@@ -198,6 +200,7 @@ namespace Gopherwood {
 
 
         int FileSystemImpl::getIndexAccordingBlockID(char *fileName, int blockID) {
+            LOG(INFO, "getIndexAccordingBlockID fileName=%s", fileName);
             rebuildFileStatusFromLog(fileName);
 
             std::shared_ptr<FileStatus> fileStatus = fileStatusMap[fileName];;
@@ -283,9 +286,13 @@ namespace Gopherwood {
             auto &status = fileStatusMap[fileName];
             std::vector<int32_t> blockVector = status->getBlockIdVector();
             int lastBucket = status->getLastBucket();
+
+            LOG(INFO, "lastBucket=%d,endOffsetOfBucket = %d", lastBucket, status->getEndOffsetOfBucket());
+
             int i = 0;
             for (; i < blockVector.size(); i++) {
                 if (lastBucket == blockVector[i]) {
+                    i++;
                     break;
                 }
             }
@@ -303,6 +310,10 @@ namespace Gopherwood {
             FileStatus *fs = new FileStatus();
             std::shared_ptr<FileStatus> fileStatus(fs);
             fileStatus->setEndOffsetOfBucket(status->getEndOffsetOfBucket());
+
+            LOG(INFO, "closeFile, endOffsetOfBucket = %d, block vector size = %d", status->getEndOffsetOfBucket(),
+                status->getBlockIdVector().size());
+
             persistentFileLog(fileName, fileStatus);
 
         }
@@ -317,7 +328,9 @@ namespace Gopherwood {
             char bufLength[4];
             int32_t length = read(logFd, bufLength, sizeof(bufLength));
             while (length == 4) {
-                LOG(INFO, "FileSystemImpl::readFileStatusFromLog read length = %d", length);
+                LOG(INFO, "FileSystemImpl::readFileStatusFromLog read length = %d, block vector size =%d", length,
+                    fileStatus->getBlockIdVector().size());
+
                 int32_t dataSize = DecodeFixed32(bufLength);
                 std::string logRecord;
                 char res[dataSize];
@@ -331,11 +344,77 @@ namespace Gopherwood {
 
             std::string res = logFormat->serializeFileStatusForClose(fileStatus);
 
+
+
+            /** calculate the file size ***********/
+            struct stat stbuf;
+            if (fstat(logFd, &stbuf) != 0 || (!S_ISREG(stbuf.st_mode))) {
+                LOG(LOG_ERROR, "ERROR OCCURRED");
+            }
+            int file_size = stbuf.st_size;
+            LOG(INFO, "file_size=%d", file_size);
+            /** calculate the file size ***********/
+
+
             ftruncate(logFd, 0);
-            write(logFd, res.data(), res.size());
+            lseek(logFd,0,SEEK_SET);
+            /** calculate the file size ***********/
+            if (fstat(logFd, &stbuf) != 0 || (!S_ISREG(stbuf.st_mode))) {
+                LOG(LOG_ERROR, "ERROR OCCURRED");
+            }
+            file_size = stbuf.st_size;
+            LOG(INFO, "file_size=%d", file_size);
+            /** calculate the file size ***********/
+
+
+            int writeSize = write(logFd, res.data(), res.size());
+            LOG(INFO, "persistentFileLog, res.size()=%d,writeSize = %d", res.size(), writeSize);
+
+
+            /** calculate the file size ***********/
+            if (fstat(logFd, &stbuf) != 0 || (!S_ISREG(stbuf.st_mode))) {
+                LOG(LOG_ERROR, "ERROR OCCURRED");
+            }
+            file_size = stbuf.st_size;
+            LOG(INFO, "file_size=%d", file_size);
+            /** calculate the file size ***********/
+
             close(logFd);
 
+
+            /******************** TODO JUST FOR TEST*****************/
+            FileStatus *fs = new FileStatus();
+            std::shared_ptr<FileStatus> tmpfileStatus(fs);
+            readCloseFileSatus(fileName, tmpfileStatus);
+            /********************TODO JUST FOR TEST*****************/
         }
+
+        //TODO JUST FOR TEST
+        void FileSystemImpl::readCloseFileSatus(char *fileName, std::shared_ptr<FileStatus> fileStatus) {
+
+            int flags = O_CREAT | O_RDWR;
+
+            char *filePathName = getFilePath(fileName);
+            int logFd = open(filePathName, flags, 0644);
+
+            char bufLength[4];
+            int32_t length = read(logFd, bufLength, sizeof(bufLength));
+            while (length == 4) {
+                int32_t dataSize = DecodeFixed32(bufLength);
+                LOG(INFO, "FileSystemImpl::readCloseFileSatus read length = %d, dataSize size =%d", length, dataSize);
+                std::string logRecord;
+                char res[dataSize];
+                read(logFd, res, sizeof(res));
+                logRecord.append(res, dataSize);
+                logFormat->deserializeLog(logRecord, fileStatus);
+                length = read(logFd, bufLength, sizeof(bufLength));
+            }
+
+            LOG(INFO, "FileSystemImpl::readCloseFileSatus out read length = %d", length);
+
+            close(logFd);
+        }
+
 
         char *FileSystemImpl::getFilePath(char *fileName) {
             char *filePathName = static_cast<char *>(malloc(strlen(fileName) + strlen(FILE_LOG_PERSISTENCE_PATH) + 1));
@@ -346,6 +425,7 @@ namespace Gopherwood {
 
 
         void FileSystemImpl::writeFileStatusToLog(char *fileName, std::string dataStr) {
+
             int flags = O_CREAT | O_RDWR | O_APPEND;
 
             char *filePathName = getFilePath(fileName);
@@ -353,7 +433,30 @@ namespace Gopherwood {
 
             int logFd = open(filePathName, flags, 0644);
             LOG(INFO, "9, LogFormat dataStr size = %d", dataStr.size());
+
+
+            /**********see the file length*****************************/
+            struct stat stbuf;
+            if (fstat(logFd, &stbuf) != 0 || (!S_ISREG(stbuf.st_mode))) {
+                LOG(LOG_ERROR, "ERROR OCCURRED");
+            }
+            int file_size = stbuf.st_size;
+            LOG(INFO, "writeFileStatusToLog before file_size=%d", file_size);
+            /**********see the file length*****************************/
+
+
             int32_t length = write(logFd, dataStr.data(), dataStr.size());
+
+
+            /**********see the file length*****************************/
+            if (fstat(logFd, &stbuf) != 0 || (!S_ISREG(stbuf.st_mode))) {
+                LOG(LOG_ERROR, "ERROR OCCURRED");
+            }
+            file_size = stbuf.st_size;
+            LOG(INFO, "writeFileStatusToLog after file_size=%d", file_size);
+            /**********see the file length*****************************/
+
+
 
             close(logFd);
 
