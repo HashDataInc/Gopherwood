@@ -108,16 +108,23 @@ namespace Gopherwood {
         }
 
 
-        std::string LogFormat::serializeFileStatusForClose(shared_ptr<FileStatus> fileStatus){
+        std::string LogFormat::serializeFileStatusForClose(shared_ptr<FileStatus> fileStatus) {
+            LOG(INFO, "fileStatus->getEndOffsetOfBucket()=%d, block size = %d,fileStatus->getLastBucket()=%d",
+                fileStatus->getEndOffsetOfBucket(),
+                fileStatus->getBlockIdVector().size(), fileStatus->getLastBucket());
+
             std::string res;
-            int32_t size = 1+4+fileStatus->getBlockIdVector().size()*4+8;
+            int32_t size = 1 + 4 + fileStatus->getBlockIdVector().size() * 4 + 8;
             PutFixed32(&res, size);
             res.append(1, static_cast<char>(RecordType::closeFile));
             PutFixed32(&res, fileStatus->getBlockIdVector().size());
-            for(int i=0;i<fileStatus->getBlockIdVector().size();i++){
+            for (int i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
+                LOG(INFO, "block id = %d", fileStatus->getBlockIdVector()[i]);
+
                 PutFixed32(&res, fileStatus->getBlockIdVector()[i]);
             }
-            PutFixed32(&res, fileStatus->getLastBucket());
+            PutFixed64(&res, fileStatus->getEndOffsetOfBucket());
+            return res;
         }
 
         void LogFormat::deserializeLog(std::string val, shared_ptr<FileStatus> fileStatus) {
@@ -155,14 +162,13 @@ namespace Gopherwood {
             char *res = (char *) val.data();
             char type = *res;
             int iType = type;
-            LOG(INFO, "deserializeHeaderAndBlockIds  type   = %d", iType);
 
             std::vector<int32_t> tmpVector;
 
             int offset = 1;
             int32_t numOfBlocks = DecodeFixed32(res + offset);
             offset += 4;
-            LOG(INFO, "deserializeHeaderAndBlockIds numOfBlocks  = %d", numOfBlocks);
+            LOG(INFO, "deserializeHeaderAndBlockIds  iType   = %d,numOfBlocks  = %d", iType, numOfBlocks);
 
             for (int i = 0; i < numOfBlocks; i++) {
                 int32_t blockID = DecodeFixed32(res + offset);
@@ -174,18 +180,24 @@ namespace Gopherwood {
             if (iType == 0) { // acquire new block
                 fileStatus->setBlockIdVector(tmpVector);
             } else if (iType == 2) { // releaseBlock
+                vector<int32_t> vecBefore = fileStatus->getBlockIdVector();
+
                 for (int i = 0; i < tmpVector.size(); i++) {
                     int blockID2Release = tmpVector[i];
                     std::vector<int32_t>::iterator it;
-                    for (it = fileStatus->getBlockIdVector().begin(); it != fileStatus->getBlockIdVector().end();) {
+
+                    for (it = vecBefore.begin(); it != vecBefore.end();) {
+                        LOG(INFO, "deserializeHeaderAndBlockIds iterator vector size = %d", vecBefore.size());
                         if (*it == blockID2Release) {
-                            it = fileStatus->getBlockIdVector().erase(it);
+                            it = vecBefore.erase(it);
                             break;
                         } else {
                             it++;
                         }
                     }
                 }
+                fileStatus->setBlockIdVector(vecBefore);
+
 
             } else if (iType == 3) { // evict block, this means the block now belong to the new file,
                 for (int i = 0; i < tmpVector.size(); i++) {
@@ -243,6 +255,10 @@ namespace Gopherwood {
         void LogFormat::deserializeCloseFile(std::string val, shared_ptr<FileStatus> fileStatus) {
             LOG(INFO, "*******deserializeCloseFile*******");
             int offset = deserializeHeaderAndBlockIds(val, fileStatus);
+            char *res = (char *) val.data();
+            int64_t endOffsetOfBucket = DecodeFixed64(res + offset);
+            LOG(INFO, "deserializeCloseFile endOffsetOfBucket   = %d", endOffsetOfBucket);
+
             LOG(INFO, "*******deserializeCloseFile*******");
         }
     }

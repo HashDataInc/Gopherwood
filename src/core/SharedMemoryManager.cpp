@@ -1,5 +1,6 @@
 #include "SharedMemoryManager.h"
 #include "../common/Logger.h"
+#include "../util/Coding.h"
 
 namespace Gopherwood {
 
@@ -94,7 +95,7 @@ namespace Gopherwood {
             while (length < SM_FILE_SIZE) {
                 type = *(mem + length);
                 LOG(INFO, "type = %c", type);
-                length = length + 1 + 8 + FILENAME_MAX_LENGTH;
+                length = length + 1 + 8 + 4 + FILENAME_MAX_LENGTH;
             }
         }
 
@@ -163,8 +164,13 @@ namespace Gopherwood {
 
                     //2. write start time
 
-                    //3. write fileName
+                    //3. write size of file name
                     length = length + 1 + 8;
+                    int *tmp = (int *) (mem + length);
+                    *tmp = strlen(fileName);
+
+                    //4. write fileName
+                    length = length + 4;
                     memcpy(mem + length, fileName, strlen(fileName));
                     LOG(INFO, "file size = %d", strlen(fileName));
 
@@ -175,7 +181,7 @@ namespace Gopherwood {
                         break;
                     }
                 } else {
-                    length = length + 1 + 8 + FILENAME_MAX_LENGTH;
+                    length = length + 1 + 8 + 4 + FILENAME_MAX_LENGTH;
                 }
                 i++;
             }
@@ -209,16 +215,11 @@ namespace Gopherwood {
 
             int length = 1;
             char *mem = static_cast<char *>(regionPtr->get_address());
-            length = length + (1 + 8 + FILENAME_MAX_LENGTH) * blockID;
+            length = length + (1 + 8 + 4 + FILENAME_MAX_LENGTH) * blockID;
 
             //1.change the type
             *(mem + length) = '2';
 
-            //skip to the fileName offset
-            length = length + 1 + 8;
-
-            //2.write the fileName
-            memcpy(mem + length, fileName, strlen(fileName));
 
             if (length >= SM_FILE_SIZE) {
                 LOG(LOG_ERROR, "given block id = %d exceed the max size which is ");
@@ -248,7 +249,7 @@ namespace Gopherwood {
 
             int length = 1;
             char *mem = static_cast<char *>(regionPtr->get_address());
-            length = length + (1 + 8 + FILENAME_MAX_LENGTH) * blockID;
+            length = length + (1 + 8 + 4 + FILENAME_MAX_LENGTH) * blockID;
 
             *(mem + length) = '0';
 
@@ -274,10 +275,15 @@ namespace Gopherwood {
 
             int length = 1;
             char *mem = static_cast<char *>(regionPtr->get_address());
-            length = length + (1 + 8 + FILENAME_MAX_LENGTH) * blockID;
+            length = length + (1 + 8 + 4 + FILENAME_MAX_LENGTH) * blockID;
 
-            char tmpName[255];
-            memcpy(tmpName, mem + length, sizeof(tmpName));
+            length = length + 1 + 8;
+            int32_t sizeOfFileName = DecodeFixed32(mem + length);
+
+            length = length + 4;
+            char tmpName[sizeOfFileName];
+
+            memcpy(tmpName, mem + length, sizeOfFileName);
             LOG(INFO, " previous file name = %s", tmpName);
 
             string retVal;
@@ -303,13 +309,18 @@ namespace Gopherwood {
 
             int length = 1;
             char *mem = static_cast<char *>(regionPtr->get_address());
-            length = length + (1 + 8 + FILENAME_MAX_LENGTH) * blockID;
+            length = length + (1 + 8 + 4 + FILENAME_MAX_LENGTH) * blockID;
 
             //1.set the type
             *(mem + length) = '1';
 
+            //2. write the file length
             length = length + 1 + 8;
-            //2.change the fileName
+            int *tmp = (int *) (mem + length);
+            *tmp = strlen(fileName);
+
+            length = length + 4;
+            //3.change the fileName
             memcpy(mem + length, fileName, strlen(fileName));
 
             checkAndSetSMZero();
@@ -320,7 +331,7 @@ namespace Gopherwood {
         }
 
         bool SharedMemoryManager::checkBlockIDIsLegal(int blockID) {
-            int maxBlockID = (SM_FILE_SIZE - 1) / (1 + 8 + FILENAME_MAX_LENGTH);
+            int maxBlockID = (SM_FILE_SIZE - 1) / (1 + 8 + 4 + FILENAME_MAX_LENGTH);
             if (blockID >= maxBlockID) {
                 LOG(LOG_ERROR, "given block id %d exceed the max size which is %d ", blockID, maxBlockID);
                 return false;
