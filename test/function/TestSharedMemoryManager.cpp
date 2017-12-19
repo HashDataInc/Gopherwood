@@ -87,6 +87,7 @@ TEST_F(TestSharedMemoryManager, acquireNewBlock) {
     tmpVector.push_back(filestatus->getBlockIdVector()[1]);
     filesystem->evictBlock(fileName,tmpVector);
 
+    filesystem->closeFile(fileName);
 
 }
 

@@ -32,18 +32,5 @@ namespace Gopherwood {
 
     }
 
-//
-//    int32_t FileSystem::checkSharedMemory() {
-//
-//    }
-//
-//    std::unordered_map<string, std::shared_ptr<FileStatus>> rebuildFileStatusFromLog(char *fileName) {
-//
-//    };
-//
-//    std::unordered_map<string, std::shared_ptr<FileStatus>> chaseFileStatusFromLog(int64_t logOffset) {
-//
-//    };
-
 
 }

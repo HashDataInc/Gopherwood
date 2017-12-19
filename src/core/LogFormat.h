@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string>
+#include <memory>
+#include "FileStatus.h"
 
 namespace Gopherwood {
     namespace Internal {
@@ -46,8 +48,8 @@ namespace Gopherwood {
         public:
             std::string serializeLog(const std::vector<int32_t> &blockIdVector, RecordType type);
 
-            void deserializeLog(std::string val);
-
+            void deserializeLog(std::string val, shared_ptr<FileStatus> fileStatus);
+            std::string serializeFileStatusForClose(shared_ptr<FileStatus> fileStatus);
 
         private:
             std::string serializeBlockIDVector(const std::vector<int32_t> &blockIdVector);
@@ -66,19 +68,19 @@ namespace Gopherwood {
 
             std::string serializeCloseFile(const std::vector<int32_t> &blockIdVector, RecordType recordType);
 
-            int deserializeHeaderAndBlockIds(std::string val);
+            int deserializeHeaderAndBlockIds(std::string val, shared_ptr<FileStatus> fileStatus);
 
-            void deserializeAcquireNewBlock(std::string val);
+            void deserializeAcquireNewBlock(std::string val, shared_ptr<FileStatus> fileStatus);
 
-            void deserializeInactiveBlock(std::string val);
+            void deserializeInactiveBlock(std::string val, shared_ptr<FileStatus> fileStatus);
 
-            void deserializeReleaseBlock(std::string val);
+            void deserializeReleaseBlock(std::string val, shared_ptr<FileStatus> fileStatus);
 
-            void deserializeEvictBlock(std::string val);
+            void deserializeEvictBlock(std::string val, shared_ptr<FileStatus> fileStatus);
 
-            void deserializeRemoteBlock(std::string val);
+            void deserializeRemoteBlock(std::string val, shared_ptr<FileStatus> fileStatus);
 
-            void deserializeCloseFile(std::string val);
+            void deserializeCloseFile(std::string val, shared_ptr<FileStatus> fileStatus);
         };
 
 

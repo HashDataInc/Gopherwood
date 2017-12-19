@@ -32,19 +32,19 @@ namespace Gopherwood {
 
         }
 
-        const vector<int32_t> &getBlockIdVector() const {
+        vector<int32_t> getBlockIdVector() {
             return blockIdVector;
         }
 
-        int32_t getLastBucket() const {
+        int32_t getLastBucket() {
             return lastBucket;
         }
 
-        int64_t getEndOffsetOfBucket() const {
+        int64_t getEndOffsetOfBucket() {
             return endOffsetOfBucket;
         }
 
-        void setBlockIdVector(const vector<int32_t> &blockIdVector) {
+        void setBlockIdVector(vector<int32_t> &blockIdVector) {
             FileStatus::blockIdVector = blockIdVector;
         }
 
@@ -57,7 +57,7 @@ namespace Gopherwood {
             FileStatus::endOffsetOfBucket = endOffsetOfBucket;
         }
 
-        string getFileName() const {
+        string getFileName() {
             return fileName;
         }
 
@@ -66,26 +66,15 @@ namespace Gopherwood {
             FileStatus::fileName = fileName;
 //            LOG(Gopherwood::Internal::INFO, "setFileName ,FileStatus::fileName = % s", FileStatus::fileName.data());
         }
-        
-        char* serializeFileStatus();
+
         FileStatus *deSerializeFileStatus(char *res);
 
-
-
-//        bool isExist() const {
-//            return exist;
-//        }
-
-//        void setExist(bool exist) {
-//            FileStatus::exist = exist;
-//        }
 
     private:
         vector<int32_t> blockIdVector;//the block id's list that the file contains;
         string fileName;//the file's name;
         int32_t lastBucket = 0; // the last bucket that contains the real data;
         int64_t endOffsetOfBucket = 0; // the end offset of the bucket;
-//        bool exist = false;
     };
 
     /**
