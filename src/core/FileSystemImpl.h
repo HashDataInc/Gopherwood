@@ -48,9 +48,9 @@ namespace Gopherwood {
 
 //            int32_t checkSharedMemoryFile();
 
-            std::unordered_map<string, std::shared_ptr<FileStatus>> rebuildFileStatusFromLog(char *fileName);
+            void rebuildFileStatusFromLog(char *fileName);
 
-            std::unordered_map<string, std::shared_ptr<FileStatus>> catchUpFileStatusFromLog(int64_t logOffset);
+            void catchUpFileStatusFromLog(char *fileName, int64_t logOffset);
 
 
         private:
@@ -100,11 +100,10 @@ namespace Gopherwood {
 
             std::shared_ptr<FileStatus> getFileStatus(char *fileName);
 
-            void persistentFileLog(char *fileName,std::shared_ptr<FileStatus> fileStatus);
+            void persistentFileLog(char *fileName);
 
             //TODO JUST FOR TEST
-            void readCloseFileSatus(char *fileName,std::shared_ptr<FileStatus> fileStatus);
-
+            void readCloseFileStatus(char *fileName, std::shared_ptr<FileStatus> fileStatus);
 
 
             void writeFileStatusToLog(char *fileName, std::string data);

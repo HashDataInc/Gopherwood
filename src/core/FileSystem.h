@@ -65,8 +65,8 @@ namespace Gopherwood {
 
         void acquireBlock();
 
-
-    private:
+//TODO , THIS IS private, for test convenient, set it to public
+    public:
 //        Config conf;
         Internal::FileSystemWrapper *impl;
 

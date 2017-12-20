@@ -73,7 +73,7 @@ namespace Gopherwood {
          * @return the SharedMemoryBucket object
          */
         void SharedMemoryManager::openSMBucket() {
-            LOG(INFO, "come in the openSMBucket");
+//            LOG(INFO, "come in the openSMBucket");
             file_mapping m_file(SHARED_MEMORY_PATH_FILE_NAME, read_write);
 
             std::shared_ptr<mapped_region> tmp(new mapped_region(m_file, read_write));
@@ -84,6 +84,7 @@ namespace Gopherwood {
 
 
         void SharedMemoryManager::printSMStatus() {
+
 
             void *addr = regionPtr->get_address();
             const char *mem = static_cast<char *> (addr);
@@ -137,7 +138,7 @@ namespace Gopherwood {
 
 
         std::vector<int> SharedMemoryManager::acquireNewBlock(char *fileName) {
-            LOG(INFO, "acquireNewBlock method");
+//            LOG(INFO, "acquireNewBlock method");
             if (strlen(fileName) > FILENAME_MAX_LENGTH) {
                 LOG(LOG_ERROR, "fileName name size cannot be larger than %d, ", FILENAME_MAX_LENGTH);
             }
@@ -172,7 +173,7 @@ namespace Gopherwood {
                     //4. write fileName
                     length = length + 4;
                     memcpy(mem + length, fileName, strlen(fileName));
-                    LOG(INFO, "file size = %d", strlen(fileName));
+//                    LOG(INFO, "file size = %d", strlen(fileName));
 
                     resVector.push_back(i - 1);
                     length = length + FILENAME_MAX_LENGTH;
@@ -284,7 +285,7 @@ namespace Gopherwood {
             char tmpName[sizeOfFileName];
 
             memcpy(tmpName, mem + length, sizeOfFileName);
-            LOG(INFO, " previous file name = %s", tmpName);
+//            LOG(INFO, " previous file name = %s", tmpName);
 
             string retVal;
             retVal.append(tmpName, sizeof(tmpName));
@@ -348,11 +349,11 @@ namespace Gopherwood {
             //this means the semaphore already exist, get the semaphoreID
             if (tmpSemID == -1) {
                 //get the semaphore
-                LOG(INFO, "semaphore already exist, acquire the semaphore");
+//                LOG(INFO, "semaphore already exist, acquire the semaphore");
                 createSemaphore();
             } else {
                 //create the semaphore
-                LOG(INFO, "semaphore do not exist, create a new one and init it");
+//                LOG(INFO, "semaphore do not exist, create a new one and init it");
                 createSemaphore();
                 //init the semaphore
                 setSemaphoreValue();
@@ -368,7 +369,7 @@ namespace Gopherwood {
         }
 
         int SharedMemoryManager::setSemaphoreValue() {
-            LOG(INFO, "setSemaphoreValue method");
+//            LOG(INFO, "setSemaphoreValue method");
 
             //init semaphore
             union semun sem_union;
@@ -388,7 +389,7 @@ namespace Gopherwood {
         }
 
         int SharedMemoryManager::semaphoreP() {
-            LOG(INFO, "semaphoreP method");
+//            LOG(INFO, "semaphoreP method");
 
             checkSemaphore();
 
@@ -405,7 +406,7 @@ namespace Gopherwood {
         }
 
         int SharedMemoryManager::semaphoreV() {
-            LOG(INFO, "semaphoreV method");
+//            LOG(INFO, "semaphoreV method");
             //V（sv）
             struct sembuf sem_b;
             sem_b.sem_num = 0;

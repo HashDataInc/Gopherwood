@@ -50,7 +50,6 @@ namespace Gopherwood {
 
             void deserializeLog(std::string val, shared_ptr<FileStatus> fileStatus);
             std::string serializeFileStatusForClose(shared_ptr<FileStatus> fileStatus);
-
         private:
             std::string serializeBlockIDVector(const std::vector<int32_t> &blockIdVector);
 

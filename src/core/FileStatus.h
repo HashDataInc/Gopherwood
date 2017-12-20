@@ -44,7 +44,7 @@ namespace Gopherwood {
             return endOffsetOfBucket;
         }
 
-        void setBlockIdVector(vector<int32_t> &blockIdVector) {
+        void setBlockIdVector(vector<int32_t> blockIdVector) {
             FileStatus::blockIdVector = blockIdVector;
         }
 
@@ -61,6 +61,15 @@ namespace Gopherwood {
             return fileName;
         }
 
+        int64_t getLogOffset() {
+            return logOffset;
+        }
+
+        void setLogOffset(int64_t logOffset) {
+            FileStatus::logOffset = logOffset;
+        }
+
+
         void setFileName(char *fileName) {
 //            LOG(Gopherwood::Internal::INFO, "setFileName ,fileName = %s", fileName);
             FileStatus::fileName = fileName;
@@ -75,6 +84,8 @@ namespace Gopherwood {
         string fileName;//the file's name;
         int32_t lastBucket = 0; // the last bucket that contains the real data;
         int64_t endOffsetOfBucket = 0; // the end offset of the bucket;
+        int64_t logOffset = 0; // the  log offset  that has been chased
+
     };
 
     /**
