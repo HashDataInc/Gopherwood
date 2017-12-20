@@ -79,9 +79,9 @@ namespace Gopherwood {
              * @param fileName  the file name
              * @return the file status of the file
              */
-            virtual unordered_map <string, std::shared_ptr<FileStatus>> rebuildFileStatusFromLog(char *fileName)=0;
+            virtual void rebuildFileStatusFromLog(char *fileName)=0;
 
-            virtual unordered_map <string, std::shared_ptr<FileStatus>> catchUpFileStatusFromLog(int64_t logOffset)=0;
+            virtual void catchUpFileStatusFromLog(char *fileName, int64_t logOffset)=0;
 
             virtual bool checkFileExist(char *fileName)=0;
 

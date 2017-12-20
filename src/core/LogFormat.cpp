@@ -109,7 +109,7 @@ namespace Gopherwood {
 
 
         std::string LogFormat::serializeFileStatusForClose(shared_ptr<FileStatus> fileStatus) {
-            LOG(INFO, "fileStatus->getEndOffsetOfBucket()=%d, block size = %d,fileStatus->getLastBucket()=%d",
+            LOG(INFO, "LogFormat::serializeFileStatusForClose, fileStatus->getEndOffsetOfBucket()=%d, block size = %d,fileStatus->getLastBucket()=%d",
                 fileStatus->getEndOffsetOfBucket(),
                 fileStatus->getBlockIdVector().size(), fileStatus->getLastBucket());
 
@@ -126,6 +126,7 @@ namespace Gopherwood {
             PutFixed64(&res, fileStatus->getEndOffsetOfBucket());
             return res;
         }
+
 
         void LogFormat::deserializeLog(std::string val, shared_ptr<FileStatus> fileStatus) {
 
@@ -173,7 +174,7 @@ namespace Gopherwood {
             for (int i = 0; i < numOfBlocks; i++) {
                 int32_t blockID = DecodeFixed32(res + offset);
                 tmpVector.push_back(blockID);
-                LOG(INFO, "deserializeHeaderAndBlockIds numOfBlocks id  = %d", blockID);
+                LOG(INFO, "deserializeHeaderAndBlockIds block id  = %d", blockID);
                 offset += 4;
             }
 
@@ -197,8 +198,6 @@ namespace Gopherwood {
                     }
                 }
                 fileStatus->setBlockIdVector(vecBefore);
-
-
             } else if (iType == 3) { // evict block, this means the block now belong to the new file,
                 for (int i = 0; i < tmpVector.size(); i++) {
                     int blockID2Add = tmpVector[i];
@@ -212,6 +211,10 @@ namespace Gopherwood {
                     }
                     fileStatus->getBlockIdVector()[-blockIDRemote] = -blockIDRemote;
                 }
+            } else if (iType == 5) {
+                LOG(INFO, "deserializeHeaderAndBlockIds, fileStatus->getBlockIdVector().size()=%d",
+                    fileStatus->getBlockIdVector().size());
+                fileStatus->setBlockIdVector(tmpVector);
             }
             return offset;
         }
@@ -257,6 +260,8 @@ namespace Gopherwood {
             int offset = deserializeHeaderAndBlockIds(val, fileStatus);
             char *res = (char *) val.data();
             int64_t endOffsetOfBucket = DecodeFixed64(res + offset);
+
+            fileStatus->setEndOffsetOfBucket(endOffsetOfBucket);
             LOG(INFO, "deserializeCloseFile endOffsetOfBucket   = %d", endOffsetOfBucket);
 
             LOG(INFO, "*******deserializeCloseFile*******");

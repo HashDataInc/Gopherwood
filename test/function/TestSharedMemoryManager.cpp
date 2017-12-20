@@ -5,20 +5,15 @@
  */
 
 
-#ifndef _TEST_GOPHERWOOD_PREFIX_
-#define _TEST_GOPHERWOOD_PREFIX_ "./"
-#endif
+#ifndef _TEST_GOPHERWOOD_PREFIX_TestSharedMemoryManager_
+#define _TEST_GOPHERWOOD_PREFIX_TestSharedMemoryManager_ "./"
 
 
 #include "gtest/gtest.h"
-#include "core/gopherwood.h"
-#include "core/FileStatus.h"
-
-
-#include "../../src/core/SharedMemoryManager.h"
 #include "../../src/core/FileSystemInter.h"
-#include "../../src/core/FileSystemImpl.h"
-#include "../../src/core/OutputStream.h"
+#include "../../src/core/FileSystem.h"
+#include "../../src/core/OutputStreamImpl.h"
+#include "../../src/core/InputStreamImpl.h"
 
 
 using namespace Gopherwood;
@@ -37,68 +32,101 @@ public:
 
 protected:
     std::shared_ptr<FileSystemInter> filesystem;
-    std::shared_ptr<FileStatus> filestatus;
-    std::shared_ptr<OutputStreamImpl> osImpl;
-
+    std::shared_ptr<OutputStreamInter> osiImpl;
+    std::shared_ptr<InputStreamInter> isImpl;
 };
 
 TEST_F(TestSharedMemoryManager, acquireNewBlock) {
     char *fileName = "TestSharedMemoryManager-acquireNewBlock";
-    filesystem = std::shared_ptr<FileSystemInter>(new FileSystemImpl(fileName));
+    int flag = O_RDWR;
+    FileSystem *fs = NULL;
+    fs = new FileSystem(fileName);
+    //1. create context,
+    filesystem = fs->impl->filesystem;
 
-    int internalFlags = Gopherwood::ReadWrite;
-    osImpl = std::shared_ptr<OutputStreamImpl>(new OutputStreamImpl(filesystem, fileName, internalFlags));
-
+    //2. create file
     filesystem->createFile(fileName);
 
-    filesystem->acquireNewBlock(fileName);
+    //3. create output stream
+    OutputStreamImpl *tmpImpl = new OutputStreamImpl(filesystem, fileName, flag);
+    std::shared_ptr<OutputStreamInter> tmposiImpl(tmpImpl);
+    osiImpl = tmposiImpl;
 
-    filestatus = filesystem->getFileStatus(fileName);
-    if (filestatus->getBlockIdVector().size() != QUOTA_SIZE) {
-        cout << "error, block vector size != QUOTA_SIZE  :" << endl;
-        return;
-    }
-
-    char *buf = "hello gopherwoodaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccc";
-
+    //4. write data
+    char buf[1024 *
+             1024] = "hello gopherwoodaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccc";
     for (int i = 0; i < 10; i++) {
-        osImpl->write(buf, strlen(buf));
+        osiImpl->write(buf, strlen(buf));
     }
 
-    /**
-    int blockID = filestatus->getBlockIdVector()[1];
-    int index = filesystem->getIndexAccordingBlockID(fileName,blockID);
-    int64_t  baseOffset = index*SIZE_OF_BLOCK;
-    for(int i=0;i<10;i++)
-    {
-
-        filesystem->fsSeek(baseOffset,SEEK_SET);
-        filesystem->writeDataToBucket(buf, strlen(buf));
-        baseOffset+=strlen(buf);
-    }
-     **/
-
-
-    cout << "the acquired block id is :" << endl;
-    for (int i = 0; i < filestatus->getBlockIdVector().size(); i++) {
-        cout << filestatus->getBlockIdVector()[i] << "\t";
-    }
-    cout << endl;
-
-    //1->2
-    vector<int> tmpVector;
-    tmpVector.push_back(filestatus->getBlockIdVector()[0]);
-    filesystem->inactiveBlock(fileName, tmpVector);
-
-
-    //2->1
-    tmpVector.clear();
-    tmpVector.push_back(filestatus->getBlockIdVector()[0]);
-    filesystem->evictBlock(fileName, tmpVector);
-
+    //5. close file
     filesystem->closeFile(fileName);
 
 }
+
+TEST_F(TestSharedMemoryManager, evictBlock) {
+    char *fileName = "TestSharedMemoryManager-evictBlock";
+    int flag = O_RDWR;
+    FileSystem *fs = NULL;
+    fs = new FileSystem(fileName);
+    //1. create context,
+    filesystem = fs->impl->filesystem;
+
+    //2. create file
+    filesystem->createFile(fileName);
+
+    //3. create output stream
+    OutputStreamImpl *tmpImpl = new OutputStreamImpl(filesystem, fileName, flag);
+    std::shared_ptr<OutputStreamInter> tmposiImpl(tmpImpl);
+    osiImpl = tmposiImpl;
+
+    //4. write data
+
+    char buf[1024 *
+             1024] = "evictBlock,evictBlock, evictBlock,evictBlock,evictBlock, evictBlock,evictBlock,evictBlock,"
+            " evictBlock,evictBlock,evictBlock, evictBlock,evictBlock,evictBlock, evictBlock,evictBlock,evictBlock, "
+            "evictBlock,evictBlock,evictBlock, evictBlock,";
+
+    for (int i = 0; i < 10; i++) {
+        osiImpl->write(buf, strlen(buf));
+    }
+
+    //5. evict block, 2->1
+    std::vector<int32_t> tmpVector;
+    tmpVector.clear();
+    tmpVector.push_back(1);
+    filesystem->evictBlock(fileName, tmpVector);
+
+
+    for (int i = 0; i < 15; i++) {
+        osiImpl->write(buf, strlen(buf));
+    }
+
+
+    //6. close file
+    filesystem->closeFile(fileName);
+}
+
+
+TEST_F(TestSharedMemoryManager, rebuildFileStatusFromLog) {
+    std::string fileNameArr[2] = {"TestSharedMemoryManager-acquireNewBlock", "TestSharedMemoryManager-evictBlock"};
+    int length = (sizeof(fileNameArr) / sizeof(fileNameArr[0]));
+    for (int i = 0; i < length; i++) {
+        char *fileName = (char *) fileNameArr[i].data();
+        cout << "fileName= " << fileName << endl;
+        cout << "fileNameArr[i]= " << fileNameArr[i] << endl;
+        int flag = O_RDWR;
+        FileSystem *fs = NULL;
+        fs = new FileSystem(fileName);
+        //1. create context,
+        filesystem = fs->impl->filesystem;
+        cout << "context is created" << endl;
+
+        //2. see the final log status is correct or not
+        filesystem->rebuildFileStatusFromLog(fileName);
+    }
+}
+
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
@@ -109,3 +137,5 @@ int main(int argc, char **argv) {
 #endif
     return RUN_ALL_TESTS();
 }
+
+#endif
