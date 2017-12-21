@@ -22,7 +22,7 @@ namespace Gopherwood {
         extern char *BUCKET_PATH_FILE_NAME;
 
         extern char *SHARED_MEMORY_PATH_FILE_NAME;
-        extern int SM_FILE_SIZE;
+        extern int NUMBER_OF_BLOCKS;
         extern char *FILE_LOG_PERSISTENCE_PATH;
         extern int FILENAME_MAX_LENGTH;
         extern int QUOTA_SIZE;

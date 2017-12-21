@@ -29,10 +29,10 @@ namespace Gopherwood {
             std::string res;
             PutFixed32(&res, blockIdVector.size());
 
-            LOG(INFO, "1, LogFormat res size = %d", res.size());
+//            LOG(INFO, "1, LogFormat res size = %d", res.size());
             for (int i = 0; i < blockIdVector.size(); i++) {
                 PutFixed32(&res, blockIdVector[i]);
-                LOG(INFO, "2, LogFormat res size = %d", res.size());
+//                LOG(INFO, "2, LogFormat res size = %d", res.size());
             }
             return res;
         }
@@ -51,7 +51,7 @@ namespace Gopherwood {
 
             res.append(1, static_cast<char>(recordType));
 
-            LOG(INFO, "3, LogFormat res size = %d", res.size());
+//            LOG(INFO, "3, LogFormat res size = %d", res.size());
             res.append(tmpStr.data(), tmpStr.size());
             return res;
         }
@@ -63,7 +63,7 @@ namespace Gopherwood {
             int pid = getpid();
             PutFixed32(&res, pid);
 
-            LOG(INFO, "4, LogFormat res size = %d, pid = %d ", res.size(), pid);
+//            LOG(INFO, "4, LogFormat res size = %d, pid = %d ", res.size(), pid);
             return res;
         }
 
@@ -109,7 +109,8 @@ namespace Gopherwood {
 
 
         std::string LogFormat::serializeFileStatusForClose(shared_ptr<FileStatus> fileStatus) {
-            LOG(INFO, "LogFormat::serializeFileStatusForClose, fileStatus->getEndOffsetOfBucket()=%d, block size = %d,fileStatus->getLastBucket()=%d",
+            LOG(INFO,
+                "LogFormat::serializeFileStatusForClose, fileStatus->getEndOffsetOfBucket()=%d, block size = %d,fileStatus->getLastBucket()=%d",
                 fileStatus->getEndOffsetOfBucket(),
                 fileStatus->getBlockIdVector().size(), fileStatus->getLastBucket());
 
@@ -208,6 +209,7 @@ namespace Gopherwood {
                     int blockIDRemote = tmpVector[i];
                     if (-blockIDRemote > fileStatus->getBlockIdVector().size()) {
                         LOG(LOG_ERROR, "error occur, the remote block index can not larger than the block vector");
+                        return NULL;
                     }
                     fileStatus->getBlockIdVector()[-blockIDRemote] = -blockIDRemote;
                 }

@@ -36,6 +36,10 @@ namespace Gopherwood {
             return blockIdVector;
         }
 
+        vector<int32_t> getPingIDVector() {
+            return pingIDVector;
+        }
+
         int32_t getLastBucket() {
             return lastBucket;
         }
@@ -46,6 +50,10 @@ namespace Gopherwood {
 
         void setBlockIdVector(vector<int32_t> blockIdVector) {
             FileStatus::blockIdVector = blockIdVector;
+        }
+
+        void setPingIDVector(vector<int32_t> pingIDVector) {
+            FileStatus::pingIDVector = pingIDVector;
         }
 
 
@@ -84,7 +92,8 @@ namespace Gopherwood {
         string fileName;//the file's name;
         int32_t lastBucket = 0; // the last bucket that contains the real data;
         int64_t endOffsetOfBucket = 0; // the end offset of the bucket;
-        int64_t logOffset = 0; // the  log offset  that has been chased
+        int64_t logOffset = 0; // the log offset that have been chased
+        vector<int32_t> pingIDVector; // the block id's list which shared memory type ='1', and can not be
 
     };
 
