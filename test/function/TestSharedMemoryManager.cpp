@@ -91,15 +91,23 @@ TEST_F(TestSharedMemoryManager, evictBlock) {
         osiImpl->write(buf, strlen(buf));
     }
 
-    //5. evict block, 2->1
+
+    cout << endl << "******************************************************" << endl;
+//    5. evict block, 2->1
     std::vector<int32_t> tmpVector;
     tmpVector.clear();
     tmpVector.push_back(1);
     filesystem->evictBlock(fileName, tmpVector);
 
 
-    for (int i = 0; i < 15; i++) {
-        osiImpl->write(buf, strlen(buf));
+    char buf2[1024 *
+              1024] = "new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,"
+            "new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,"
+            "new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,"
+            "new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,";
+
+    for (int i = 0; i < 6; i++) {
+        osiImpl->write(buf2, strlen(buf2));
     }
 
 
@@ -126,7 +134,6 @@ TEST_F(TestSharedMemoryManager, rebuildFileStatusFromLog) {
         filesystem->rebuildFileStatusFromLog(fileName);
     }
 }
-
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

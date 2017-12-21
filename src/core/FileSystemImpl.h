@@ -110,13 +110,15 @@ namespace Gopherwood {
 
             char *getFilePath(char *fileName);
 
-            void writeDate2OSS(char *fileName, int blockID);
+            void writeDate2OSS(char *fileName, int blockID, int index);
 
             int getIndexAccordingBlockID(char *fileName, int blockID);
 
             std::string constructFileKey(std::string, int index);
 
+            void checkAndAddBlockID(char *fileName, std::vector<int32_t> blockIDVector);
 
+            std::vector<int32_t> deleteVector(std::vector<int32_t> previousVector, std::vector<int32_t> toDeleteVector);
         };
 
 

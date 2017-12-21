@@ -30,7 +30,7 @@ namespace Gopherwood {
             } else {
                 //2. the fileName exist in the fileStatusMap, so catch up the fileStatus from LOG.
                 //TODO ,we should mark the offset that last time catch.
-                filesystem->catchUpFileStatusFromLog(fileName,0);
+                filesystem->catchUpFileStatusFromLog(fileName, 0);
 
             }
             status = filesystem->getFileStatus(fileName);
@@ -54,7 +54,7 @@ namespace Gopherwood {
         }
 
         void OutputStreamImpl::write(const char *buf, int64_t size) {
-            LOG(INFO, "come in the write method in OutputStreamImpl");
+//            LOG(INFO, "come in the write method in OutputStreamImpl");
             if (NULL == buf || size < 0) {
                 LOG(INFO, "Invalid parameter.");
 //                THROW(InvalidParameter, "Invalid parameter.");
@@ -74,8 +74,8 @@ namespace Gopherwood {
         void OutputStreamImpl::writeInternal(char *buf, int64_t size) {
             LOG(INFO, "come in the writeInternal method in OutputStreamImpl");
             int64_t remainOffsetInBlock = SIZE_OF_BLOCK - cursorOffset;
-//            LOG(INFO, "cursorOffset = %d, cursorIndex=%d,cursorBucketID=%d",cursorOffset,cursorIndex,cursorBucketID);
-//            LOG(INFO, "data write size = %d, remainOffsetInBlock=%d",size,remainOffsetInBlock);
+            LOG(INFO, "cursorOffset = %d, cursorIndex=%d,cursorBucketID=%d", cursorOffset, cursorIndex, cursorBucketID);
+            LOG(INFO, "data write size = %d, remainOffsetInBlock=%d", size, remainOffsetInBlock);
             if (size <= remainOffsetInBlock) {
                 filesystem->writeDataToBucket(buf, size);
                 cursorOffset += size;
@@ -84,10 +84,15 @@ namespace Gopherwood {
 
                 //TODO, this maybe wrong, because, I don't know when acquire a block, it will sync with the filesystem/FileStatus or not.
                 //TODO, if it does not work, we should check the code and try another method.
-                while ((size > remainOffsetTotal)) {
+                bool flag = true;
+                while ((size > remainOffsetTotal) && flag) {
                     //1&2 acquire one block, sync to the shared memory and LOG system.
                     filesystem->acquireNewBlock((char *) fileName.data());
-                    remainOffsetTotal = getRemainLength();
+                    int64_t afterRemainOffsetTotal = getRemainLength();
+                    if (afterRemainOffsetTotal == remainOffsetTotal) {
+                        flag = false;
+                    }
+                    remainOffsetTotal = afterRemainOffsetTotal;
                     LOG(INFO, "remainOffsetTotal=%d", remainOffsetTotal);
                 }
 
@@ -172,7 +177,7 @@ namespace Gopherwood {
             }
 
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
-            LOG(INFO, "theEOFOffset = %d", theEOFOffset);
+            LOG(INFO, "OutputStreamImpl::seekInternal, theEOFOffset = %d", theEOFOffset);
 
             if (pos > theEOFOffset) {
                 //todo, throw error
@@ -208,7 +213,9 @@ namespace Gopherwood {
 
         void OutputStreamImpl::seekToNextBlock() {
             this->cursorIndex++;
-            this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
+            if (cursorIndex < status->getBlockIdVector().size()) {
+                this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
+            }
             //1. set the last bucket
             status->setLastBucket(cursorBucketID);
             this->cursorOffset = 0;

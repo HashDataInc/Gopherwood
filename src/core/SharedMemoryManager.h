@@ -39,12 +39,15 @@ namespace Gopherwood {
         using namespace boost::interprocess;
 
         class SharedMemoryManager {
-            typedef struct {
-                char *smBitmap;
-            } SharedMemoryBucket;
-
 
         public:
+
+            struct smBucketStruct {
+                char type;
+                int32_t blockIndex;
+                char fileName[256];
+            };
+
 
             SharedMemoryManager();
 
@@ -79,20 +82,20 @@ namespace Gopherwood {
 
             std::vector<int> acquireNewBlock(char *fileName);
 
-            void inactiveBlock(int blockID, char *fileName);
+            void inactiveBlock(int blockID, int blockIndex);
 
             void releaseBlock(int blockID);
 
-            void evictBlock(int blockID,char* fileName);
+            void evictBlock(int blockID, char *fileName);
 
 
             void closeSMFile();
 
             std::string getFileNameAccordingBlockID(int blockID);
+            int getBlockIDIndex(int blockID);
 
         private:
             int32_t sharedMemoryFd = -1;// the shared memory file descriptor
-            std::shared_ptr<SharedMemoryBucket> sharedMemoryBucket; //the shared memory bucket object
             int32_t sharedMemoryID;// the shared memory id, when create a new shared memory, it will return a sharedMemoryID
 //            char *smBucketInfo;
             std::shared_ptr<shared_memory_object> shmPtr;
@@ -105,6 +108,7 @@ namespace Gopherwood {
             };
 
             int semaphoreID = 0;
+            int TOTAL_SHARED_MEMORY_LENGTH = 1 + NUMBER_OF_BLOCKS * sizeof(smBucketStruct);
 
         private:
             void bitSet(char *p_data, int position, int flag);
@@ -132,6 +136,8 @@ namespace Gopherwood {
             bool checkBlockIDIsLegal(int blockID);
 
             void printSMStatus();
+
+
 
         };
 

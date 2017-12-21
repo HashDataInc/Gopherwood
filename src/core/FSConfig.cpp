@@ -1,7 +1,7 @@
 
 
 #include "FSConfig.h"
-
+#include "SharedMemoryManager.h"
 namespace Gopherwood {
 
     namespace Internal {
@@ -21,7 +21,7 @@ namespace Gopherwood {
 
         char *FILE_LOG_PERSISTENCE_PATH = "/ssdfile/ssdkv/logPersistence/";
         int FILENAME_MAX_LENGTH = 255;
-        int SM_FILE_SIZE = 1 + (1 + 8 + 4 + 255) * 20;//char+(char+long+int(size of file name)+char[255])
+        int NUMBER_OF_BLOCKS = 20;//char+(char+long+int(size of file name)+char[255])
         int QUOTA_SIZE = 5;
 
         int QINGSTOR_BUFFER_SIZE = 4 * 1024 * 1024;

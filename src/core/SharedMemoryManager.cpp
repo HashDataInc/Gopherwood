@@ -1,5 +1,4 @@
 #include "SharedMemoryManager.h"
-#include "../common/Logger.h"
 #include "../util/Coding.h"
 
 namespace Gopherwood {
@@ -48,11 +47,11 @@ namespace Gopherwood {
             std::filebuf fbuf;
             fbuf.open(SHARED_MEMORY_PATH_FILE_NAME, std::ios_base::in | std::ios_base::out
                                                     | std::ios_base::trunc | std::ios_base::binary);
+
             //IMPORTANT,init the shared memory to '0', not 0
-            for (int i = 0; i < SM_FILE_SIZE; i++) {
+            for (int i = 0; i < TOTAL_SHARED_MEMORY_LENGTH; i++) {
                 fbuf.sputc('0');
             }
-
             if (!semaphoreV()) {
                 LOG(LOG_ERROR, "can not release the semaphore, create SharedMemory failure");
             }
@@ -84,19 +83,23 @@ namespace Gopherwood {
 
 
         void SharedMemoryManager::printSMStatus() {
-
-
-            void *addr = regionPtr->get_address();
-            const char *mem = static_cast<char *> (addr);
-
+            void *mem = regionPtr->get_address();
             int length = 0;
-            char type = *(mem + length);
-            LOG(INFO, "semaphore flag = %c", type);
+            char sempType = *((char *) (mem + length));
+            LOG(INFO, "semaphore flag = %c", sempType);
             length = length + 1;
-            while (length < SM_FILE_SIZE) {
-                type = *(mem + length);
-                LOG(INFO, "type = %c", type);
-                length = length + 1 + 8 + 4 + FILENAME_MAX_LENGTH;
+            smBucketStruct *smb;
+            LOG(INFO, "TOTAL_SHARED_MEMORY_LENGTH  = %d", TOTAL_SHARED_MEMORY_LENGTH);
+
+            while ((length < TOTAL_SHARED_MEMORY_LENGTH)) {
+                smb = (smBucketStruct *) (mem + length);
+                char type = smb->type;
+                int blockIndex = smb->blockIndex;
+                char fileName[256];
+                memcpy(fileName, smb->fileName, sizeof(fileName));
+//                LOG(INFO, "type = %c, blockIndex = %d, fileName=%s", type, blockIndex, fileName);
+                LOG(INFO, "type = %c, length = %d", type, length);
+                length += sizeof(smBucketStruct);
             }
         }
 
@@ -106,10 +109,7 @@ namespace Gopherwood {
         }
 
         void SharedMemoryManager::closeSMBucket() {
-            int res = shmdt(static_cast<void *>(sharedMemoryBucket.get()));
-            if (res == -1) {
-                LOG(LOG_ERROR, "some error occur, can not shmdt the shared memory");
-            }
+
         }
 
 
@@ -126,14 +126,28 @@ namespace Gopherwood {
 
         void SharedMemoryManager::checkAndSetSMZero() {
             char *mem = static_cast<char *>(regionPtr->get_address());
-//            char c = mem[0];
-//            LOG(INFO, " checkAndSetSM0 before *mem = %d", *mem);
-//            LOG(INFO, " checkAndSetSM0 before *mem  first = %d", ((c >> 0) & 1));
-//            int *tmp = (int *) (mem);
-//            *tmp = 0;
-
             *mem = '0';
+        }
 
+        int SharedMemoryManager::getBlockIDIndex(int blockID) {
+
+            if (!semaphoreP()) {
+                LOG(LOG_ERROR, "can not acquire the semaphore, acquireNewBlock failure");
+            }
+            if (checkAndSetSMOne()) {
+                LOG(LOG_ERROR, "acquireNewBlock failed, shared memory is broken");
+            }
+
+
+            void *mem = regionPtr->get_address();
+            smBucketStruct *smb;
+            int length = 1 + sizeof(smBucketStruct) * blockID;
+            smb = (smBucketStruct *) (mem + length);
+            int index = smb->blockIndex;
+            if (!semaphoreV()) {
+                LOG(LOG_ERROR, "can not release the semaphore, acquireNewBlock failure");
+            }
+            return index;
         }
 
 
@@ -152,38 +166,37 @@ namespace Gopherwood {
 
             std::vector<int> resVector;
 
-            int i = 1;
+            int i = 0;
             int length = 1;
-            char *mem = static_cast<char *>(regionPtr->get_address());
+            void *mem = regionPtr->get_address();
+            smBucketStruct *smb;
+
 
             // 1. acquire new block lists
-            while (length < SM_FILE_SIZE) {
-                char type = *(mem + length);
+            while (length < TOTAL_SHARED_MEMORY_LENGTH) {
+                smb = (smBucketStruct *) (mem + length);
+
+                char type = smb->type;
                 if (type == '0') {
                     //1.write type
-                    *(mem + length) = '1';
-
-                    //2. write start time
+                    smb->type = '1';
 
                     //3. write size of file name
-                    length = length + 1 + 8;
-                    int *tmp = (int *) (mem + length);
-                    *tmp = strlen(fileName);
+                    string strFileName;
+                    strFileName.append(fileName, strlen(fileName));
+                    strFileName.append(1, '\0');
+                    memcpy(smb->fileName, strFileName.data(), strFileName.size());
 
-                    //4. write fileName
-                    length = length + 4;
-                    memcpy(mem + length, fileName, strlen(fileName));
 //                    LOG(INFO, "file size = %d", strlen(fileName));
 
-                    resVector.push_back(i - 1);
-                    length = length + FILENAME_MAX_LENGTH;
+                    resVector.push_back(i);
 
                     if (resVector.size() >= QUOTA_SIZE) {
                         break;
                     }
-                } else {
-                    length = length + 1 + 8 + 4 + FILENAME_MAX_LENGTH;
                 }
+
+                length = length + sizeof(smBucketStruct);
                 i++;
             }
 
@@ -192,7 +205,7 @@ namespace Gopherwood {
                 LOG(LOG_ERROR, "can not release the semaphore, acquireNewBlock failure");
             }
 
-            if (length >= SM_FILE_SIZE) {
+            if (length >= TOTAL_SHARED_MEMORY_LENGTH) {
                 LOG(LOG_ERROR, "no enough room for the ssd bucket");
             }
 
@@ -202,7 +215,7 @@ namespace Gopherwood {
         }
 
 
-        void SharedMemoryManager::inactiveBlock(int blockID, char *fileName) {
+        void SharedMemoryManager::inactiveBlock(int blockID, int blockIndex) {
             if (!checkBlockIDIsLegal(blockID)) {
                 return;
             }
@@ -215,14 +228,18 @@ namespace Gopherwood {
             }
 
             int length = 1;
-            char *mem = static_cast<char *>(regionPtr->get_address());
-            length = length + (1 + 8 + 4 + FILENAME_MAX_LENGTH) * blockID;
+            void *mem = regionPtr->get_address();
+            length += sizeof(smBucketStruct) * blockID;
+            smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
             //1.change the type
-            *(mem + length) = '2';
+            smb->type = '2';
+
+            //2. set the block index
+            smb->blockIndex = blockIndex;
 
 
-            if (length >= SM_FILE_SIZE) {
+            if (length >= TOTAL_SHARED_MEMORY_LENGTH) {
                 LOG(LOG_ERROR, "given block id = %d exceed the max size which is ");
             }
 
@@ -249,10 +266,11 @@ namespace Gopherwood {
             }
 
             int length = 1;
-            char *mem = static_cast<char *>(regionPtr->get_address());
-            length = length + (1 + 8 + 4 + FILENAME_MAX_LENGTH) * blockID;
+            void *mem = regionPtr->get_address();
+            length += sizeof(smBucketStruct) * blockID;
+            smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
-            *(mem + length) = '0';
+            smb->type = '0';
 
             checkAndSetSMZero();
             if (!semaphoreV()) {
@@ -275,20 +293,19 @@ namespace Gopherwood {
             }
 
             int length = 1;
-            char *mem = static_cast<char *>(regionPtr->get_address());
-            length = length + (1 + 8 + 4 + FILENAME_MAX_LENGTH) * blockID;
+            void *mem = regionPtr->get_address();
+            length += sizeof(smBucketStruct) * blockID;
 
-            length = length + 1 + 8;
-            int32_t sizeOfFileName = DecodeFixed32(mem + length);
+            smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
-            length = length + 4;
-            char tmpName[sizeOfFileName];
 
-            memcpy(tmpName, mem + length, sizeOfFileName);
+            char tmpName[256];
+
+            memcpy(tmpName, smb->fileName, sizeof(smb->fileName));
 //            LOG(INFO, " previous file name = %s", tmpName);
 
             string retVal;
-            retVal.append(tmpName, sizeof(tmpName));
+            retVal.append(tmpName, sizeof(smb->fileName));
             checkAndSetSMZero();
             if (!semaphoreV()) {
                 LOG(LOG_ERROR, "can not release the semaphore, acquireNewBlock failure");
@@ -309,20 +326,22 @@ namespace Gopherwood {
             }
 
             int length = 1;
-            char *mem = static_cast<char *>(regionPtr->get_address());
-            length = length + (1 + 8 + 4 + FILENAME_MAX_LENGTH) * blockID;
+            void *mem = regionPtr->get_address();
+            length = length + sizeof(smBucketStruct) * blockID;
+            smBucketStruct *smb = (smBucketStruct *) (mem + length);
+
+
 
             //1.set the type
-            *(mem + length) = '1';
+            smb->type = '1';
 
             //2. write the file length
-            length = length + 1 + 8;
-            int *tmp = (int *) (mem + length);
-            *tmp = strlen(fileName);
 
-            length = length + 4;
             //3.change the fileName
-            memcpy(mem + length, fileName, strlen(fileName));
+            string strFileName;
+            strFileName.append(fileName, strlen(fileName));
+            strFileName.append(1, '\0');
+            memcpy(smb->fileName, strFileName.data(), strFileName.size());
 
             checkAndSetSMZero();
             if (!semaphoreV()) {
@@ -332,9 +351,8 @@ namespace Gopherwood {
         }
 
         bool SharedMemoryManager::checkBlockIDIsLegal(int blockID) {
-            int maxBlockID = (SM_FILE_SIZE - 1) / (1 + 8 + 4 + FILENAME_MAX_LENGTH);
-            if (blockID >= maxBlockID) {
-                LOG(LOG_ERROR, "given block id %d exceed the max size which is %d ", blockID, maxBlockID);
+            if (blockID > NUMBER_OF_BLOCKS - 1) {
+                LOG(LOG_ERROR, "given block id %d exceed the max size which is %d ", blockID, NUMBER_OF_BLOCKS - 1);
                 return false;
             }
             return true;
