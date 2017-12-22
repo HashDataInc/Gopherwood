@@ -97,6 +97,8 @@ namespace Gopherwood {
 
             virtual void closeFile(char *fileName)=0;
 
+            virtual void readCloseFileStatus(char *fileName)=0;
+
             virtual void stopSystem() = 0;
 
             virtual std::shared_ptr<FileStatus> getFileStatus(const char *fileName)=0;

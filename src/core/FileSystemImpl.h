@@ -103,7 +103,7 @@ namespace Gopherwood {
             void persistentFileLog(char *fileName);
 
             //TODO JUST FOR TEST
-            void readCloseFileStatus(char *fileName, std::shared_ptr<FileStatus> fileStatus);
+            void readCloseFileStatus(char *fileName);
 
 
             void writeFileStatusToLog(char *fileName, std::string data);
@@ -117,6 +117,8 @@ namespace Gopherwood {
             std::string constructFileKey(std::string, int index);
 
             void checkAndAddBlockID(char *fileName, std::vector<int32_t> blockIDVector);
+
+            void checkAndAddPingBlockID(char *fileName, std::vector<int32_t> blockIDVector);
 
             std::vector<int32_t> deleteVector(std::vector<int32_t> previousVector, std::vector<int32_t> toDeleteVector);
         };
