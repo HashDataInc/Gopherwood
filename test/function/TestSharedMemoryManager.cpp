@@ -36,6 +36,7 @@ protected:
     std::shared_ptr<InputStreamInter> isImpl;
 };
 
+/**
 TEST_F(TestSharedMemoryManager, acquireNewBlock) {
     char *fileName = "TestSharedMemoryManager-acquireNewBlock";
     int flag = O_RDWR;
@@ -62,9 +63,14 @@ TEST_F(TestSharedMemoryManager, acquireNewBlock) {
     //5. close file
     filesystem->closeFile(fileName);
 
-}
+
+ }
+
+ **/
 
 TEST_F(TestSharedMemoryManager, evictBlock) {
+//   in this test, the NUMBER_OF_BLOCKS is set to 6;
+
     char *fileName = "TestSharedMemoryManager-evictBlock";
     int flag = O_RDWR;
     FileSystem *fs = NULL;
@@ -91,14 +97,7 @@ TEST_F(TestSharedMemoryManager, evictBlock) {
         osiImpl->write(buf, strlen(buf));
     }
 
-
     cout << endl << "******************************************************" << endl;
-//    5. evict block, 2->1
-    std::vector<int32_t> tmpVector;
-    tmpVector.clear();
-    tmpVector.push_back(1);
-    filesystem->evictBlock(fileName, tmpVector);
-
 
     char buf2[1024 *
               1024] = "new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,new,"
@@ -110,30 +109,43 @@ TEST_F(TestSharedMemoryManager, evictBlock) {
         osiImpl->write(buf2, strlen(buf2));
     }
 
+    char buf3[1024 *
+              1024] = "buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,"
+            "buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,"
+            "buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,"
+            "buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,buf3,";
+
+    for (int i = 0; i < 6; i++) {
+        osiImpl->write(buf3, strlen(buf3));
+    }
+
 
     //6. close file
     filesystem->closeFile(fileName);
+
+    //7. read the close file status
+    filesystem->readCloseFileStatus(fileName);
 }
-
-
-TEST_F(TestSharedMemoryManager, rebuildFileStatusFromLog) {
-    std::string fileNameArr[2] = {"TestSharedMemoryManager-acquireNewBlock", "TestSharedMemoryManager-evictBlock"};
-    int length = (sizeof(fileNameArr) / sizeof(fileNameArr[0]));
-    for (int i = 0; i < length; i++) {
-        char *fileName = (char *) fileNameArr[i].data();
-        cout << "fileName= " << fileName << endl;
-        cout << "fileNameArr[i]= " << fileNameArr[i] << endl;
-        int flag = O_RDWR;
-        FileSystem *fs = NULL;
-        fs = new FileSystem(fileName);
-        //1. create context,
-        filesystem = fs->impl->filesystem;
-        cout << "context is created" << endl;
-
-        //2. see the final log status is correct or not
-        filesystem->rebuildFileStatusFromLog(fileName);
-    }
-}
+//
+//
+//TEST_F(TestSharedMemoryManager, rebuildFileStatusFromLog) {
+//    std::string fileNameArr[2] = {"TestSharedMemoryManager-acquireNewBlock", "TestSharedMemoryManager-evictBlock"};
+//    int length = (sizeof(fileNameArr) / sizeof(fileNameArr[0]));
+//    for (int i = 0; i < length; i++) {
+//        char *fileName = (char *) fileNameArr[i].data();
+//        cout << "fileName= " << fileName << endl;
+//        cout << "fileNameArr[i]= " << fileNameArr[i] << endl;
+//        int flag = O_RDWR;
+//        FileSystem *fs = NULL;
+//        fs = new FileSystem(fileName);
+//        //1. create context,
+//        filesystem = fs->impl->filesystem;
+//        cout << "context is created" << endl;
+//
+//        //2. see the final log status is correct or not
+//        filesystem->rebuildFileStatusFromLog(fileName);
+//    }
+//}
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

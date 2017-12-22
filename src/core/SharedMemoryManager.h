@@ -92,7 +92,10 @@ namespace Gopherwood {
             void closeSMFile();
 
             std::string getFileNameAccordingBlockID(int blockID);
+
             int getBlockIDIndex(int blockID);
+
+            std::vector<int> getBlocksWhichTypeEqual2(int count);
 
         private:
             int32_t sharedMemoryFd = -1;// the shared memory file descriptor
@@ -136,7 +139,6 @@ namespace Gopherwood {
             bool checkBlockIDIsLegal(int blockID);
 
             void printSMStatus();
-
 
 
         };

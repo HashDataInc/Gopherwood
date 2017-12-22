@@ -38,8 +38,6 @@ namespace Gopherwood {
         //TODO
         void FileSystemImpl::rebuildFileStatusFromLog(char *fileName) {
             LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog, come in the rebuildFileStatusFromLog file");
-
-
             auto &fileStatus = fileStatusMap[fileName];
             if (!fileStatus) {
                 fileStatus.reset(new FileStatus());
@@ -47,9 +45,7 @@ namespace Gopherwood {
             /************** TODO JUST FOR TEST****************/
             LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog, fileStatus->getBlockIdVector().size() = %d",
                 fileStatus->getBlockIdVector().size());
-
             /************** TODO JUST FOR TEST****************/
-            readCloseFileStatus(fileName, fileStatus);
         };
 
         //TODO
@@ -126,17 +122,84 @@ namespace Gopherwood {
             status->setBlockIdVector(previousVector);
         }
 
+        void FileSystemImpl::checkAndAddPingBlockID(char *fileName, std::vector<int32_t> blockIDVector) {
+            auto &status = fileStatusMap[fileName];
+            std::vector<int32_t> previousPingVector = status->getPingIDVector();
+            std::vector<int32_t> newPingVector;
+            std::vector<int32_t> inactiveBlockVector;
+
+            //1. get the inactive blocks
+            int i = 0;
+            for (; i < previousPingVector.size(); i++) {
+                if (previousPingVector[i] == status->getLastBucket()) {
+                    break;
+                } else {
+                    LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID inactive block id = %d", previousPingVector[i]);
+                    inactiveBlockVector.push_back(previousPingVector[i]);
+
+                }
+            }
+            //2. set this blocks in shared memory block to inactive.
+            inactiveBlock(fileName, inactiveBlockVector);
+
+            //3. set the new ping block vector
+            for (; i < previousPingVector.size(); i++) {
+                LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID remain active  block id = %d", previousPingVector[i]);
+                newPingVector.push_back(previousPingVector[i]);
+            }
+            newPingVector.insert(newPingVector.end(), blockIDVector.begin(), blockIDVector.end());
+            status->setPingIDVector(newPingVector);
+
+        }
+
 
         void FileSystemImpl::acquireNewBlock(char *fileName) {
+
+//            //1. first check
+//            checkAndAddPingBlockID(fileName,NULL);
+
+
+
+
             //1. set the shared memory
             vector<int> blockIDVector = sharedMemoryManager->acquireNewBlock(fileName);
-
+            if (blockIDVector.size() == 0) {
+                LOG(LOG_ERROR, "FileSystemImpl::acquireNewBlock, do not have blocks which type='0' ");
+            }
             assert(blockIDVector.size() == QUOTA_SIZE);
-            for (int i = 0; i < blockIDVector.size(); i++) {
-                LOG(INFO, "the acquired id block list index = %d, blockID = %d ", i, blockIDVector[i]);
+
+            //2.  write the new file status to Log.
+            string res = logFormat->serializeLog(blockIDVector, LogFormat::RecordType::acquireNewBlock);
+//            LOG(INFO, "8, LogFormat res size = %d", res.size());
+            writeFileStatusToLog(fileName, res);
+
+
+
+            //3. check the block vector size is enough or not, if not,see the shared memory's type =2, and acquire more blocks
+            if (blockIDVector.size() < QUOTA_SIZE) {
+                int remainNeedBlocks = QUOTA_SIZE - blockIDVector.size();
+                vector<int32_t> remainBlockVector = sharedMemoryManager->getBlocksWhichTypeEqual2(remainNeedBlocks);
+                int totalSize = remainBlockVector.size() + blockIDVector.size();
+
+                LOG(INFO, "FileSystemImpl::acquireNewBlock, acquire %d blocks which type = '2' ",
+                    remainBlockVector.size());
+
+                if (totalSize == 0) {
+                    LOG(LOG_ERROR, "FileSystemImpl::acquireNewBlock, acquire blocks fail, do not acquire any blocks");
+                }
+
+                if (totalSize < QUOTA_SIZE) {
+                    LOG(LOG_ERROR,
+                        "FileSystemImpl::acquireNewBlock, do not have enough blocks, only get %d number of blocks",
+                        totalSize);
+                }
+                evictBlock(fileName, remainBlockVector);
+
+                blockIDVector.insert(blockIDVector.end(), remainBlockVector.begin(), remainBlockVector.end());
             }
 
-            //2. set the first block to the lastBucket
+
+            //4. set the first block to the lastBucket
             auto &status = fileStatusMap[fileName];
             if (status->getBlockIdVector().size() == 0 && blockIDVector.size() > 0) {
                 LOG(INFO,
@@ -144,19 +207,16 @@ namespace Gopherwood {
                 status->setLastBucket(blockIDVector[0]);
             }
 
-
-            //3. check and add the new acquired block id
+            //5. check and add the new acquired block id
             checkAndAddBlockID(fileName, blockIDVector);
 
+            //6. set the ping block id
+            checkAndAddPingBlockID(fileName, blockIDVector);
 
-            //4. set the ping block id
-            status->setPingIDVector(blockIDVector);
+            for (int i = 0; i < blockIDVector.size(); i++) {
+                LOG(INFO, "the acquired id block list index = %d, blockID = %d ", i, blockIDVector[i]);
+            }
 
-
-            //5.  write the new file status to Log.
-            string res = logFormat->serializeLog(blockIDVector, LogFormat::RecordType::acquireNewBlock);
-//            LOG(INFO, "8, LogFormat res size = %d", res.size());
-            writeFileStatusToLog(fileName, res);
 
         }
 
@@ -174,7 +234,6 @@ namespace Gopherwood {
             vector<int32_t> vecPrevious = status->getPingIDVector();
             vector<int32_t> val = deleteVector(vecPrevious, blockIdVector);
             status->setPingIDVector(val);
-
 
             //3.  write the new file status to Log.
             string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::inactiveBlock);
@@ -233,7 +292,7 @@ namespace Gopherwood {
 
                 //2. get the previous block index
                 int index = sharedMemoryManager->getBlockIDIndex(tmpBlockID);
-                index=index+1;
+                index = index + 1;
 
                 //3&4. 3.set the shared memory 2->1;   4. change the file name
                 sharedMemoryManager->evictBlock(tmpBlockID, fileName);
@@ -248,9 +307,6 @@ namespace Gopherwood {
                 string previousRes = logFormat->serializeLog(previousVector, LogFormat::RecordType::remoteBlock);
                 writeFileStatusToLog((char *) previousFileName.data(), previousRes);
             }
-
-            //7. add the new evictBlock block id to this file
-            checkAndAddBlockID(fileName, blockIdVector);
 
             //8.  write the new file status to Log.
             string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::evictBlock);
@@ -300,7 +356,7 @@ namespace Gopherwood {
 
 
         int FileSystemImpl::getIndexAccordingBlockID(char *fileName, int blockID) {
-            LOG(INFO, "FileSystemImpl::getIndexAccordingBlockID fileName=%s", fileName);
+//            LOG(INFO, "FileSystemImpl::getIndexAccordingBlockID fileName=%s", fileName);
             auto &fileStatus = fileStatusMap[fileName];
             if (!fileStatus) {
                 LOG(LOG_ERROR,
@@ -422,41 +478,48 @@ namespace Gopherwood {
             }
 
             //4. write the close status to log
-            persistentFileLog(fileName);
 
-        }
-
-
-        void FileSystemImpl::persistentFileLog(char *fileName) {
-
+            //4.1. open file
             int flags = O_CREAT | O_RDWR;
             char *filePathName = getFilePath(fileName);
             int logFd = open(filePathName, flags, 0644);
 
-            //1. catch up the file status
-            auto &status = fileStatusMap[fileName];
-            catchUpFileStatusFromLog(fileName, status->getLogOffset());
+            //4.2. rebuild the file status from log
+            FileStatus *fs = new FileStatus();
+            std::shared_ptr<FileStatus> rebuildFileStatus(fs);
+            rebuildFileStatus->setEndOffsetOfBucket(status->getEndOffsetOfBucket());
+            //4.3. read the log and refresh the file status
+            char bufLength[4];
+            int32_t length = read(logFd, bufLength, sizeof(bufLength));
+            while (length == 4) {
+                int32_t dataSize = DecodeFixed32(bufLength);
+                LOG(INFO, "FileSystemImpl::closeFile read length = %d, dataSize size =%d", length,
+                    dataSize);
+                std::string logRecord;
+                char res[dataSize];
+                read(logFd, res, sizeof(res));
+                logRecord.append(res, dataSize);
+                logFormat->deserializeLog(logRecord, rebuildFileStatus);
+                length = read(logFd, bufLength, sizeof(bufLength));
+            }
 
-            //2. write the close status to log
-            std::string res = logFormat->serializeFileStatusForClose(status);
+            LOG(INFO, "FileSystemImpl::closeFile out read length = %d", length);
 
-
+            //5. write the close status to log
+            std::string res = logFormat->serializeFileStatusForClose(rebuildFileStatus);
             ftruncate(logFd, 0);
             lseek(logFd, 0, SEEK_SET);
             int writeSize = write(logFd, res.data(), res.size());
             close(logFd);
-
-
-            /******************** TODO JUST FOR TEST*****************/
-            FileStatus *fs = new FileStatus();
-            std::shared_ptr<FileStatus> tmpfileStatus(fs);
-            readCloseFileStatus(fileName, tmpfileStatus);
-            /********************TODO JUST FOR TEST*****************/
         }
 
+
         //TODO JUST FOR TEST
-        void FileSystemImpl::readCloseFileStatus(char *fileName, std::shared_ptr<FileStatus> fileStatus) {
-            LOG(INFO, "***********************readCloseFileStatus*********************************");
+        void FileSystemImpl::readCloseFileStatus(char *fileName) {
+//            LOG(INFO, "***********************readCloseFileStatus*********************************");
+
+            FileStatus *fs = new FileStatus();
+            std::shared_ptr<FileStatus> fileStatus(fs);
 
             int flags = O_CREAT | O_RDWR;
 
@@ -467,7 +530,7 @@ namespace Gopherwood {
             int32_t length = read(logFd, bufLength, sizeof(bufLength));
             while (length == 4) {
                 int32_t dataSize = DecodeFixed32(bufLength);
-                LOG(INFO, "FileSystemImpl::readCloseFileStatus read length = %d, dataSize size =%d", length, dataSize);
+//                LOG(INFO, "FileSystemImpl::readCloseFileStatus read length = %d, dataSize size =%d", length, dataSize);
                 std::string logRecord;
                 char res[dataSize];
                 read(logFd, res, sizeof(res));
@@ -476,11 +539,22 @@ namespace Gopherwood {
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
 
-            LOG(INFO, "FileSystemImpl::readCloseFileStatus out read length = %d", length);
+//            LOG(INFO, "FileSystemImpl::readCloseFileStatus out read length = %d", length);
+
+
+            LOG(INFO, "*********************** in the end, the close File Status*********************************");
+            int64_t endOffsetOfBucket = fileStatus->getEndOffsetOfBucket();
+            vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
+            LOG(INFO, "endOffsetOfBucket=%d,blockIDVector.size=  %d", endOffsetOfBucket, blockIDVector.size());
+            for (int i = 0; i < blockIDVector.size(); i++) {
+                LOG(INFO, " block id = %d", blockIDVector[i]);
+            }
+
+            LOG(INFO, "*********************** in the end, the close File Status*********************************");
 
             close(logFd);
 
-            LOG(INFO, "***********************readCloseFileStatus*********************************");
+//            LOG(INFO, "***********************readCloseFileStatus*********************************");
         }
 
 

@@ -120,7 +120,7 @@ namespace Gopherwood {
             res.append(1, static_cast<char>(RecordType::closeFile));
             PutFixed32(&res, fileStatus->getBlockIdVector().size());
             for (int i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
-                LOG(INFO, "block id = %d", fileStatus->getBlockIdVector()[i]);
+                LOG(INFO, "LogFormat::serializeFileStatusForClose. block id = %d", fileStatus->getBlockIdVector()[i]);
 
                 PutFixed32(&res, fileStatus->getBlockIdVector()[i]);
             }
@@ -170,7 +170,7 @@ namespace Gopherwood {
             int offset = 1;
             int32_t numOfBlocks = DecodeFixed32(res + offset);
             offset += 4;
-            LOG(INFO, "deserializeHeaderAndBlockIds  iType   = %d,numOfBlocks  = %d", iType, numOfBlocks);
+            LOG(INFO, "deserializeHeaderAndBlockIds  iType   = %d,numOfBlocks  = %d,", iType, numOfBlocks);
 
             for (int i = 0; i < numOfBlocks; i++) {
                 int32_t blockID = DecodeFixed32(res + offset);
@@ -180,10 +180,11 @@ namespace Gopherwood {
             }
 
             if (iType == 0) { // acquire new block
-                fileStatus->setBlockIdVector(tmpVector);
+                vector<int32_t> beforeVector = fileStatus->getBlockIdVector();
+                beforeVector.insert(beforeVector.end(), tmpVector.begin(), tmpVector.end());
+                fileStatus->setBlockIdVector(beforeVector);
             } else if (iType == 2) { // releaseBlock
                 vector<int32_t> vecBefore = fileStatus->getBlockIdVector();
-
                 for (int i = 0; i < tmpVector.size(); i++) {
                     int blockID2Release = tmpVector[i];
                     std::vector<int32_t>::iterator it;
@@ -200,24 +201,35 @@ namespace Gopherwood {
                 }
                 fileStatus->setBlockIdVector(vecBefore);
             } else if (iType == 3) { // evict block, this means the block now belong to the new file,
+                vector<int32_t> beforeVector = fileStatus->getBlockIdVector();
                 for (int i = 0; i < tmpVector.size(); i++) {
                     int blockID2Add = tmpVector[i];
-                    fileStatus->getBlockIdVector().push_back(blockID2Add);
+                    beforeVector.push_back(blockID2Add);
                 }
+                fileStatus->setBlockIdVector(beforeVector);
             } else if (iType == 4) { //remoteBlock
+                vector<int32_t> previousVector = fileStatus->getBlockIdVector();
                 for (int i = 0; i < tmpVector.size(); i++) {
                     int blockIDRemote = tmpVector[i];
                     if (-blockIDRemote > fileStatus->getBlockIdVector().size()) {
                         LOG(LOG_ERROR, "error occur, the remote block index can not larger than the block vector");
                         return NULL;
                     }
-                    fileStatus->getBlockIdVector()[-blockIDRemote] = -blockIDRemote;
+                    int index = -blockIDRemote - 1;
+                    previousVector[index] = blockIDRemote;
                 }
-            } else if (iType == 5) {
+                fileStatus->setBlockIdVector(previousVector);
+            } else if (iType == 5) { //closeFile = 5
                 LOG(INFO, "deserializeHeaderAndBlockIds, fileStatus->getBlockIdVector().size()=%d",
                     fileStatus->getBlockIdVector().size());
                 fileStatus->setBlockIdVector(tmpVector);
             }
+            LOG(INFO, "deserializeHeaderAndBlockIds, in the end, fileStatus->getBlockIdVector().size()=%d",
+                fileStatus->getBlockIdVector().size());
+            for (int i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
+                LOG(INFO, "deserializeHeaderAndBlockIds, in the end, block id =%d", fileStatus->getBlockIdVector()[i]);
+            }
+
             return offset;
         }
 
