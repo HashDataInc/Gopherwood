@@ -26,12 +26,8 @@ namespace Gopherwood {
                     return;
                 }
             }
-            //2. the fileName exist in the fileStatusMap, so catch up the fileStatus from LOG.
-            //TODO ,we should mark the offset that last time catch.
-            filesystem->catchUpFileStatusFromLog((char *) fileName, 0);
 
             status = filesystem->getFileStatus(fileName);
-
             //3. default seek the offset to zero when read.
             seek(0);
         }
@@ -70,8 +66,10 @@ namespace Gopherwood {
 
             int64_t remainOffsetInBlock = SIZE_OF_BLOCK - cursorOffset;
             if (size <= remainOffsetInBlock) {
-                filesystem->readDataFromBucket(buf, size);
-                cursorOffset += size;
+                int64_t readLength = filesystem->readDataFromBucket(buf, size);
+//                LOG(INFO, "1. InputStreamImpl::readInternal. readLength=%d", readLength);
+                cursorOffset += readLength;
+                return readLength;
             } else {
                 int64_t remainOffsetTotal = getRemainLength();
 
@@ -85,33 +83,36 @@ namespace Gopherwood {
                 int64_t bufOffset = 0;
 
                 //read the first block data of the file.
-                filesystem->readDataFromBucket(tmpBuf, remainOffsetInBlock);
-                sizeRemain -= remainOffsetInBlock;
-                memcpy(resBuf + bufOffset, tmpBuf, remainOffsetInBlock);
-                bufOffset += remainOffsetInBlock;
+                int readLength = filesystem->readDataFromBucket(tmpBuf, remainOffsetInBlock);
+//                LOG(INFO, "2. InputStreamImpl::readInternal. readLength=%d", readLength);
+                sizeRemain -= readLength;
+                memcpy(resBuf + bufOffset, tmpBuf, readLength);
+                bufOffset += readLength;
 
                 while (sizeRemain > 0) {
                     if (sizeRemain > SIZE_OF_BLOCK) {
                         seekToNextBlock();
-                        filesystem->readDataFromBucket(tmpBuf, SIZE_OF_BLOCK);
+                        int64_t readLength = filesystem->readDataFromBucket(tmpBuf, SIZE_OF_BLOCK);
+//                        LOG(INFO, "3. InputStreamImpl::readInternal. readLength=%d", readLength);
                         sizeRemain -= SIZE_OF_BLOCK;
-                        memcpy(resBuf + bufOffset, tmpBuf, SIZE_OF_BLOCK);
-                        bufOffset += SIZE_OF_BLOCK;
+                        memcpy(resBuf + bufOffset, tmpBuf, readLength);
+                        bufOffset += readLength;
 
-                        cursorOffset = SIZE_OF_BLOCK;
+                        cursorOffset = readLength;
                     } else {
                         seekToNextBlock();
-                        filesystem->readDataFromBucket(tmpBuf, sizeRemain);
+                        int64_t readLength = filesystem->readDataFromBucket(tmpBuf, sizeRemain);
+//                        LOG(INFO, "4. InputStreamImpl::readInternal. readLength=%d", readLength);
                         sizeRemain -= sizeRemain;
-                        memcpy(resBuf + bufOffset, tmpBuf, sizeRemain);
-                        bufOffset += sizeRemain;
+                        memcpy(resBuf + bufOffset, tmpBuf, readLength);
+                        bufOffset += readLength;
 
-                        cursorOffset = sizeRemain;
+                        cursorOffset = readLength;
                     }
                 }
                 memcpy(buf, resBuf, sizeof(resBuf));
+                return bufOffset;
             }
-
         }
 
 

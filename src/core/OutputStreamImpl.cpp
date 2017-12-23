@@ -30,8 +30,6 @@ namespace Gopherwood {
             } else {
                 //2. the fileName exist in the fileStatusMap, so catch up the fileStatus from LOG.
                 //TODO ,we should mark the offset that last time catch.
-                filesystem->catchUpFileStatusFromLog(fileName, 0);
-
             }
             status = filesystem->getFileStatus(fileName);
             //3. default seek to the end of the file
