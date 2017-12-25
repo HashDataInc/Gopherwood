@@ -59,8 +59,10 @@ namespace Gopherwood {
 //                LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. readLength=%d,", readLength);
             }
 
+            qsReadWrite->closeGetObject();
+
             //3. delete the data in oss.
-//            qsReadWrite->qsDeleteObject((char *) ossFileName.data());
+            qsReadWrite->qsDeleteObject(ossFileName.c_str());
 
             //4. write replace log, delete it because it have been writen to log in the acquire block logs.
             // we use this block to replace the one block in OSS
@@ -73,8 +75,8 @@ namespace Gopherwood {
             writeFileStatusToLog((char *) fileName.data(), res);
 
             //4. close qingstor context
-//            qsReadWrite->closeGetObject();
-//            qsReadWrite->destroyContext();
+
+            qsReadWrite->destroyContext();
 
         }
 
