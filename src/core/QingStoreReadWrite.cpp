@@ -52,6 +52,7 @@ namespace Gopherwood {
             int64_t readLegnth = 0;
             if (getObject) {
                 readLegnth = qingstorRead(qsContext, getObject, buffer, size);
+                LOG(INFO, "QingStoreReadWrite::qsRead,readLegnth = %d", readLegnth);
                 if (readLegnth != size) {
                     LOG(LOG_ERROR, "qingstor IN  read failed with error message: %s,readLegnth = %d",
                         qingstorGetLastError(), readLegnth);
@@ -62,11 +63,11 @@ namespace Gopherwood {
             return readLegnth;
         }
 
-        //  TODO .the file is logcal deleted
-        int64_t QingStoreReadWrite::qsDeleteObject(char *filename) {
+        //  TODO .the file is logical deleted
+        int64_t QingStoreReadWrite::qsDeleteObject(const char *filename) {
             LOG(INFO, "QingStoreReadWrite::qsDeleteObject. delete file with name = %s", filename);
-            int deleteLength = qingstorDeleteObject(qsContext, bucket_name, filename);
-            LOG(INFO, "QingStoreReadWrite::qsDeleteObject. delete length = %d", deleteLength);
+            int res = qingstorDeleteObject(qsContext, bucket_name, filename);
+            LOG(INFO, "QingStoreReadWrite::qsDeleteObject. delete res = %d", res);
             return 0;
         }
 

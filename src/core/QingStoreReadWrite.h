@@ -45,7 +45,7 @@ namespace Gopherwood {
 
             void closeGetObject();
 
-            int64_t qsDeleteObject(char *filename);
+            int64_t qsDeleteObject(const char *filename);
 
         private:
 
