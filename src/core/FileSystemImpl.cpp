@@ -35,6 +35,11 @@ namespace Gopherwood {
         }
 
 
+        void FileSystemImpl::changePingBlockActive(int blockID) {
+            sharedMemoryManager->activeBlock(blockID);
+        }
+
+
         //TODO ******************************
         void FileSystemImpl::writeDataFromOSS2Bucket(int64_t ossindex, string fileName) {
             //1. prapre qingstor context
@@ -59,7 +64,7 @@ namespace Gopherwood {
 //                LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. readLength=%d,", readLength);
             }
 
-            qsReadWrite->closeGetObject();
+//            qsReadWrite->closeGetObject();
 
             //3. delete the data in oss.
             qsReadWrite->qsDeleteObject(ossFileName.c_str());

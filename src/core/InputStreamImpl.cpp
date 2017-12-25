@@ -253,6 +253,9 @@ namespace Gopherwood {
                         vector<int32_t> newPingBlockVector;
                         newPingBlockVector.push_back(blockID);
                         filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
+                        for (int i = 0; i < newPingBlockVector.size(); i++) {
+                            filesystem->changePingBlockActive(newPingBlockVector[i]);
+                        }
                         return;
                     } else {
                         //3.1.2 the block is in the OSS

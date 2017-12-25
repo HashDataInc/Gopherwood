@@ -156,11 +156,13 @@ namespace Gopherwood {
         std::vector<int> SharedMemoryManager::acquireNewBlock(char *fileName) {
 //            LOG(INFO, "acquireNewBlock method");
             if (strlen(fileName) > FILENAME_MAX_LENGTH) {
-                LOG(LOG_ERROR, "SharedMemoryManager::acquireNewBlock. fileName name size cannot be larger than %d, ", FILENAME_MAX_LENGTH);
+                LOG(LOG_ERROR, "SharedMemoryManager::acquireNewBlock. fileName name size cannot be larger than %d, ",
+                    FILENAME_MAX_LENGTH);
             }
 
             if (!semaphoreP()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::acquireNewBlock. can not acquire the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::acquireNewBlock. can not acquire the semaphore, acquireNewBlock failure");
             }
             if (checkAndSetSMOne()) {
                 LOG(LOG_ERROR, "SharedMemoryManager::acquireNewBlock. acquireNewBlock failed, shared memory is broken");
@@ -204,7 +206,8 @@ namespace Gopherwood {
 
             checkAndSetSMZero();
             if (!semaphoreV()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::acquireNewBlock. can not release the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::acquireNewBlock. can not release the semaphore, acquireNewBlock failure");
             }
 
             if (length >= TOTAL_SHARED_MEMORY_LENGTH) {
@@ -219,10 +222,12 @@ namespace Gopherwood {
         std::vector<int> SharedMemoryManager::getBlocksWhichTypeEqual2(int count) {
 
             if (!semaphoreP()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::getBlocksWhichTypeEqual2. can not acquire the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::getBlocksWhichTypeEqual2. can not acquire the semaphore, acquireNewBlock failure");
             }
             if (checkAndSetSMOne()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::getBlocksWhichTypeEqual2. acquireNewBlock failed, shared memory is broken");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::getBlocksWhichTypeEqual2. acquireNewBlock failed, shared memory is broken");
             }
 
             std::vector<int> resVector;
@@ -248,7 +253,8 @@ namespace Gopherwood {
             }
             checkAndSetSMZero();
             if (!semaphoreV()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::getBlocksWhichTypeEqual2. can not release the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::getBlocksWhichTypeEqual2. can not release the semaphore, acquireNewBlock failure");
             }
             if (length >= TOTAL_SHARED_MEMORY_LENGTH) {
                 LOG(LOG_ERROR, "SharedMemoryManager::getBlocksWhichTypeEqual2. no enough room for the ssd bucket");
@@ -257,13 +263,47 @@ namespace Gopherwood {
         }
 
 
+        void SharedMemoryManager::activeBlock(int blockID) {
+            if (!checkBlockIDIsLegal(blockID)) {
+                return;
+            }
+
+            if (!semaphoreP()) {
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::activeBlock. can not acquire the semaphore, acquireNewBlock failure");
+            }
+            if (checkAndSetSMOne()) {
+                LOG(LOG_ERROR, "SharedMemoryManager::activeBlock. acquireNewBlock failed, shared memory is broken");
+            }
+
+
+            int length = 1;
+            void *mem = regionPtr->get_address();
+            length += sizeof(smBucketStruct) * blockID;
+            smBucketStruct *smb = (smBucketStruct *) (mem + length);
+
+            //1.change the type
+            smb->type = '1';
+
+
+            checkAndSetSMZero();
+            if (!semaphoreV()) {
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::inactiveBlock. can not release the semaphore, acquireNewBlock failure");
+            }
+
+            printSMStatus();
+
+        }
+
         void SharedMemoryManager::inactiveBlock(int blockID, int blockIndex) {
             if (!checkBlockIDIsLegal(blockID)) {
                 return;
             }
 
             if (!semaphoreP()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::inactiveBlock. can not acquire the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::inactiveBlock. can not acquire the semaphore, acquireNewBlock failure");
             }
             if (checkAndSetSMOne()) {
                 LOG(LOG_ERROR, "SharedMemoryManager::inactiveBlock. acquireNewBlock failed, shared memory is broken");
@@ -287,7 +327,8 @@ namespace Gopherwood {
 
             checkAndSetSMZero();
             if (!semaphoreV()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::inactiveBlock. can not release the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::inactiveBlock. can not release the semaphore, acquireNewBlock failure");
             }
 
             printSMStatus();
@@ -301,7 +342,8 @@ namespace Gopherwood {
             }
 
             if (!semaphoreP()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::releaseBlock. can not acquire the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::releaseBlock. can not acquire the semaphore, acquireNewBlock failure");
             }
             if (checkAndSetSMOne()) {
                 LOG(LOG_ERROR, "SharedMemoryManager::releaseBlock. acquireNewBlock failed, shared memory is broken");
@@ -316,7 +358,8 @@ namespace Gopherwood {
 
             checkAndSetSMZero();
             if (!semaphoreV()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::releaseBlock. can not release the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::releaseBlock. can not release the semaphore, acquireNewBlock failure");
             }
 
             printSMStatus();
@@ -328,7 +371,8 @@ namespace Gopherwood {
             }
 
             if (!semaphoreP()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::releaseBlock. can not acquire the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::releaseBlock. can not acquire the semaphore, acquireNewBlock failure");
             }
             if (checkAndSetSMOne()) {
                 LOG(LOG_ERROR, "SharedMemoryManager::releaseBlock. acquireNewBlock failed, shared memory is broken");
@@ -350,7 +394,8 @@ namespace Gopherwood {
             retVal.append(tmpName, sizeof(smb->fileName));
             checkAndSetSMZero();
             if (!semaphoreV()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::releaseBlock. can not release the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::releaseBlock. can not release the semaphore, acquireNewBlock failure");
             }
             return retVal;
         }
@@ -361,7 +406,8 @@ namespace Gopherwood {
             }
 
             if (!semaphoreP()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::evictBlock. can not acquire the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::evictBlock. can not acquire the semaphore, acquireNewBlock failure");
             }
             if (checkAndSetSMOne()) {
                 LOG(LOG_ERROR, "SharedMemoryManager::evictBlock. acquireNewBlock failed, shared memory is broken");
@@ -387,14 +433,16 @@ namespace Gopherwood {
 
             checkAndSetSMZero();
             if (!semaphoreV()) {
-                LOG(LOG_ERROR, "SharedMemoryManager::evictBlock. can not release the semaphore, acquireNewBlock failure");
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::evictBlock. can not release the semaphore, acquireNewBlock failure");
             }
             printSMStatus();
         }
 
         bool SharedMemoryManager::checkBlockIDIsLegal(int blockID) {
             if (blockID > NUMBER_OF_BLOCKS - 1) {
-                LOG(LOG_ERROR, "SharedMemoryManager::evictBlock. given block id %d exceed the max size which is %d ", blockID, NUMBER_OF_BLOCKS - 1);
+                LOG(LOG_ERROR, "SharedMemoryManager::evictBlock. given block id %d exceed the max size which is %d ",
+                    blockID, NUMBER_OF_BLOCKS - 1);
                 return false;
             }
             return true;

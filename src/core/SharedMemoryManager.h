@@ -84,6 +84,8 @@ namespace Gopherwood {
 
             void inactiveBlock(int blockID, int blockIndex);
 
+            void activeBlock(int blockID);
+
             void releaseBlock(int blockID);
 
             void evictBlock(int blockID, char *fileName);
