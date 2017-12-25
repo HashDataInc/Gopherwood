@@ -20,6 +20,7 @@ namespace Gopherwood {
             QingStoreReadWrite *qsrw = new QingStoreReadWrite();
             std::shared_ptr<QingStoreReadWrite> tmpqsrw(qsrw);
             qsReadWrite = tmpqsrw;
+            qsReadWrite->initContext();
 
             sharedMemoryManager->checkSharedMemory();
             sharedMemoryManager->openSMBucket();
@@ -43,7 +44,6 @@ namespace Gopherwood {
         //TODO ******************************
         void FileSystemImpl::writeDataFromOSS2Bucket(int64_t ossindex, string fileName) {
             //1. prapre qingstor context
-            qsReadWrite->initContext();
             string ossFileName = constructFileKey(fileName, ossindex + 1);
             qsReadWrite->getGetObject((char *) ossFileName.data());
 
@@ -64,7 +64,7 @@ namespace Gopherwood {
 //                LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. readLength=%d,", readLength);
             }
 
-//            qsReadWrite->closeGetObject();
+            qsReadWrite->closeGetObject();
 
             //3. delete the data in oss.
             qsReadWrite->qsDeleteObject(ossFileName.c_str());
@@ -78,11 +78,6 @@ namespace Gopherwood {
             deleteBlockVector.push_back(-(ossindex + 1));
             string res = logFormat->serializeLog(deleteBlockVector, LogFormat::RecordType::deleteBlock);
             writeFileStatusToLog((char *) fileName.data(), res);
-
-            //4. close qingstor context
-
-            qsReadWrite->destroyContext();
-
         }
 
         /**
@@ -495,7 +490,6 @@ namespace Gopherwood {
 
         void FileSystemImpl::writeDate2OSS(char *fileName, int blockID, int index) {
             //1. parpre qingstor context
-            qsReadWrite->initContext();
             string fileKey;
             fileKey.append(fileName, strlen(fileName));
             fileKey = constructFileKey(fileKey, index);
@@ -524,7 +518,6 @@ namespace Gopherwood {
 
             //2. delete qingstor context
             qsReadWrite->closePutObject();
-            qsReadWrite->destroyContext();
         }
 
 
@@ -611,6 +604,8 @@ namespace Gopherwood {
             closeBucketFile();
             sharedMemoryManager->closeSMFile();
             sharedMemoryManager->closeSMBucket();
+
+            qsReadWrite->destroyContext();
         }
 
         //TODO, flush, write log and so on

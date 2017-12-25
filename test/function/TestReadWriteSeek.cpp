@@ -15,7 +15,6 @@
 #include "../../src/core/OutputStreamImpl.h"
 #include "../../src/core/InputStreamImpl.h"
 
-
 using namespace Gopherwood;
 using namespace Gopherwood::Internal;
 
@@ -30,11 +29,30 @@ public:
         printf("Default DeConstructor of TestReadWriteSeek");
     }
 
+
+    void writeUtil(char *fileName, char *buf, int size) {
+        std::ofstream ostrm(fileName, std::ios::out|std::ios::app);
+        ostrm.write(buf, size);
+    }
+
+
+    int readUtil(char *fileName, char *buf, int size) {
+        cout << "************** in the readUtil*************" << endl;
+        std::ifstream istrm(fileName, std::ios::in);
+        istrm.read(buf, size);
+        int readLength = istrm.gcount();
+        cout << "readLength = " << readLength << endl;
+        return readLength;
+    }
+
 protected:
     std::shared_ptr<FileSystemInter> filesystem;
     std::shared_ptr<OutputStreamInter> osiImpl;
     std::shared_ptr<InputStreamInter> isImpl;
 };
+
+
+
 
 //TEST_F(TestReadWriteSeek, WriteAcquireNewBlock) {
 //    char *fileName = "TestReadWriteSeek-WriteAcquireNewBlock";
@@ -178,35 +196,20 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     std::shared_ptr<OutputStreamInter> tmposiImpl(tmpImpl);
     osiImpl = tmposiImpl;
 
-    //4. write data
-    char buf[1024 *
-             1024] = "ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,"
-            "ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,"
-            "ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,"
-            "ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,";
+
+    std::ifstream infile;
+    char buf[128];
+    infile.open("/ssdfile/ssdkv/TestReadWriteSeek-ReadEvictBlock");
     int totalWriteLength = 0;
-    for (int i = 0; i < 5; i++) {
+    while (!infile.eof()) {
         totalWriteLength += strlen(buf);
+        cout << "totalWriteLength=" << totalWriteLength << endl;
+        infile >> buf;
         osiImpl->write(buf, strlen(buf));
     }
-    cout << endl << "^^^^^^^^^^^^^^^^^^^^^^^^before totalWriteLength = " << totalWriteLength << endl;
-
-
-    char buf2[1024 *
-              1024] = "afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,"
-            "afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,"
-            "afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,"
-            "afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,";
-    for (int i = 0; i < 5; i++) {
-        totalWriteLength += strlen(buf2);
-        osiImpl->write(buf2, strlen(buf2));
-    }
-
-    cout << endl << "^^^^^^^^^^^^^^^^^^^^^^^^after totalWriteLength = " << totalWriteLength << endl;
 
 
 //    5. create input stream
-
     InputStreamImpl *tmpinImpl = new InputStreamImpl(filesystem, fileName, flag);
     std::shared_ptr<InputStreamInter> tmpinImplPtr(tmpinImpl);
     isImpl = tmpinImplPtr;
@@ -216,16 +219,14 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
 
     int readLength = isImpl->read(readBuf, sizeof(readBuf));
     cout << "**************** before the read data  *******************" << endl;
+
+    char *fileNameForWrite = "/ssdfile/ssdkv/TestReadWriteSeek-ReadEvictBlock-read";
     int totalLength = 0;
     while (readLength > 0) {
         totalLength += readLength;
-        cout << endl << "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& readLength = " << readLength << ", totalLength="
-             << totalLength
-             << endl;
-        cout << readBuf;
+        writeUtil(fileNameForWrite, readBuf, readLength);
         readLength = isImpl->read(readBuf, sizeof(readBuf));
     }
-    cout << endl;
     cout << "**************** after the read data *******************" << endl;
 
     //6. close file
