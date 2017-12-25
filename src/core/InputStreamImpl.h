@@ -91,7 +91,7 @@ namespace Gopherwood {
 
 
         private:
-            void checkStatus();
+            void checkStatus(int64_t pos);
 
             void seekInternal(int64_t pos);
 
