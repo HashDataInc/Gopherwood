@@ -117,7 +117,9 @@ namespace Gopherwood {
 
             virtual bool checkBlockIDWithFileName(int blockID, string fileName) = 0;
 
-            virtual void writeDataFromOSS2Bucket(int64_t index, string fileName) = 0;;
+            virtual void writeDataFromOSS2Bucket(int64_t index, string fileName) = 0;
+
+            virtual void changePingBlockActive(int blockID)=0;
 
         };
 

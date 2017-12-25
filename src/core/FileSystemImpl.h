@@ -48,6 +48,8 @@ namespace Gopherwood {
 
 //            int32_t checkSharedMemoryFile();
 
+            void changePingBlockActive(int blockID);
+
             void rebuildFileStatusFromLog(char *fileName);
 
             void catchUpFileStatusFromLog(char *fileName, int64_t logOffset);
