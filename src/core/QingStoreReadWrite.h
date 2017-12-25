@@ -23,13 +23,13 @@ namespace Gopherwood {
 
             ~QingStoreReadWrite();
 
-            void qsRead(char *filename);
-
             void testGetObject();
 
             int64_t getCurrenttime();
 
-            void qsWrite(char *filename, char *buffer, int32_t size);
+            int64_t qsWrite(char *filename, char *buffer, int32_t size);
+
+            int64_t qsRead(char *filename, char *buffer, int32_t size);
 
             void testPutObject();
 
@@ -44,6 +44,8 @@ namespace Gopherwood {
             void closePutObject();
 
             void closeGetObject();
+
+            int64_t qsDeleteObject(char *filename);
 
         private:
 

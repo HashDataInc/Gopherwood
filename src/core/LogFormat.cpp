@@ -90,6 +90,11 @@ namespace Gopherwood {
         }
 
 
+        std::string LogFormat::serializeDeleteBlock(const std::vector<int32_t> &blockIdVector, RecordType recordType) {
+            std::string res = serializeHeaderAndBlockIds(blockIdVector, recordType);
+            return res;
+        }
+
         std::string LogFormat::serializeLog(const std::vector<int32_t> &blockIdVector, RecordType type) {
             LOG(INFO, "LogFormat::serializeLog, and the RecordType =  %d, blockIdVector size = %d", type,
                 blockIdVector.size());
@@ -104,6 +109,9 @@ namespace Gopherwood {
                     return serializeEvictBlock(blockIdVector, type);
                 case remoteBlock:
                     return serializeRemoteBlock(blockIdVector, type);
+                case deleteBlock:
+                    return serializeDeleteBlock(blockIdVector, type);
+
             }
         }
 
@@ -156,6 +164,9 @@ namespace Gopherwood {
                 case closeFile:
                     deserializeCloseFile(val, fileStatus);
                     break;
+                case deleteBlock:
+                    deserializeDeleteBlock(val, fileStatus);
+                    break;
             }
         }
 
@@ -183,7 +194,7 @@ namespace Gopherwood {
                 vector<int32_t> beforeVector = fileStatus->getBlockIdVector();
                 beforeVector.insert(beforeVector.end(), tmpVector.begin(), tmpVector.end());
                 fileStatus->setBlockIdVector(beforeVector);
-            } else if (iType == 2) { // releaseBlock
+            } else if (iType == 2) { // releaseBlock or deleteBlock
                 vector<int32_t> vecBefore = fileStatus->getBlockIdVector();
                 for (int i = 0; i < tmpVector.size(); i++) {
                     int blockID2Release = tmpVector[i];
@@ -223,7 +234,36 @@ namespace Gopherwood {
                 LOG(INFO, "deserializeHeaderAndBlockIds, fileStatus->getBlockIdVector().size()=%d",
                     fileStatus->getBlockIdVector().size());
                 fileStatus->setBlockIdVector(tmpVector);
+            } else if (iType == 6) { // delete and replace block
+                if (tmpVector.size() != 2) {
+                    LOG(LOG_ERROR,
+                        "LogFormat::deserializeHeaderAndBlockIds. tmpVector size should be equal 2, however it size=%d",
+                        tmpVector.size());
+                    return NULL;
+                }
+                int blockID = tmpVector[0];
+                int toReplaceblockID = tmpVector[1];
+
+                std::vector<int32_t>::iterator it;
+                vector<int32_t> vecBefore = fileStatus->getBlockIdVector();
+                for (it = vecBefore.begin(); it != vecBefore.end();) {
+                    if (*it == blockID) {
+                        it = vecBefore.erase(it);
+                        break;
+                    } else {
+                        it++;
+                    }
+                }
+
+                for (int i = 0; i < vecBefore.size(); i++) {
+                    if (vecBefore[i] == toReplaceblockID) {
+                        vecBefore[i] = blockID;
+                    }
+                }
+                fileStatus->setBlockIdVector(vecBefore);
             }
+
+
             LOG(INFO, "deserializeHeaderAndBlockIds, in the end, fileStatus->getBlockIdVector().size()=%d",
                 fileStatus->getBlockIdVector().size());
             for (int i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
@@ -248,6 +288,12 @@ namespace Gopherwood {
             LOG(INFO, "*******deserializeInactiveBlock*******");
             int offset = deserializeHeaderAndBlockIds(val, fileStatus);
             LOG(INFO, "*******deserializeInactiveBlock*******");
+        }
+
+        void LogFormat::deserializeDeleteBlock(std::string val, shared_ptr<FileStatus> fileStatus) {
+            LOG(INFO, "*******deserializeDeleteBlock*******");
+            int offset = deserializeHeaderAndBlockIds(val, fileStatus);
+            LOG(INFO, "*******deserializeDeleteBlock*******");
         }
 
         void LogFormat::deserializeReleaseBlock(std::string val, shared_ptr<FileStatus> fileStatus) {
@@ -341,7 +387,7 @@ namespace Gopherwood {
 
 
 
-//  type=remoteBlock            block id = - block id
+//  type=remoteBlock            block id = - (index+1)
 /**
 --------------------------------------------
 | num. of blocks| block 1 | block 2 | .....|
@@ -350,6 +396,20 @@ namespace Gopherwood {
 --------------------------------------------
 |   4 byte      |  4 byte | 4 byte  |4 byte|
 **/
+
+
+
+
+//  type=deleteBlock            block id = - (index+1)
+/**
+--------------------------------------------
+| num. of blocks| block 1 | block 2 | .....|
+--------------------------------------------
+|   3           |    -1   |  -5     | .....|
+--------------------------------------------
+|   4 byte      |  4 byte | 4 byte  |4 byte|
+**/
+
 
 
 

@@ -20,10 +20,6 @@ namespace Gopherwood {
 
         }
 
-        void QingStoreReadWrite::qsRead(char *filename) {
-
-        }
-
 
         int64_t QingStoreReadWrite::getCurrenttime() {
             struct timeval tv;
@@ -35,20 +31,45 @@ namespace Gopherwood {
             return size / 1024.0 * 1000.0 / 1024.0 / elapsed;
         }
 
-        void QingStoreReadWrite::qsWrite(char *filename, char *buffer, int32_t size) {
-            LOG(INFO, "testPutObject  file name = %s", filename);
+        int64_t QingStoreReadWrite::qsWrite(char *filename, char *buffer, int32_t size) {
+            LOG(INFO, "QingStoreReadWrite::qsWrite,  file name = %s", filename);
+            int64_t writeLegnth = 0;
             if (putObject) {
-
-                if (qingstorWrite(qsContext, putObject, buffer, size) != size) {
-                    LOG(LOG_ERROR, "qingstor write failed with error message: %s", qingstorGetLastError());
-                    return;
+                writeLegnth = qingstorWrite(qsContext, putObject, buffer, size);
+                if (writeLegnth != size) {
+                    LOG(LOG_ERROR, "qingstor IN write failed with error message: %s, writeLegnth = %d",
+                        qingstorGetLastError(), writeLegnth);
                 }
-
             } else {
-                LOG(LOG_ERROR, "qingstor write failed with error message: %s", qingstorGetLastError());
+                LOG(LOG_ERROR, "qingstor OUT write failed with error message: %s", qingstorGetLastError());
             }
-            return;
+            return writeLegnth;
         }
+
+
+        int64_t QingStoreReadWrite::qsRead(char *filename, char *buffer, int32_t size) {
+//            LOG(INFO, "QingStoreReadWrite::qsRead, file name = %s", filename);
+            int64_t readLegnth = 0;
+            if (getObject) {
+                readLegnth = qingstorRead(qsContext, getObject, buffer, size);
+                if (readLegnth != size) {
+                    LOG(LOG_ERROR, "qingstor IN  read failed with error message: %s,readLegnth = %d",
+                        qingstorGetLastError(), readLegnth);
+                }
+            } else {
+                LOG(LOG_ERROR, "qingstor OUT read failed with error message: %s", qingstorGetLastError());
+            }
+            return readLegnth;
+        }
+
+        //  TODO .the file is logcal deleted
+        int64_t QingStoreReadWrite::qsDeleteObject(char *filename) {
+            LOG(INFO, "QingStoreReadWrite::qsDeleteObject. delete file with name = %s", filename);
+            int deleteLength = qingstorDeleteObject(qsContext, bucket_name, filename);
+            LOG(INFO, "QingStoreReadWrite::qsDeleteObject. delete length = %d", deleteLength);
+            return 0;
+        }
+
 
         void QingStoreReadWrite::getPutObject(char *filename) {
             putObject = qingstorPutObject(qsContext, bucket_name, filename);

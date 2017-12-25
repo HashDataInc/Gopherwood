@@ -113,6 +113,12 @@ namespace Gopherwood {
 
             virtual int getIndexAccordingBlockID(char *fileName, int blockID)=0;
 
+            virtual void checkAndAddPingBlockID(char *fileName, std::vector<int32_t> blockIDVector) = 0;
+
+            virtual bool checkBlockIDWithFileName(int blockID, string fileName) = 0;
+
+            virtual void writeDataFromOSS2Bucket(int64_t index, string fileName) = 0;;
+
         };
 
     }

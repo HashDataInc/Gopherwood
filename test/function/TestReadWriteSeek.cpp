@@ -126,7 +126,7 @@ protected:
 //}
 
 
-
+/**
 
 TEST_F(TestReadWriteSeek, WriteEvictBlock) {
     char *fileName = "TestReadWriteSeek-WriteEvictBlock";
@@ -150,9 +150,83 @@ TEST_F(TestReadWriteSeek, WriteEvictBlock) {
             "WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,"
             "WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,"
             "WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock,WriteEvictBlock";
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 15; i++) {
         osiImpl->write(buf, strlen(buf));
     }
+
+    //6. close file
+    filesystem->closeFile(fileName);
+    //7. read the close file status
+    filesystem->readCloseFileStatus(fileName);
+}
+
+ **/
+
+TEST_F(TestReadWriteSeek, ReadEvictBlock) {
+    char *fileName = "TestReadWriteSeek-ReadEvictBlock";
+    int flag = O_RDWR;
+    FileSystem *fs = NULL;
+    fs = new FileSystem(fileName);
+    //1. create context,
+    filesystem = fs->impl->filesystem;
+
+    //2. create file
+    filesystem->createFile(fileName);
+
+    //3. create output stream
+    OutputStreamImpl *tmpImpl = new OutputStreamImpl(filesystem, fileName, flag);
+    std::shared_ptr<OutputStreamInter> tmposiImpl(tmpImpl);
+    osiImpl = tmposiImpl;
+
+    //4. write data
+    char buf[1024 *
+             1024] = "ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,"
+            "ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,"
+            "ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,"
+            "ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,ReadEvictBlock,";
+    int totalWriteLength = 0;
+    for (int i = 0; i < 5; i++) {
+        totalWriteLength += strlen(buf);
+        osiImpl->write(buf, strlen(buf));
+    }
+    cout << endl << "^^^^^^^^^^^^^^^^^^^^^^^^before totalWriteLength = " << totalWriteLength << endl;
+
+
+    char buf2[1024 *
+              1024] = "afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,"
+            "afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,"
+            "afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,"
+            "afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,afterReadEvictBlock,";
+    for (int i = 0; i < 5; i++) {
+        totalWriteLength += strlen(buf2);
+        osiImpl->write(buf2, strlen(buf2));
+    }
+
+    cout << endl << "^^^^^^^^^^^^^^^^^^^^^^^^after totalWriteLength = " << totalWriteLength << endl;
+
+
+//    5. create input stream
+
+    InputStreamImpl *tmpinImpl = new InputStreamImpl(filesystem, fileName, flag);
+    std::shared_ptr<InputStreamInter> tmpinImplPtr(tmpinImpl);
+    isImpl = tmpinImplPtr;
+
+    //6. read data
+    char readBuf[SIZE_OF_BLOCK / 8];
+
+    int readLength = isImpl->read(readBuf, sizeof(readBuf));
+    cout << "**************** before the read data  *******************" << endl;
+    int totalLength = 0;
+    while (readLength > 0) {
+        totalLength += readLength;
+        cout << endl << "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& readLength = " << readLength << ", totalLength="
+             << totalLength
+             << endl;
+        cout << readBuf;
+        readLength = isImpl->read(readBuf, sizeof(readBuf));
+    }
+    cout << endl;
+    cout << "**************** after the read data *******************" << endl;
 
     //6. close file
     filesystem->closeFile(fileName);

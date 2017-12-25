@@ -52,6 +52,13 @@ namespace Gopherwood {
 
             void catchUpFileStatusFromLog(char *fileName, int64_t logOffset);
 
+            bool checkBlockIDWithFileName(int blockID, string fileName);
+
+            void writeDataFromOSS2Bucket(int64_t ossindex, string fileName);
+
+            int getOneBlockForWrite(int ossindex, string fileName);
+
+            void updatePingBlockIDOrder(char *fileName);
 
         private:
 
