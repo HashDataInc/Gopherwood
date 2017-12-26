@@ -48,13 +48,12 @@ namespace Gopherwood {
             qsReadWrite->getGetObject((char *) ossFileName.data());
 
             // 1. get the block which can write and seek to the begin of the block.
-            int writeIndex = getOneBlockForWrite(ossindex, fileName);
+            int blockID = getOneBlockForWrite(ossindex, fileName);
             auto &status = fileStatusMap[fileName];
-            int blockID = status->getBlockIdVector()[writeIndex];
 
             fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
 
-            LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. writeIndex=%d,", writeIndex);
+            LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. blockID=%d,", blockID);
             //2. read data from OSS, and write the data to bucket.
             char buf[SIZE_OF_BLOCK / 8];
             int64_t readLength = qsReadWrite->qsRead((char *) ossFileName.data(), buf, sizeof(buf));
@@ -137,7 +136,7 @@ namespace Gopherwood {
             /******************TODO FOR TEST****************************/
 
 
-            return index;
+            return newBlockID;
         }
 
 
@@ -165,11 +164,79 @@ namespace Gopherwood {
             if (!fileStatus) {
                 fileStatus.reset(new FileStatus());
             }
-            /************** TODO JUST FOR TEST****************/
-            LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog, fileStatus->getBlockIdVector().size() = %d",
-                fileStatus->getBlockIdVector().size());
-            /************** TODO JUST FOR TEST****************/
-        };
+
+            int flags = O_CREAT | O_RDWR;
+
+            char *filePathName = getFilePath(fileName);
+            int logFd = open(filePathName, flags, 0644);
+
+            //1. rebuild file status from log
+            char bufLength[4];
+            int32_t length = read(logFd, bufLength, sizeof(bufLength));
+            while (length == 4) {
+                int32_t dataSize = DecodeFixed32(bufLength);
+//                LOG(INFO, "FileSystemImpl::readCloseFileStatus read length = %d, dataSize size =%d", length, dataSize);
+                std::string logRecord;
+                char res[dataSize];
+                read(logFd, res, sizeof(res));
+                logRecord.append(res, dataSize);
+                logFormat->deserializeLog(logRecord, fileStatus);
+                length = read(logFd, bufLength, sizeof(bufLength));
+            }
+
+
+            std::vector<int32_t> pingBlockVector;
+            int quotaCount = 0;
+
+            int blockIDSize = fileStatus->getBlockIdVector().size();
+
+            if (blockIDSize > 0) {
+                //2. set last bucket
+                int lastBlockID = fileStatus->getBlockIdVector()[blockIDSize - 1];
+                fileStatus->setLastBucket(lastBlockID);
+
+                //3. add the last bucket to ping block if its not in the OSS
+                if (lastBlockID > 0) {
+                    pingBlockVector.push_back(lastBlockID);
+                    quotaCount++;
+                }
+
+            }
+
+            //3. set ping block vector
+            int blockIndex = 0;
+            while ((blockIndex < blockIDSize) && (quotaCount < QUOTA_SIZE)) {
+                int tmpBlockID = fileStatus->getBlockIdVector()[blockIndex];
+                int lastBlockID = fileStatus->getLastBucket();
+                if ((tmpBlockID >= 0) && (tmpBlockID != lastBlockID)) {
+                    pingBlockVector.push_back(tmpBlockID);
+                    quotaCount++;
+                }
+                blockIndex++;
+            }
+            fileStatus->setPingIDVector(pingBlockVector);
+
+            //4. change the shared memory
+            for(int i=0;i<pingBlockVector.size();i++){
+                int pingID = pingBlockVector[i];
+                changePingBlockActive(pingID);
+            }
+
+            LOG(INFO,
+                "*********************** rebuildFileStatusFromLog in the end, before the close File Status*********************************");
+            int64_t endOffsetOfBucket = fileStatus->getEndOffsetOfBucket();
+            vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
+            LOG(INFO, "endOffsetOfBucket=%d,blockIDVector.size=  %d", endOffsetOfBucket, blockIDVector.size());
+            for (int i = 0; i < blockIDVector.size(); i++) {
+                LOG(INFO, " block id = %d", blockIDVector[i]);
+            }
+
+            LOG(INFO,
+                "*********************** rebuildFileStatusFromLog in the end, after the close File Status*********************************");
+
+            close(logFd);
+
+        }
 
         //TODO
         void FileSystemImpl::catchUpFileStatusFromLog(char *fileName, int64_t logOffset) {
@@ -212,7 +279,7 @@ namespace Gopherwood {
 
             close(logFd);
 
-        };
+        }
 
         bool FileSystemImpl::checkFileExist(char *fileName) {
             auto res = fileStatusMap.find(fileName);
@@ -707,10 +774,9 @@ namespace Gopherwood {
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
 
-//            LOG(INFO, "FileSystemImpl::readCloseFileStatus out read length = %d", length);
 
-
-            LOG(INFO, "*********************** in the end, the close File Status*********************************");
+            LOG(INFO,
+                "*********************** in the end, before the close File Status*********************************");
             int64_t endOffsetOfBucket = fileStatus->getEndOffsetOfBucket();
             vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
             LOG(INFO, "endOffsetOfBucket=%d,blockIDVector.size=  %d", endOffsetOfBucket, blockIDVector.size());
@@ -718,11 +784,11 @@ namespace Gopherwood {
                 LOG(INFO, " block id = %d", blockIDVector[i]);
             }
 
-            LOG(INFO, "*********************** in the end, the close File Status*********************************");
+            LOG(INFO,
+                "*********************** in the end, after the close File Status*********************************");
 
             close(logFd);
 
-//            LOG(INFO, "***********************readCloseFileStatus*********************************");
         }
 
 

@@ -31,7 +31,7 @@ public:
 
 
     void writeUtil(char *fileName, char *buf, int size) {
-        std::ofstream ostrm(fileName, std::ios::out|std::ios::app);
+        std::ofstream ostrm(fileName, std::ios::out | std::ios::app);
         ostrm.write(buf, size);
     }
 
@@ -180,6 +180,8 @@ TEST_F(TestReadWriteSeek, WriteEvictBlock) {
 
  **/
 
+
+/**
 TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     char *fileName = "TestReadWriteSeek-ReadEvictBlock";
     int flag = O_RDWR;
@@ -197,15 +199,26 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     osiImpl = tmposiImpl;
 
 
+    int SIZE = 128;
+
+
+    //4. read data from file
     std::ifstream infile;
-    char buf[128];
     infile.open("/ssdfile/ssdkv/TestReadWriteSeek-ReadEvictBlock");
     int totalWriteLength = 0;
-    while (!infile.eof()) {
-        totalWriteLength += strlen(buf);
-        cout << "totalWriteLength=" << totalWriteLength << endl;
-        infile >> buf;
-        osiImpl->write(buf, strlen(buf));
+    char *buf = new char[SIZE];
+    infile.read(buf, SIZE);
+    int readLengthIn = infile.gcount();
+    while (readLengthIn > 0) {
+        totalWriteLength += readLengthIn;
+        cout << "totalWriteLength=" << totalWriteLength << ",readLength=" << readLengthIn << endl;
+        cout << "buf=" << buf << endl;
+        //5. write data to the gopherwood
+        osiImpl->write(buf, readLengthIn);
+
+        buf = new char[SIZE];
+        infile.read(buf, SIZE);
+        readLengthIn = infile.gcount();
     }
 
 
@@ -214,18 +227,63 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     std::shared_ptr<InputStreamInter> tmpinImplPtr(tmpinImpl);
     isImpl = tmpinImplPtr;
 
-    //6. read data
-    char readBuf[SIZE_OF_BLOCK / 8];
-
-    int readLength = isImpl->read(readBuf, sizeof(readBuf));
+    //6. read data from gopherwood
+    char *readBuf = new char[SIZE];
+    int readLength = isImpl->read(readBuf, SIZE);
     cout << "**************** before the read data  *******************" << endl;
 
     char *fileNameForWrite = "/ssdfile/ssdkv/TestReadWriteSeek-ReadEvictBlock-read";
     int totalLength = 0;
     while (readLength > 0) {
+        //7. write data to file to check
         totalLength += readLength;
         writeUtil(fileNameForWrite, readBuf, readLength);
-        readLength = isImpl->read(readBuf, sizeof(readBuf));
+
+        readBuf = new char[SIZE];
+        readLength = isImpl->read(readBuf, SIZE);
+        cout << "**************** readLength =  *******************" << readLength << endl;
+    }
+    cout << "**************** after the read data *******************" << endl;
+
+    //6. close file
+    filesystem->closeFile(fileName);
+    //7. read the close file status
+    filesystem->readCloseFileStatus(fileName);
+}
+**/
+
+
+
+TEST_F(TestReadWriteSeek, CloseReadBlock) {
+    char *fileName = "TestReadWriteSeek-ReadEvictBlock";
+    int flag = O_RDWR;
+    FileSystem *fs = NULL;
+    fs = new FileSystem(fileName);
+    //1. create context,
+    filesystem = fs->impl->filesystem;
+
+    int SIZE = 128;
+
+//    5. create input stream
+    InputStreamImpl *tmpinImpl = new InputStreamImpl(filesystem, fileName, flag);
+    std::shared_ptr<InputStreamInter> tmpinImplPtr(tmpinImpl);
+    isImpl = tmpinImplPtr;
+
+    //6. read data from gopherwood
+    char *readBuf = new char[SIZE];
+    int readLength = isImpl->read(readBuf, SIZE);
+    cout << "**************** before the read data  *******************" << endl;
+
+    char *fileNameForWrite = "/ssdfile/ssdkv/TestReadWriteSeek-ReadEvictBlock-CloseReadBlock";
+    int totalLength = 0;
+    while (readLength > 0) {
+        //7. write data to file to check
+        totalLength += readLength;
+        writeUtil(fileNameForWrite, readBuf, readLength);
+
+        readBuf = new char[SIZE];
+        readLength = isImpl->read(readBuf, SIZE);
+        cout << "**************** readLength =  *******************" << readLength << endl;
     }
     cout << "**************** after the read data *******************" << endl;
 
