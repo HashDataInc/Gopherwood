@@ -181,6 +181,7 @@ TEST_F(TestReadWriteSeek, WriteEvictBlock) {
  **/
 
 
+
 /**
 TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     char *fileName = "TestReadWriteSeek-ReadEvictBlock";
@@ -255,7 +256,7 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
 
 
 TEST_F(TestReadWriteSeek, CloseReadBlock) {
-    char *fileName = "TestReadWriteSeek-ReadEvictBlock";
+    char *fileName = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
     int flag = O_RDWR;
     FileSystem *fs = NULL;
     fs = new FileSystem(fileName);
@@ -274,7 +275,7 @@ TEST_F(TestReadWriteSeek, CloseReadBlock) {
     int readLength = isImpl->read(readBuf, SIZE);
     cout << "**************** before the read data  *******************" << endl;
 
-    char *fileNameForWrite = "/ssdfile/ssdkv/TestReadWriteSeek-ReadEvictBlock-CloseReadBlock";
+    char *fileNameForWrite = "/ssdfile/ssdkv/TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock-CloseReadBlock";
     int totalLength = 0;
     while (readLength > 0) {
         //7. write data to file to check
@@ -292,6 +293,80 @@ TEST_F(TestReadWriteSeek, CloseReadBlock) {
     //7. read the close file status
     filesystem->readCloseFileStatus(fileName);
 }
+
+
+
+/**
+TEST_F(TestReadWriteSeek, WriteBlockWithEvictOtherFileBlock) {
+    char *fileName = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
+    int flag = O_RDWR;
+    FileSystem *fs = NULL;
+    fs = new FileSystem(fileName);
+    //1. create context,
+    filesystem = fs->impl->filesystem;
+
+    //2. create file
+    filesystem->createFile(fileName);
+
+    //3. create output stream
+    OutputStreamImpl *tmpImpl = new OutputStreamImpl(filesystem, fileName, flag);
+    std::shared_ptr<OutputStreamInter> tmposiImpl(tmpImpl);
+    osiImpl = tmposiImpl;
+
+
+    int SIZE = 128;
+
+
+    //4. read data from file
+    std::ifstream infile;
+    infile.open("/ssdfile/ssdkv/TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock");
+    int totalWriteLength = 0;
+    char *buf = new char[SIZE];
+    infile.read(buf, SIZE);
+    int readLengthIn = infile.gcount();
+    while (readLengthIn > 0) {
+        totalWriteLength += readLengthIn;
+        cout << "totalWriteLength=" << totalWriteLength << ",readLength=" << readLengthIn << endl;
+        cout << "buf=" << buf << endl;
+        //5. write data to the gopherwood
+        osiImpl->write(buf, readLengthIn);
+
+        buf = new char[SIZE];
+        infile.read(buf, SIZE);
+        readLengthIn = infile.gcount();
+    }
+
+
+//    5. create input stream
+    InputStreamImpl *tmpinImpl = new InputStreamImpl(filesystem, fileName, flag);
+    std::shared_ptr<InputStreamInter> tmpinImplPtr(tmpinImpl);
+    isImpl = tmpinImplPtr;
+
+    //6. read data from gopherwood
+    char *readBuf = new char[SIZE];
+    int readLength = isImpl->read(readBuf, SIZE);
+    cout << "**************** before the read data  *******************" << endl;
+
+    char *fileNameForWrite = "/ssdfile/ssdkv/TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock-read";
+    int totalLength = 0;
+    while (readLength > 0) {
+        //7. write data to file to check
+        totalLength += readLength;
+        writeUtil(fileNameForWrite, readBuf, readLength);
+
+        readBuf = new char[SIZE];
+        readLength = isImpl->read(readBuf, SIZE);
+        cout << "**************** readLength =  *******************" << readLength << endl;
+    }
+    cout << "**************** after the read data *******************" << endl;
+
+    //6. close file
+    filesystem->closeFile(fileName);
+    //7. read the close file status
+    filesystem->readCloseFileStatus(fileName);
+}
+**/
+
 
 
 int main(int argc, char **argv) {

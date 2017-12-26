@@ -116,10 +116,21 @@ namespace Gopherwood {
 
             /******************TODO FOR TEST****************************/
 
-            //3.delete it from block id vector
+
+
+            //2. check whether the negative blockID is the last block ID
+            int tmpBlockID = -(ossindex+1);
+            if(status->getLastBucket()==tmpBlockID){
+                status->setLastBucket(newBlockID);
+                LOG(INFO,"FileSystemImpl::getOneBlockForWrite. the negative blockID is the last block ID, so replace it");
+            }
+
+
+            //3. use the newBlockID to replace the negative block id in OSS
             blockIDVector[ossindex] = newBlockID;
 
 
+            //4.delete it from block id vector
             blockIDVector.erase(blockIDVector.begin() + index);
             status->setBlockIdVector(blockIDVector);
 
@@ -217,13 +228,12 @@ namespace Gopherwood {
             fileStatus->setPingIDVector(pingBlockVector);
 
             //4. change the shared memory
-            for(int i=0;i<pingBlockVector.size();i++){
+            for (int i = 0; i < pingBlockVector.size(); i++) {
                 int pingID = pingBlockVector[i];
                 changePingBlockActive(pingID);
             }
 
-            LOG(INFO,
-                "*********************** rebuildFileStatusFromLog in the end, before the close File Status*********************************");
+            LOG(INFO, "******* rebuildFileStatusFromLog in the end, before the close File Status***********");
             int64_t endOffsetOfBucket = fileStatus->getEndOffsetOfBucket();
             vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
             LOG(INFO, "endOffsetOfBucket=%d,blockIDVector.size=  %d", endOffsetOfBucket, blockIDVector.size());
@@ -231,8 +241,7 @@ namespace Gopherwood {
                 LOG(INFO, " block id = %d", blockIDVector[i]);
             }
 
-            LOG(INFO,
-                "*********************** rebuildFileStatusFromLog in the end, after the close File Status*********************************");
+            LOG(INFO, "****** rebuildFileStatusFromLog in the end, after the close File Status*********");
 
             close(logFd);
 
@@ -247,10 +256,12 @@ namespace Gopherwood {
             int logFd = open(filePathName, flags, 0644);
 
             //2. seek to the offset
-            lseek(logFd, logOffset, SEEK_SET);
+            lseek(logFd, 0, SEEK_SET);
 
-            //3. get the file status
-            auto &status = fileStatusMap[fileName];
+            //3. init the file status
+            FileStatus *fs = new FileStatus();
+            std::shared_ptr<FileStatus> fileStatus(fs);
+
 
             //3. read the log and refresh the file status
             int64_t totalReadLength = 0;
@@ -268,17 +279,27 @@ namespace Gopherwood {
                 totalReadLength += readLength;
 
                 logRecord.append(res, dataSize);
-                logFormat->deserializeLog(logRecord, status);
+                logFormat->deserializeLog(logRecord, fileStatus);
                 readLength = read(logFd, bufLength, sizeof(bufLength));
                 totalReadLength += readLength;
             }
 
-            LOG(INFO, "FileSystemImpl::catchUpFileStatusFromLog out read length = %d", readLength);
 
-            status->setLogOffset((status->getLogOffset() + totalReadLength));
-
+            // 4. write the new file status to log
+            std::string res = logFormat->serializeFileStatusForClose(fileStatus);
+            ftruncate(logFd, 0);
+            lseek(logFd, 0, SEEK_SET);
+            int writeSize = write(logFd, res.data(), res.size());
             close(logFd);
 
+            LOG(INFO, "FileSystemImpl::catchUpFileStatusFromLog out read length = %d", readLength);
+
+            //5. replace the fileStatus in fileStatusMap
+            vector<int32_t> pingBlockVector = fileStatusMap[fileName]->getPingIDVector();
+            fileStatus->setPingIDVector(pingBlockVector);
+            fileStatus->setLastBucket(fileStatusMap[fileName]->getLastBucket());
+            fileStatus->setEndOffsetOfBucket(fileStatusMap[fileName]->getEndOffsetOfBucket());
+            fileStatusMap[fileName] = fileStatus;
         }
 
         bool FileSystemImpl::checkFileExist(char *fileName) {
