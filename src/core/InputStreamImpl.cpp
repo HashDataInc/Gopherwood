@@ -136,6 +136,12 @@ namespace Gopherwood {
             //check the pos is in the oss or not
             checkStatus(cursorIndex * SIZE_OF_BLOCK);
 
+            LOG(INFO, "InputStreamImpl::seekToNextBlock, status->getBlockIdVector().size()=%d, cursorIndex=%d",
+                status->getBlockIdVector().size(), cursorIndex);
+
+            if (cursorIndex >= status->getBlockIdVector().size()) {
+                return;
+            }
             this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
             this->cursorOffset = 0;
             //seek the offset of the bucket file
@@ -221,8 +227,14 @@ namespace Gopherwood {
             }
             //1. check the size of the file
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
+            LOG(INFO, "InputStreamImpl::checkStatus. theEOFOffset=%d", theEOFOffset);
+
             if (theEOFOffset == 0) {
                 LOG(INFO, "the file do not contain any one bucket");
+                return;
+            }
+            if (status->getBlockIdVector().size() == 0) {
+                LOG(LOG_ERROR, "InputStreamImpl::checkStatus. do not contain any file");
                 return;
             }
 
@@ -231,6 +243,7 @@ namespace Gopherwood {
                 LOG(LOG_ERROR, "error, the given pos exceed the size of the file");
                 return;
             }
+
             //2. get the blockID which seeks to
             int64_t blockIndex = pos / SIZE_OF_BLOCK;
             int blockID = status->getBlockIdVector()[blockIndex];

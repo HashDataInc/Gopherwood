@@ -87,7 +87,7 @@ namespace Gopherwood {
         int FileSystemImpl::getOneBlockForWrite(int ossindex, string fileName) {
             auto &status = fileStatusMap[fileName];
             int blockID = status->getLastBucket();
-
+            LOG(INFO, "FileSystemImpl::getOneBlockForWrite, the last blockID=%d", blockID);
 
             // 1. get one block which type='0', this is the last bucket's next block
             int index = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
@@ -119,10 +119,11 @@ namespace Gopherwood {
 
 
             //2. check whether the negative blockID is the last block ID
-            int tmpBlockID = -(ossindex+1);
-            if(status->getLastBucket()==tmpBlockID){
+            int tmpBlockID = -(ossindex + 1);
+            if (status->getLastBucket() == tmpBlockID) {
                 status->setLastBucket(newBlockID);
-                LOG(INFO,"FileSystemImpl::getOneBlockForWrite. the negative blockID is the last block ID, so replace it");
+                LOG(INFO,
+                    "FileSystemImpl::getOneBlockForWrite. the negative blockID is the last block ID, so replace it");
             }
 
 
@@ -305,8 +306,10 @@ namespace Gopherwood {
         bool FileSystemImpl::checkFileExist(char *fileName) {
             auto res = fileStatusMap.find(fileName);
             if (res != fileStatusMap.end()) {
+                LOG(INFO, "FileSystemImpl::checkFileExist return true");
                 return true;
             }
+            LOG(INFO, "FileSystemImpl::checkFileExist return false");
             return false;
         }
 
@@ -388,13 +391,14 @@ namespace Gopherwood {
 
             LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID previousPingVector size = %d", previousPingVector.size());
 
-            int i = 0;
-            for (; i < previousPingVector.size(); i++) {
-                if (previousPingVector[i] == status->getLastBucket()) {
+            int index = 0;
+            for (; index < previousPingVector.size(); index++) {
+                if (previousPingVector[index] == status->getLastBucket()) {
                     break;
                 } else {
-                    LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID inactive block id = %d", previousPingVector[i]);
-                    inactiveBlockVector.push_back(previousPingVector[i]);
+                    LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID inactive block id = %d",
+                        previousPingVector[index]);
+                    inactiveBlockVector.push_back(previousPingVector[index]);
 
                 }
             }
@@ -403,12 +407,22 @@ namespace Gopherwood {
             inactiveBlock(fileName, inactiveBlockVector);
 
             //4. set the new ping block vector
-            for (; i < previousPingVector.size(); i++) {
-                LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID remain active  block id = %d", previousPingVector[i]);
-                newPingVector.push_back(previousPingVector[i]);
+            for (; index < previousPingVector.size(); index++) {
+                LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID remain active  block id = %d",
+                    previousPingVector[index]);
+                newPingVector.push_back(previousPingVector[index]);
             }
             newPingVector.insert(newPingVector.end(), blockIDVector.begin(), blockIDVector.end());
             status->setPingIDVector(newPingVector);
+
+            /************************TODO FOR TEST*******************/
+            for (int i = 0; i < status->getPingIDVector().size(); i++) {
+                LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID in the end the active  block id = %d",
+                    status->getPingIDVector()[i]);
+            }
+            /************************TODO FOR TEST*******************/
+
+
 
         }
 
@@ -446,6 +460,9 @@ namespace Gopherwood {
                     LOG(LOG_ERROR,
                         "FileSystemImpl::acquireNewBlock, do not have enough blocks, only get %d number of blocks",
                         totalSize);
+                    if (totalSize == 0) {
+                        return;
+                    }
                 }
                 evictBlock(fileName, remainBlockVector);
 
@@ -660,7 +677,11 @@ namespace Gopherwood {
 
         void FileSystemImpl::writeDataToBucket(char *buf, int64_t size) {
             checkBucketFileOpen();
+
+            /*************TODO FOR TEST**************/
             int64_t res = write(bucketFd, buf, size);
+            LOG(INFO, "FileSystemImpl::writeDataToBucket. res=%d", res);
+
             if (res == -1) {
                 LOG(LOG_ERROR, "some error occur, can not write to the ssd file");
             }
@@ -743,7 +764,7 @@ namespace Gopherwood {
             //4.2. rebuild the file status from log
             FileStatus *fs = new FileStatus();
             std::shared_ptr<FileStatus> rebuildFileStatus(fs);
-            rebuildFileStatus->setEndOffsetOfBucket(status->getEndOffsetOfBucket());
+
             //4.3. read the log and refresh the file status
             char bufLength[4];
             int32_t length = read(logFd, bufLength, sizeof(bufLength));
@@ -758,6 +779,7 @@ namespace Gopherwood {
                 logFormat->deserializeLog(logRecord, rebuildFileStatus);
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
+            rebuildFileStatus->setEndOffsetOfBucket(status->getEndOffsetOfBucket());
 
             LOG(INFO, "FileSystemImpl::closeFile out read length = %d", length);
 
