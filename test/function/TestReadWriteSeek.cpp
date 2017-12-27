@@ -181,7 +181,6 @@ TEST_F(TestReadWriteSeek, WriteEvictBlock) {
  **/
 
 
-
 /**
 TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     char *fileName = "TestReadWriteSeek-ReadEvictBlock";
@@ -255,6 +254,7 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
 
 
 
+/**
 TEST_F(TestReadWriteSeek, CloseReadBlock) {
     char *fileName = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
     int flag = O_RDWR;
@@ -293,10 +293,11 @@ TEST_F(TestReadWriteSeek, CloseReadBlock) {
     //7. read the close file status
     filesystem->readCloseFileStatus(fileName);
 }
+**/
 
 
 
-/**
+
 TEST_F(TestReadWriteSeek, WriteBlockWithEvictOtherFileBlock) {
     char *fileName = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
     int flag = O_RDWR;
@@ -305,8 +306,6 @@ TEST_F(TestReadWriteSeek, WriteBlockWithEvictOtherFileBlock) {
     //1. create context,
     filesystem = fs->impl->filesystem;
 
-    //2. create file
-    filesystem->createFile(fileName);
 
     //3. create output stream
     OutputStreamImpl *tmpImpl = new OutputStreamImpl(filesystem, fileName, flag);
@@ -336,36 +335,37 @@ TEST_F(TestReadWriteSeek, WriteBlockWithEvictOtherFileBlock) {
         readLengthIn = infile.gcount();
     }
 
+////    5. create input stream
+//    InputStreamImpl *tmpinImpl = new InputStreamImpl(filesystem, fileName, flag);
+//    std::shared_ptr<InputStreamInter> tmpinImplPtr(tmpinImpl);
+//    isImpl = tmpinImplPtr;
+//
+//    //6. read data from gopherwood
+//    char *readBuf = new char[SIZE];
+//    int readLength = isImpl->read(readBuf, SIZE);
+//    cout << "**************** before the read data  *******************" << endl;
+//
+//    char *fileNameForWrite = "/ssdfile/ssdkv/TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock-read";
+//    int totalLength = 0;
+//    while (readLength > 0) {
+//        //7. write data to file to check
+//        totalLength += readLength;
+//        writeUtil(fileNameForWrite, readBuf, readLength);
+//
+//        readBuf = new char[SIZE];
+//        readLength = isImpl->read(readBuf, SIZE);
+//        cout << "**************** readLength =  *******************" << readLength << endl;
+//    }
+//    cout << "**************** after the read data *******************" << endl;
 
-//    5. create input stream
-    InputStreamImpl *tmpinImpl = new InputStreamImpl(filesystem, fileName, flag);
-    std::shared_ptr<InputStreamInter> tmpinImplPtr(tmpinImpl);
-    isImpl = tmpinImplPtr;
 
-    //6. read data from gopherwood
-    char *readBuf = new char[SIZE];
-    int readLength = isImpl->read(readBuf, SIZE);
-    cout << "**************** before the read data  *******************" << endl;
-
-    char *fileNameForWrite = "/ssdfile/ssdkv/TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock-read";
-    int totalLength = 0;
-    while (readLength > 0) {
-        //7. write data to file to check
-        totalLength += readLength;
-        writeUtil(fileNameForWrite, readBuf, readLength);
-
-        readBuf = new char[SIZE];
-        readLength = isImpl->read(readBuf, SIZE);
-        cout << "**************** readLength =  *******************" << readLength << endl;
-    }
-    cout << "**************** after the read data *******************" << endl;
 
     //6. close file
     filesystem->closeFile(fileName);
     //7. read the close file status
     filesystem->readCloseFileStatus(fileName);
 }
-**/
+
 
 
 

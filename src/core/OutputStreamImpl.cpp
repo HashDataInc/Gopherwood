@@ -13,8 +13,11 @@ namespace Gopherwood {
 
             //1.check the file exist in the fileStatusMap or not
             bool exist = filesystem->checkFileExist(fileName);
+            LOG(INFO, "exist =  %d", exist);
+
             if (!exist) {
-                LOG(INFO, "fileStatusMap do not contain the file, so rebuild the fileStatusMap and find again");
+                LOG(INFO,
+                    "OutputStreamImpl::OutputStreamImpl. fileStatusMap do not contain the file, so rebuild the fileStatusMap and find again");
                 //1.1. rebuild fileStatusMap from log .
                 filesystem->rebuildFileStatusFromLog(fileName);
                 //1.2 check again
@@ -61,6 +64,9 @@ namespace Gopherwood {
                 seek(0);
             }
             try {
+                if (status->getBlockIdVector().size() == 0) {
+                    return;
+                }
                 writeInternal((char *) buf, size);
             } catch (...) {
                 setError(current_exception());
@@ -84,17 +90,22 @@ namespace Gopherwood {
                 //TODO, if it does not work, we should check the code and try another method.
                 bool flag = true;
                 while ((size > remainOffsetTotal) && flag) {
+                    LOG(INFO, "remainOffsetTotal before =%d", remainOffsetTotal);
                     //1&2 acquire one block, sync to the shared memory and LOG system.
                     filesystem->acquireNewBlock((char *) fileName.data());
                     int64_t afterRemainOffsetTotal = getRemainLength();
                     if (afterRemainOffsetTotal == remainOffsetTotal) {
                         flag = false;
+                        return;
                     }
                     remainOffsetTotal = afterRemainOffsetTotal;
                     LOG(INFO, "remainOffsetTotal=%d", remainOffsetTotal);
                 }
 
-                //write remainOffsetInBlock data to the bucket first;
+                //1. BUG-FIX, IMPORTANT. because, when above code execute, especially the acquireNewBlock method execute,
+                // it will change the ssd bucket's offset.
+                filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
+                //2. write remainOffsetInBlock data to the bucket first;
                 filesystem->writeDataToBucket(buf, remainOffsetInBlock);
                 int64_t haveWriteSize = remainOffsetInBlock;
                 int64_t remainSize = size - haveWriteSize;
@@ -128,12 +139,16 @@ namespace Gopherwood {
             int64_t remainLength = 0;
 
             int i = cursorIndex;
-
+            LOG(INFO, "OutputStreamImpl::getRemainLength. i = %d, status->getBlockIdVector().size=%d", i,
+                status->getBlockIdVector().size());
             remainLength += SIZE_OF_BLOCK - cursorOffset;
             i++;
             for (; i < status->getBlockIdVector().size(); i++) {
                 remainLength += SIZE_OF_BLOCK;
+                LOG(INFO, "OutputStreamImpl::getRemainLength************** come in here");
             }
+
+            LOG(INFO, "OutputStreamImpl::remainLength=%d", remainLength);
             return remainLength;
 
         }
@@ -215,7 +230,12 @@ namespace Gopherwood {
                 this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
             }
             //1. set the last bucket
+            LOG(INFO, "OutputStreamImpl::seekToNextBlock before. cursorBucketID=%d, last bucket id =%d ",
+                cursorBucketID, status->getLastBucket());
             status->setLastBucket(cursorBucketID);
+            LOG(INFO, "OutputStreamImpl::seekToNextBlock after. cursorBucketID=%d, last bucket id = %d", cursorBucketID,
+                status->getLastBucket());
+
             this->cursorOffset = 0;
             //2. seek the offset of the bucket file
             this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
