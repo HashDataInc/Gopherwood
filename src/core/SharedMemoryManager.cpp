@@ -89,7 +89,6 @@ namespace Gopherwood {
             LOG(INFO, "semaphore flag = %c", sempType);
             length = length + 1;
             smBucketStruct *smb;
-            LOG(INFO, "TOTAL_SHARED_MEMORY_LENGTH  = %d", TOTAL_SHARED_MEMORY_LENGTH);
 
             while ((length < TOTAL_SHARED_MEMORY_LENGTH)) {
                 smb = (smBucketStruct *) (mem + length);
@@ -157,6 +156,7 @@ namespace Gopherwood {
 
 
         std::vector<int> SharedMemoryManager::acquireNewBlock(char *fileName) {
+
 //            LOG(INFO, "acquireNewBlock method");
             if (strlen(fileName) > FILENAME_MAX_LENGTH) {
                 LOG(LOG_ERROR, "SharedMemoryManager::acquireNewBlock. fileName name size cannot be larger than %d, ",
@@ -170,6 +170,12 @@ namespace Gopherwood {
             if (checkAndSetSMOne()) {
                 LOG(LOG_ERROR, "SharedMemoryManager::acquireNewBlock. acquireNewBlock failed, shared memory is broken");
             }
+
+
+            //TODO FOT TEST*****************
+            LOG(INFO,"SharedMemoryManager::acquireNewBlock before shared memory status");
+            printSMStatus();
+
 
             std::vector<int> resVector;
 
@@ -188,7 +194,7 @@ namespace Gopherwood {
                     //1.write type
                     smb->type = '1';
 
-                    //3. write size of file name
+                    //3. write the file name
                     string strFileName;
                     strFileName.append(fileName, strlen(fileName));
                     strFileName.append(1, '\0');
@@ -217,6 +223,7 @@ namespace Gopherwood {
                 LOG(LOG_ERROR, "SharedMemoryManager::acquireNewBlock. no enough room for the ssd bucket");
             }
 
+            LOG(INFO,"SharedMemoryManager::acquireNewBlock after shared memory status");
             printSMStatus();
             return resVector;
         }
@@ -295,6 +302,7 @@ namespace Gopherwood {
                     "SharedMemoryManager::inactiveBlock. can not release the semaphore, acquireNewBlock failure");
             }
 
+            LOG(INFO,"SharedMemoryManager::activeBlock after shared memory status");
             printSMStatus();
 
         }

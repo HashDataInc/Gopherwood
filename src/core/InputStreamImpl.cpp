@@ -13,8 +13,10 @@ namespace Gopherwood {
             LOG(INFO, "InputStreamImpl method");
             this->filesystem = fs;
             this->fileName = fileName;
+            LOG(INFO, "InputStreamImpl::InputStreamImpl come in here");
             //1.check the file exist in the fileStatusMap or not
             bool exist = filesystem->checkFileExist((char *) fileName);
+            LOG(INFO, "InputStreamImpl::InputStreamImpl come in here exist=%d", exist);
             if (!exist) {
                 LOG(INFO, "fileStatusMap do not contain the file, so rebuild the fileStatusMap and find again");
                 //1.1. rebuild fileStatusMap from log .
@@ -260,7 +262,7 @@ namespace Gopherwood {
 
             /*********************************DOTO FOR TEST********************/
             for (int j = 0; j < status->getPingIDVector().size(); j++) {
-                LOG(INFO, "InputStreamImpl::checkStatus. status->getPingIDVector()[i]=%d",
+                LOG(INFO, "InputStreamImpl::checkStatus. status->getPingIDVector()[j]=%d",
                     status->getPingIDVector()[j]);
             }
             /*********************************DOTO FOR TEST********************/
