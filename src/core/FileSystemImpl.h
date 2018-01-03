@@ -62,6 +62,12 @@ namespace Gopherwood {
 
             void updatePingBlockIDOrder(char *fileName);
 
+
+            // TODO JUST FOT TEST
+            int64_t readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
+            void writeUtil(string fileName, char *buf, int64_t size);
+            // TODO JUST FOT TEST
+
         private:
 
             int32_t bucketFd = -1;// the bucket file descriptor

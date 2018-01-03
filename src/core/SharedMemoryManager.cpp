@@ -97,8 +97,11 @@ namespace Gopherwood {
                 int blockIndex = smb->blockIndex;
                 char fileName[256];
                 memcpy(fileName, smb->fileName, sizeof(fileName));
-//                LOG(INFO, "type = %c, blockIndex = %d, fileName=%s", type, blockIndex, fileName);
-                LOG(INFO, "type = %c, length = %d", type, length);
+                if(type!='0'){
+                    LOG(INFO, "type = %c, blockIndex = %d, fileName=%s", type, blockIndex, fileName);
+                }else{
+                    LOG(INFO, "type = %c, length = %d", type, length);
+                }
                 length += sizeof(smBucketStruct);
             }
         }
@@ -243,7 +246,7 @@ namespace Gopherwood {
                 char type = smb->type;
                 if (type == '2') {
                     resVector.push_back(i);
-
+                    smb->type = '1';
                     if (resVector.size() >= count) {
                         break;
                     }

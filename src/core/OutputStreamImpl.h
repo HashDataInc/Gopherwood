@@ -77,7 +77,7 @@ namespace Gopherwood {
         private:
 //            void createFile(char *fileName);
 
-            void checkStatus();
+            void checkStatus(int64_t pos);
 
             void seekInternal(int64_t pos);
 
