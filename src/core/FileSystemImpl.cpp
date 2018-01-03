@@ -94,9 +94,11 @@ namespace Gopherwood {
             LOG(INFO, "FileSystemImpl::getOneBlockForWrite, before index  = %d,status->getBlockIdVector().size()=%d",
                 index, status->getBlockIdVector().size());
 
-            if (index >= status->getBlockIdVector().size()) {
+            while (index >= status->getBlockIdVector().size()) {
                 acquireNewBlock((char *) fileName.data());
                 index = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
+                LOG(LOG_ERROR,
+                    "FileSystemImpl::getOneBlockForWrite, ACQUIRE ZERO BLOCKS, SO ACQUIRE AGAIN UNTIL GET ONE");
             }
             LOG(INFO, "FileSystemImpl::getOneBlockForWrite, after index  = %d, status->getBlockIdVector().size()=%d",
                 index, status->getBlockIdVector().size());
@@ -195,7 +197,6 @@ namespace Gopherwood {
                 logFormat->deserializeLog(logRecord, fileStatus);
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
-
 
             std::vector<int32_t> pingBlockVector;
             int quotaCount = 0;
@@ -337,9 +338,16 @@ namespace Gopherwood {
                     int position = distance(previousVector.begin(), itElement);
                     previousVector[position] = -(position + 1);
                 }
+
                 previousVector.push_back(blockIDToCheck);
             }
             status->setBlockIdVector(previousVector);
+
+
+            for (int i = 0; i < previousVector.size(); i++) {
+                LOG(INFO, "FileSystemImpl::checkAndAddBlockID, previousVector block = %d,", previousVector[i]);
+            }
+            LOG(INFO, "********************FileSystemImpl::checkAndAddBlockID check is right***********************");
 
             /******************************TODO FOR PRINT********************/
             LOG(INFO, "FileSystemImpl::checkAndAddBlockID, block vector size = %d,", status->getBlockIdVector().size());
@@ -443,10 +451,17 @@ namespace Gopherwood {
 
 
 
+            //TODO FOR TEST***************
+            LOG(INFO, "FileSystemImpl::acquireNewBlock before 1 file status");
+            sharedMemoryManager->printSMStatus();
+            LOG(INFO, "FileSystemImpl::acquireNewBlock before 2 file status");
+            //TODO FOR TEST***************
+
             //3. check the block vector size is enough or not, if not,see the shared memory's type =2, and acquire more blocks
             if (blockIDVector.size() < QUOTA_SIZE) {
                 int remainNeedBlocks = QUOTA_SIZE - blockIDVector.size();
-                vector<int32_t> remainBlockVector = sharedMemoryManager->getBlocksWhichTypeEqual2(remainNeedBlocks);
+                std::vector<int32_t> remainBlockVector = sharedMemoryManager->getBlocksWhichTypeEqual2(
+                        remainNeedBlocks);
                 int totalSize = remainBlockVector.size() + blockIDVector.size();
 
                 LOG(INFO, "FileSystemImpl::acquireNewBlock, acquire %d blocks which type = '2' ",
@@ -464,7 +479,22 @@ namespace Gopherwood {
                         return;
                     }
                 }
+
+                //TODO FOR TEST***************
+                LOG(INFO, "FileSystemImpl::acquireNewBlock middle 1 file status");
+                sharedMemoryManager->printSMStatus();
+                LOG(INFO, "FileSystemImpl::acquireNewBlock middle 2 file status");
+                //TODO FOR TEST***************
+
                 evictBlock(fileName, remainBlockVector);
+
+
+                //TODO FOR TEST***************
+                LOG(INFO, "FileSystemImpl::acquireNewBlock after 1 file status");
+                sharedMemoryManager->printSMStatus();
+                LOG(INFO, "FileSystemImpl::acquireNewBlock after 2 file status");
+                //TODO FOR TEST***************
+
 
                 blockIDVector.insert(blockIDVector.end(), remainBlockVector.begin(), remainBlockVector.end());
             }
@@ -487,7 +517,6 @@ namespace Gopherwood {
             for (int i = 0; i < blockIDVector.size(); i++) {
                 LOG(INFO, "the acquired id block list index = %d, blockID = %d ", i, blockIDVector[i]);
             }
-
 
         }
 
@@ -745,10 +774,12 @@ namespace Gopherwood {
                 releaseBlock(fileName, emptyBlockVector);
             }
 
+
+
             //3. set the shared memory, inactive the block
-            for (int i = 0; i < status->getBlockIdVector().size(); i++) {
-                if (status->getBlockIdVector()[i] >= 0) {
-                    int blockID = status->getBlockIdVector()[i];
+            for (int i = 0; i < status->getPingIDVector().size(); i++) {
+                if (status->getPingIDVector()[i] >= 0) {
+                    int blockID = status->getPingIDVector()[i];
                     int index = getIndexAccordingBlockID(fileName, blockID);
                     sharedMemoryManager->inactiveBlock(blockID, index);
                 }
@@ -816,7 +847,7 @@ namespace Gopherwood {
                 logFormat->deserializeLog(logRecord, fileStatus);
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
-
+            fileStatus->setFileName(fileName);
 
             LOG(INFO,
                 "*********************** in the end, before the close File Status*********************************");
@@ -829,8 +860,11 @@ namespace Gopherwood {
 
             LOG(INFO,
                 "*********************** in the end, after the close File Status*********************************");
-
             close(logFd);
+
+
+            //read  data from the block id lists without change the cache
+            readTotalDataFromFile(fileStatus);
 
         }
 
@@ -861,6 +895,103 @@ namespace Gopherwood {
 //            LOG(INFO, "FileSystemImpl::writeFileStatusToLog write size = %d", length);
 
         }
+
+
+        //TODO ,JUST FOR TEST
+        int64_t FileSystemImpl::readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus) {
+            int SIZE = 128;
+            char *readBuf = new char[SIZE];
+            int iter = SIZE_OF_BLOCK / SIZE;
+            std::string fileName = fileStatus->getFileName();
+
+            stringstream ss;
+            ss << "/ssdfile/ssdkv/" << fileName << "-readTotalDataFromFile";
+
+            string filePath = ss.str();
+
+            vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
+            LOG(INFO, "1. FileSystemImpl::readTotalDataFromFile. filePath=%s. block vector size = %d", filePath.c_str(),
+                blockIDVector.size());
+
+            for (int i = 0; i < blockIDVector.size(); i++) {
+                int blockID = blockIDVector[i];
+                LOG(INFO, "2. FileSystemImpl::readTotalDataFromFile. blockID=%d, i=%d", blockID, i);
+                if (i == blockIDVector.size() - 1) {
+                    LOG(INFO, "3. FileSystemImpl::readTotalDataFromFile. come in if");
+
+                    int64_t endOfBucketOffset = fileStatus->getEndOffsetOfBucket();
+
+                    if (blockID >= 0) {
+                        fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+                        while (endOfBucketOffset > 0) {
+                            int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
+                            LOG(INFO,
+                                "4. FileSystemImpl::readTotalDataFromFile. come in if. leftData=%d,endOfBucketOffset=%d",
+                                leftData, endOfBucketOffset);
+
+                            int64_t readData = readDataFromBucket(readBuf, leftData);
+                            writeUtil(filePath, readBuf, readData);
+                            readBuf = new char[SIZE];
+                            endOfBucketOffset -= readData;
+                        }
+
+                    } else {
+                        std::string ossFileName = constructFileKey(fileName, -blockID);
+                        LOG(INFO,
+                            "5. FileSystemImpl::readTotalDataFromFile. come in if. ossFileName = %s",
+                            ossFileName.c_str());
+
+                        qsReadWrite->getGetObject((char *) ossFileName.data());
+                        while (endOfBucketOffset > 0) {
+                            int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
+                            LOG(INFO,
+                                "5. FileSystemImpl::readTotalDataFromFile. come in if. leftData=%d,endOfBucketOffset=%d",
+                                leftData, endOfBucketOffset);
+
+                            int64_t readData = qsReadWrite->qsRead((char *) ossFileName.c_str(), readBuf, leftData);
+                            writeUtil(filePath, readBuf, readData);
+                            readBuf = new char[SIZE];
+                            endOfBucketOffset -= readData;
+                        }
+
+                        qsReadWrite->closeGetObject();
+                    }
+
+                } else {
+                    LOG(INFO, "FileSystemImpl::readTotalDataFromFile. come in else");
+                    if (blockID >= 0) {
+                        fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+                        for (int j = 0; j < iter; j++) {
+                            readDataFromBucket(readBuf, SIZE);
+                            LOG(INFO, "7. FileSystemImpl::readTotalDataFromFile. come in if. j=%d, readBuf=%s", j,
+                                readBuf);
+                            writeUtil(filePath, readBuf, SIZE);
+                            readBuf = new char[SIZE];
+                        }
+                    } else {
+                        std::string ossFileName = constructFileKey(fileName, -blockID);
+                        qsReadWrite->getGetObject((char *) ossFileName.data());
+                        for (int j = 0; j < iter; j++) {
+                            LOG(INFO, "8. FileSystemImpl::readTotalDataFromFile. come in if. j=%d, ossFileName=%s", j,
+                                ossFileName.c_str());
+                            qsReadWrite->qsRead((char *) ossFileName.c_str(), readBuf, SIZE);
+                            LOG(INFO, "8. FileSystemImpl::readTotalDataFromFile. readBuf=%s", readBuf);
+                            writeUtil(filePath, readBuf, SIZE);
+                            readBuf = new char[SIZE];
+                        }
+                        qsReadWrite->closeGetObject();
+                    }
+                }
+            }
+        }
+
+        //TODO ,JUST FOR TEST
+        void FileSystemImpl::writeUtil(string fileName, char *buf, int64_t size) {
+            std::ofstream ostrm(fileName, std::ios::out | std::ios::app);
+            LOG(INFO, "FileSystemImpl::writeUtil .fileName=%s,  buf=%s", fileName.c_str(), buf);
+            ostrm.write(buf, size);
+        }
+
 
     }
 

@@ -88,18 +88,14 @@ namespace Gopherwood {
 
                 //TODO, this maybe wrong, because, I don't know when acquire a block, it will sync with the filesystem/FileStatus or not.
                 //TODO, if it does not work, we should check the code and try another method.
-                bool flag = true;
-                while ((size > remainOffsetTotal) && flag) {
-                    LOG(INFO, "remainOffsetTotal before =%d", remainOffsetTotal);
+                while ((size > remainOffsetTotal)) {
+                    LOG(INFO, "OutputStreamImpl::writeInternal. 2. remainOffsetTotal before =%d", remainOffsetTotal);
                     //1&2 acquire one block, sync to the shared memory and LOG system.
                     filesystem->acquireNewBlock((char *) fileName.data());
                     int64_t afterRemainOffsetTotal = getRemainLength();
-                    if (afterRemainOffsetTotal == remainOffsetTotal) {
-                        flag = false;
-                        return;
-                    }
+
                     remainOffsetTotal = afterRemainOffsetTotal;
-                    LOG(INFO, "remainOffsetTotal=%d", remainOffsetTotal);
+                    LOG(INFO, "OutputStreamImpl::writeInternal. 2. remainOffsetTotal after =%d", remainOffsetTotal);
                 }
 
                 //1. BUG-FIX, IMPORTANT. because, when above code execute, especially the acquireNewBlock method execute,
@@ -174,7 +170,7 @@ namespace Gopherwood {
         }
 
         void OutputStreamImpl::seek(int64_t pos) {
-            checkStatus();
+            checkStatus(pos);
             try {
                 seekInternal(pos);
             } catch (...) {
@@ -217,12 +213,87 @@ namespace Gopherwood {
 
         }
 
-        void OutputStreamImpl::checkStatus() {
+        void OutputStreamImpl::checkStatus(int64_t pos) {
             if (status->getBlockIdVector().size() == 0) {
                 LOG(INFO, "checkStatus, the file do not contain any bucket, so create new one for write");
                 filesystem->acquireNewBlock((char *) fileName.data());
             }
+
+
+            LOG(INFO, "OutputStreamImpl::checkStatus pos = %d", pos);
+            if (pos < 0) {
+                LOG(LOG_ERROR, "OutputStreamImpl::checkStatus pos can not be smaller than zero");
+            }
+            //1. check the size of the file
+            int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
+            LOG(INFO, "OutputStreamImpl::checkStatus. theEOFOffset=%d", theEOFOffset);
+
+            if (theEOFOffset == 0) {
+                LOG(INFO, "the file do not contain any one bucket");
+                return;
+            }
+            if (status->getBlockIdVector().size() == 0) {
+                LOG(LOG_ERROR, "OutputStreamImpl::checkStatus. do not contain any file");
+                return;
+            }
+
+            if (pos > theEOFOffset) {
+                //todo, throw error
+                LOG(LOG_ERROR, "error, the given pos exceed the size of the file");
+                return;
+            }
+
+            //2. get the blockID which seeks to
+            int64_t blockIndex = pos / SIZE_OF_BLOCK;
+            int blockID = status->getBlockIdVector()[blockIndex];
+
+            LOG(INFO, "OutputStreamImpl::checkStatus. blockID=%d", blockID);
+
+            //3. check the blockID is PING or not.(its type='1' or not)
+            int index = 0;
+            for (index = 0; index < status->getPingIDVector().size(); index++) {
+                if (status->getPingIDVector()[index] == blockID) {
+                    break;
+                }
+            }
+
+            /*********************************todo FOR TEST********************/
+            for (int j = 0; j < status->getPingIDVector().size(); j++) {
+                LOG(INFO, "OutputStreamImpl::checkStatus. status->getPingIDVector()[i]=%d",
+                    status->getPingIDVector()[j]);
+            }
+            /*********************************DOTO FOR TEST********************/
+
+            //3.1 see the block is in the SSD bucket or in the OSS.
+            if (index >= status->getPingIDVector().size()) {
+                if (blockID >= 0) {
+                    //3.1.1 the block is in the SSD bucket
+                    bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
+                    if (isEqual) {
+                        LOG(INFO, "3.1.1. OutputStreamImpl::checkStatus the block is in the SSD bucket");
+                        vector<int32_t> newPingBlockVector;
+                        newPingBlockVector.push_back(blockID);
+                        filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
+                        for (int i = 0; i < newPingBlockVector.size(); i++) {
+                            filesystem->changePingBlockActive(newPingBlockVector[i]);
+                        }
+                        return;
+                    } else {
+                        //3.1.2 the block is in the OSS
+                        LOG(INFO, "3.1.2. OutputStreamImpl::checkStatus the block is in the OSS");
+                        filesystem->catchUpFileStatusFromLog((char *) fileName.data(), status->getLogOffset());
+                        filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
+                    }
+                } else {
+                    //3.2.the block is in the OSS
+                    filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
+                    LOG(INFO, "3.2. OutputStreamImpl::checkStatus the block is in OSS");
+                }
+            } else {
+                LOG(INFO, "2. OutputStreamImpl::checkStatus see the block is in the SSD bucket ");
+            }
         }
+
 
         void OutputStreamImpl::seekToNextBlock() {
             this->cursorIndex++;
