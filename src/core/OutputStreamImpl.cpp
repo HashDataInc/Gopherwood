@@ -81,6 +81,7 @@ namespace Gopherwood {
             LOG(INFO, "cursorOffset = %d, cursorIndex=%d,cursorBucketID=%d", cursorOffset, cursorIndex, cursorBucketID);
             LOG(INFO, "data write size = %d, remainOffsetInBlock=%d", size, remainOffsetInBlock);
             if (size <= remainOffsetInBlock) {
+                filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                 filesystem->writeDataToBucket(buf, size);
                 cursorOffset += size;
             } else {

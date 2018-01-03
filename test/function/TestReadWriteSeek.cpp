@@ -183,7 +183,6 @@ TEST_F(TestReadWriteSeek, WriteEvictBlock) {
 
 
 
-/**
 TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     char *fileName = "TestReadWriteSeek-ReadEvictBlock";
     int flag = O_RDWR;
@@ -249,34 +248,7 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     //7. read the close file status
 //    filesystem->readCloseFileStatus(fileName);
 }
-**/
 
-
-
-
-
-
-
-TEST_F(TestReadWriteSeek, CloseReadBlock) {
-    char *fileName = "TestReadWriteSeek-ReadEvictBlock";
-    FileSystem *fs = NULL;
-    fs = new FileSystem(fileName);
-    //1. create context,
-    filesystem = fs->impl->filesystem;
-
-    //7. read the close file status
-    filesystem->readCloseFileStatus(fileName);
-
-
-    char * fileName2 = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
-    FileSystem *fs2 = NULL;
-    fs2 = new FileSystem(fileName2);
-    //1. create context,
-    filesystem = fs2->impl->filesystem;
-
-    //7. read the close file status
-    filesystem->readCloseFileStatus(fileName2);
-}
 
 
 
@@ -349,6 +321,94 @@ TEST_F(TestReadWriteSeek, WriteBlockWithEvictOtherFileBlock) {
 //    filesystem->readCloseFileStatus(fileName);
 }
 **/
+
+
+
+/**
+TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
+    char *fileName = "TestReadWriteSeek-ReadEvictBlock";
+    FileSystem *fs = NULL;
+    fs = new FileSystem(fileName);
+    //1. create context,
+    filesystem = fs->impl->filesystem;
+
+    //7. read the close file status
+    filesystem->readCloseFileStatus(fileName);
+
+
+    char *fileName2 = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
+    FileSystem *fs2 = NULL;
+    fs2 = new FileSystem(fileName2);
+    //1. create context,
+    filesystem = fs2->impl->filesystem;
+
+    //7. read the close file status
+    filesystem->readCloseFileStatus(fileName2);
+}
+**/
+
+
+
+
+
+
+/**
+TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
+    int count = 2;
+
+    std::string fileNameArr[count];
+    std::string fileNameForWriteArr[count];
+
+
+    fileNameArr[0] = "TestReadWriteSeek-ReadEvictBlock";
+    fileNameForWriteArr[0] = "/ssdfile/ssdkv/TestReadWriteSeek-ReadEvictBlock-readCache";
+
+
+    fileNameArr[1] = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
+    fileNameForWriteArr[1] = "/ssdfile/ssdkv/TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock-readCache";
+
+
+    for (int i = 0; i < count; i++) {
+        int flag = O_RDWR;
+        int SIZE = 128;
+
+        FileSystem *fs = NULL;
+        fs = new FileSystem((char *) fileNameArr[i].c_str());
+        //1. create context,
+        filesystem = fs->impl->filesystem;
+
+
+        //2. create inputStream
+        InputStreamImpl *tmpinImpl = new InputStreamImpl(filesystem, fileNameArr[i].c_str(), flag);
+        std::shared_ptr<InputStreamInter> tmpinImplPtr(tmpinImpl);
+        isImpl = tmpinImplPtr;
+
+        //3. read data from gopherwood
+        char *readBuf = new char[SIZE];
+        int readLength = isImpl->read(readBuf, SIZE);
+        cout << "**************** before the read data  *******************" << endl;
+
+
+        int totalLength = 0;
+        while (readLength > 0) {
+            //4. write data to file to check
+            totalLength += readLength;
+            writeUtil((char *) fileNameForWriteArr[i].c_str(), readBuf, readLength);
+
+            readBuf = new char[SIZE];
+            readLength = isImpl->read(readBuf, SIZE);
+            cout << "**************** readLength =  *******************" << readLength << endl;
+        }
+        cout << "**************** after the read data *******************" << endl;
+
+
+        filesystem->closeFile((char *)fileNameArr[i].c_str());
+    }
+}
+**/
+
+
+
 
 
 int main(int argc, char **argv) {

@@ -51,7 +51,9 @@ namespace Gopherwood {
             int blockID = getOneBlockForWrite(ossindex, fileName);
             auto &status = fileStatusMap[fileName];
 
-            fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+            int64_t totalOffset = blockID * SIZE_OF_BLOCK;
+
+            fsSeek(totalOffset, SEEK_SET);
 
             LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. blockID=%d,", blockID);
             //2. read data from OSS, and write the data to bucket.
@@ -59,7 +61,11 @@ namespace Gopherwood {
             int64_t readLength = qsReadWrite->qsRead((char *) ossFileName.data(), buf, sizeof(buf));
             while (readLength > 0) {
                 writeDataToBucket(buf, readLength);
+                totalOffset += readLength;
+                fsSeek(totalOffset, SEEK_SET);
+
                 readLength = qsReadWrite->qsRead((char *) ossFileName.data(), buf, sizeof(buf));
+
 //                LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. readLength=%d,", readLength);
             }
 
@@ -206,10 +212,43 @@ namespace Gopherwood {
             if (blockIDSize > 0) {
                 //2. set last bucket
                 int lastBlockID = fileStatus->getBlockIdVector()[blockIDSize - 1];
+
+                //3. check the rebuild file status is right?
+
+                if(lastBlockID>=0){
+                    bool isEqual = checkBlockIDWithFileName(lastBlockID, fileName);
+                    while ((!isEqual)&&(lastBlockID>=0)) {
+                        LOG(INFO,"FileSystemImpl::rebuildFileStatusFromLog NOT EQUAL");
+                        fileStatus.reset(new FileStatus());
+                        char bufLength[4];
+                        int32_t length = read(logFd, bufLength, sizeof(bufLength));
+                        while (length == 4) {
+                            int32_t dataSize = DecodeFixed32(bufLength);
+//                LOG(INFO, "FileSystemImpl::readCloseFileStatus read length = %d, dataSize size =%d", length, dataSize);
+                            std::string logRecord;
+                            char res[dataSize];
+                            read(logFd, res, sizeof(res));
+                            logRecord.append(res, dataSize);
+                            logFormat->deserializeLog(logRecord, fileStatus);
+                            length = read(logFd, bufLength, sizeof(bufLength));
+                        }
+
+                        lastBlockID = fileStatus->getBlockIdVector()[blockIDSize - 1];
+                        if(lastBlockID>=0){
+                            isEqual = checkBlockIDWithFileName(lastBlockID, fileName);
+                        }
+                    }
+                }
+
+                //4. set the last bucket
                 fileStatus->setLastBucket(lastBlockID);
 
-                //3. add the last bucket to ping block if its not in the OSS
-                if (lastBlockID > 0) {
+                //5. add the last bucket to ping block if its not in the OSS
+                if (lastBlockID >= 0) {
+
+                    //5.1 change the shared memory
+                    changePingBlockActive(lastBlockID);
+                    //5.2 add to the ping block vector
                     pingBlockVector.push_back(lastBlockID);
                     quotaCount++;
                 }
@@ -221,7 +260,10 @@ namespace Gopherwood {
             while ((blockIndex < blockIDSize) && (quotaCount < QUOTA_SIZE)) {
                 int tmpBlockID = fileStatus->getBlockIdVector()[blockIndex];
                 int lastBlockID = fileStatus->getLastBucket();
-                if ((tmpBlockID >= 0) && (tmpBlockID != lastBlockID)) {
+                if ((tmpBlockID >= 0) && (tmpBlockID != lastBlockID)&&(checkBlockIDWithFileName(tmpBlockID,fileName))) {
+                    //3.1 change the shared memory
+                    changePingBlockActive(tmpBlockID);
+                    //3.2 add to the ping block vector
                     pingBlockVector.push_back(tmpBlockID);
                     quotaCount++;
                 }
@@ -387,12 +429,13 @@ namespace Gopherwood {
 
 
         void FileSystemImpl::checkAndAddPingBlockID(char *fileName, std::vector<int32_t> blockIDVector) {
-            auto &status = fileStatusMap[fileName];
+
             //1. update the ping vector's order
             updatePingBlockIDOrder(fileName);
 
 
             //2. get the inactive blocks
+            auto &status = fileStatusMap[fileName];
             std::vector<int32_t> previousPingVector = status->getPingIDVector();
             std::vector<int32_t> newPingVector;
             std::vector<int32_t> inactiveBlockVector;
@@ -597,15 +640,19 @@ namespace Gopherwood {
                 //3&4. 3.set the shared memory 2->1;   4. change the file name
                 sharedMemoryManager->evictBlock(tmpBlockID, fileName);
 
-                //5. write data to oss;
+
+                //6. write data to oss;
                 writeDate2OSS((char *) previousFileName.data(), tmpBlockID, index);
 
-                //6. write the previous file log
+
+                //5. write the previous file log
                 LOG(INFO, "FileSystemImpl::evictBlock, before index = %d", index);
                 std::vector<int32_t> previousVector;
                 previousVector.push_back(-index);
                 string previousRes = logFormat->serializeLog(previousVector, LogFormat::RecordType::remoteBlock);
                 writeFileStatusToLog((char *) previousFileName.data(), previousRes);
+
+
             }
 
             //8.  write the new file status to Log.
@@ -632,15 +679,16 @@ namespace Gopherwood {
             LOG(INFO, "FileSystemImpl::writeDate2OSS, index = %d, fileKey = %s, blockID=%d", index, fileKey.data(),
                 blockID);
 
-            fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
 
             char *buffer = (char *) malloc(READ_BUFFER_SIZE * sizeof(char));
             const int iter = (int) (SIZE_OF_BLOCK / READ_BUFFER_SIZE);
 
             int64_t baseOffsetInBucket = blockID * SIZE_OF_BLOCK;
+            fsSeek(baseOffsetInBucket, SEEK_SET);
+
             int j;
             for (j = 0; j < iter; j++) {
-                int32_t readBytes = readDataFromBucket(buffer, READ_BUFFER_SIZE);
+                int64_t readBytes = readDataFromBucket(buffer, READ_BUFFER_SIZE);
                 LOG(INFO, "FileSystemImpl::writeDate2OSS, readBytes = %d", readBytes);
                 if (readBytes <= 0) {
                     break;
@@ -863,7 +911,7 @@ namespace Gopherwood {
             close(logFd);
 
 
-            //read  data from the block id lists without change the cache
+            //read data from the block id lists without change the cache
             readTotalDataFromFile(fileStatus);
 
         }
