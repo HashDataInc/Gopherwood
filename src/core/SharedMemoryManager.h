@@ -99,6 +99,8 @@ namespace Gopherwood {
 
             std::vector<int> getBlocksWhichTypeEqual2(int count);
             void printSMStatus();
+
+            char getBlockType(int blockID);
         private:
             int32_t sharedMemoryFd = -1;// the shared memory file descriptor
             int32_t sharedMemoryID;// the shared memory id, when create a new shared memory, it will return a sharedMemoryID
