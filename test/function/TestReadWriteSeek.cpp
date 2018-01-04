@@ -182,7 +182,6 @@ TEST_F(TestReadWriteSeek, WriteEvictBlock) {
 
 
 
-/**
 TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     char *fileName = "TestReadWriteSeek-ReadEvictBlock";
     int flag = O_RDWR;
@@ -248,7 +247,7 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     //7. read the close file status
 //    filesystem->readCloseFileStatus(fileName);
 }
-**/
+
 
 
 
@@ -324,36 +323,83 @@ TEST_F(TestReadWriteSeek, WriteBlockWithEvictOtherFileBlock) {
 
 
 
+
 /**
-TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
-    char *fileName = "TestReadWriteSeek-ReadEvictBlock";
+TEST_F(TestReadWriteSeek, ThirdThread) {
+    char *fileName = "TestReadWriteSeek-ThirdThread";
+    int flag = O_RDWR;
     FileSystem *fs = NULL;
     fs = new FileSystem(fileName);
     //1. create context,
     filesystem = fs->impl->filesystem;
 
-    //7. read the close file status
-    filesystem->readCloseFileStatus(fileName);
+
+    //3. create output stream
+    OutputStreamImpl *tmpImpl = new OutputStreamImpl(filesystem, fileName, flag);
+    std::shared_ptr<OutputStreamInter> tmposiImpl(tmpImpl);
+    osiImpl = tmposiImpl;
 
 
-    char *fileName2 = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
-    FileSystem *fs2 = NULL;
-    fs2 = new FileSystem(fileName2);
-    //1. create context,
-    filesystem = fs2->impl->filesystem;
+    int SIZE = 128;
 
-    //7. read the close file status
-    filesystem->readCloseFileStatus(fileName2);
+
+    //4. read data from file
+    std::ifstream infile;
+    infile.open("/ssdfile/ssdkv/TestReadWriteSeek-ThirdThread");
+    int totalWriteLength = 0;
+    char *buf = new char[SIZE];
+    infile.read(buf, SIZE);
+    int readLengthIn = infile.gcount();
+    while (readLengthIn > 0) {
+        totalWriteLength += readLengthIn;
+        cout << "totalWriteLength=" << totalWriteLength << ",readLength=" << readLengthIn << endl;
+        cout << "buf=" << buf << endl;
+        //5. write data to the gopherwood
+        osiImpl->write(buf, readLengthIn);
+
+        buf = new char[SIZE];
+        infile.read(buf, SIZE);
+        readLengthIn = infile.gcount();
+    }
+
+
+    //6. close file
+    filesystem->closeFile(fileName);
 }
 **/
 
 
 
+/**
+TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
+
+    int count = 3;
+
+    std::string fileNameArr[count];
+
+    fileNameArr[0] = "TestReadWriteSeek-ReadEvictBlock";
+    fileNameArr[1] = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
+    fileNameArr[2] = "TestReadWriteSeek-ThirdThread";
 
 
+    for (int i = 0; i < count; i++) {
+        char *fileName = (char *) fileNameArr[i].c_str();
+        FileSystem *fs = NULL;
+        fs = new FileSystem(fileName);
+        //1. create context,
+        filesystem = fs->impl->filesystem;
 
+        //7. read the close file status
+        filesystem->readCloseFileStatus(fileName);
+    }
+
+}
+**/
+
+
+/**
 TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
-    int count = 2;
+    int count = 3;
 
     std::string fileNameArr[count];
     std::string fileNameForWriteArr[count];
@@ -365,6 +411,9 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
 
     fileNameArr[1] = "TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock";
     fileNameForWriteArr[1] = "/ssdfile/ssdkv/TestReadWriteSeek-WriteBlockWithEvictOtherFileBlock-readCache";
+
+    fileNameArr[2] = "TestReadWriteSeek-ThirdThread";
+    fileNameForWriteArr[2] = "/ssdfile/ssdkv/TestReadWriteSeek-ThirdThread-readCache";
 
 
     for (int i = 0; i < count; i++) {
@@ -401,12 +450,10 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
         cout << "**************** after the read data *******************" << endl;
 
 
-        filesystem->closeFile((char *)fileNameArr[i].c_str());
+        filesystem->closeFile((char *) fileNameArr[i].c_str());
     }
 }
-
-
-
+**/
 
 
 

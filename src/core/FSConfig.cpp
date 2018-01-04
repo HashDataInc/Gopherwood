@@ -22,7 +22,7 @@ namespace Gopherwood {
 
         char *FILE_LOG_PERSISTENCE_PATH = "/ssdfile/ssdkv/logPersistence/";
         int FILENAME_MAX_LENGTH = 255;
-        int NUMBER_OF_BLOCKS = 6;//char+(char+long+int(size of file name)+char[255])
+        int NUMBER_OF_BLOCKS = 10;//char+(char+long+int(size of file name)+char[255])
         int QUOTA_SIZE = 2;  // (QUOTA_SIZE+1)*2<NUMBER_OF_BLOCKS
 
         int QINGSTOR_BUFFER_SIZE = 4 * 1024 * 1024;

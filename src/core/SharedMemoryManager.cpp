@@ -459,6 +459,36 @@ namespace Gopherwood {
             return true;
         }
 
+        char SharedMemoryManager::getBlockType(int blockID){
+            if (!checkBlockIDIsLegal(blockID)) {
+                return NULL;
+            }
+
+            if (!semaphoreP()) {
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::evictBlock. can not acquire the semaphore, acquireNewBlock failure");
+            }
+            if (checkAndSetSMOne()) {
+                LOG(LOG_ERROR, "SharedMemoryManager::evictBlock. acquireNewBlock failed, shared memory is broken");
+            }
+
+            int length = 1;
+            void *mem = regionPtr->get_address();
+            length = length + sizeof(smBucketStruct) * blockID;
+            smBucketStruct *smb = (smBucketStruct *) (mem + length);
+
+            char type = smb->type;
+
+            checkAndSetSMZero();
+            if (!semaphoreV()) {
+                LOG(LOG_ERROR,
+                    "SharedMemoryManager::evictBlock. can not release the semaphore, acquireNewBlock failure");
+            }
+            return type;
+        }
+
+
+
         // ******************* semaphore **************************
 
         int SharedMemoryManager::checkSemaphore() {

@@ -173,7 +173,20 @@ namespace Gopherwood {
             }
             LOG(INFO, "FileSystemImpl::checkBlockIDWithFileName. fileName != smFileName");
             return false;
+        }
 
+        bool FileSystemImpl::checkBlockIDWithFileNameAndType(int blockID, string fileName) {
+            string smFileName = sharedMemoryManager->getFileNameAccordingBlockID(blockID);
+            char type = sharedMemoryManager->getBlockType(blockID);
+
+            LOG(INFO, "FileSystemImpl::checkBlockIDWithFileNameAndType. smFileName=%s, fileName=%s", smFileName.data(),
+                fileName.data());
+            if ((std::strcmp(fileName.data(), smFileName.data()) == 0) && (type == '2')) {
+                LOG(INFO, "FileSystemImpl::checkBlockIDWithFileNameAndType. fileName == smFileName");
+                return true;
+            }
+            LOG(INFO, "FileSystemImpl::checkBlockIDWithFileNameAndType. fileName != smFileName");
+            return false;
         }
 
 
@@ -203,6 +216,8 @@ namespace Gopherwood {
                 logFormat->deserializeLog(logRecord, fileStatus);
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
+            close(logFd);
+
 
             std::vector<int32_t> pingBlockVector;
             int quotaCount = 0;
@@ -213,12 +228,14 @@ namespace Gopherwood {
                 //2. set last bucket
                 int lastBlockID = fileStatus->getBlockIdVector()[blockIDSize - 1];
 
-                //3. check the rebuild file status is right?
+                //3. BUGFIX, check the rebuild file status is right?. because when other file rebuild from file status,
+                // it will check the status is right or not. maybe the other file have change the its status while have not write log
+                if (lastBlockID >= 0) {
+                    bool isEqual = checkBlockIDWithFileNameAndType(lastBlockID, fileName);
 
-                if(lastBlockID>=0){
-                    bool isEqual = checkBlockIDWithFileName(lastBlockID, fileName);
-                    while ((!isEqual)&&(lastBlockID>=0)) {
-                        LOG(INFO,"FileSystemImpl::rebuildFileStatusFromLog NOT EQUAL");
+                    while ((!isEqual) && (lastBlockID >= 0)) {
+                        LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog NOT EQUAL");
+                        int logFd = open(filePathName, flags, 0644);
                         fileStatus.reset(new FileStatus());
                         char bufLength[4];
                         int32_t length = read(logFd, bufLength, sizeof(bufLength));
@@ -234,11 +251,13 @@ namespace Gopherwood {
                         }
 
                         lastBlockID = fileStatus->getBlockIdVector()[blockIDSize - 1];
-                        if(lastBlockID>=0){
-                            isEqual = checkBlockIDWithFileName(lastBlockID, fileName);
+                        if (lastBlockID >= 0) {
+                            isEqual = checkBlockIDWithFileNameAndType(lastBlockID, fileName);
                         }
+                        close(logFd);
                     }
                 }
+
 
                 //4. set the last bucket
                 fileStatus->setLastBucket(lastBlockID);
@@ -260,7 +279,8 @@ namespace Gopherwood {
             while ((blockIndex < blockIDSize) && (quotaCount < QUOTA_SIZE)) {
                 int tmpBlockID = fileStatus->getBlockIdVector()[blockIndex];
                 int lastBlockID = fileStatus->getLastBucket();
-                if ((tmpBlockID >= 0) && (tmpBlockID != lastBlockID)&&(checkBlockIDWithFileName(tmpBlockID,fileName))) {
+                if ((tmpBlockID >= 0) && (tmpBlockID != lastBlockID) &&
+                    (checkBlockIDWithFileNameAndType(tmpBlockID, fileName))) {
                     //3.1 change the shared memory
                     changePingBlockActive(tmpBlockID);
                     //3.2 add to the ping block vector
@@ -287,7 +307,6 @@ namespace Gopherwood {
 
             LOG(INFO, "****** rebuildFileStatusFromLog in the end, after the close File Status*********");
 
-            close(logFd);
 
         }
 
@@ -812,9 +831,9 @@ namespace Gopherwood {
                 }
             }
 
+            std::vector<int32_t> emptyBlockVector;
             if (i < blockVector.size()) {
                 LOG(INFO, "FileSystemImpl::closeFile come in IF STATEMENT the file");
-                std::vector<int32_t> emptyBlockVector;
                 for (; i < blockVector.size(); i++) {
                     LOG(INFO, "FileSystemImpl::closeFile come in second IF STATEMENT");
                     emptyBlockVector.push_back(blockVector[i]);
@@ -823,11 +842,15 @@ namespace Gopherwood {
             }
 
 
+            //3. BUG FIX. if the ping block have been release, this block should not be inactive
+            std::vector<int32_t> pingBlockIDVector = status->getPingIDVector();
+            std::vector<int32_t> newPingBlockVector = deleteVector(pingBlockIDVector, emptyBlockVector);
 
-            //3. set the shared memory, inactive the block
-            for (int i = 0; i < status->getPingIDVector().size(); i++) {
-                if (status->getPingIDVector()[i] >= 0) {
-                    int blockID = status->getPingIDVector()[i];
+
+            //4. set the shared memory, inactive the block
+            for (int i = 0; i < newPingBlockVector.size(); i++) {
+                if (newPingBlockVector[i] >= 0) {
+                    int blockID = newPingBlockVector[i];
                     int index = getIndexAccordingBlockID(fileName, blockID);
                     sharedMemoryManager->inactiveBlock(blockID, index);
                 }
