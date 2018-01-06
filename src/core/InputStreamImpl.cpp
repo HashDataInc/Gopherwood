@@ -256,7 +256,7 @@ namespace Gopherwood {
             int index = 0;
             for (index = 0; index < status->getPingIDVector().size(); index++) {
                 if (status->getPingIDVector()[index] == blockID) {
-                    break;
+                    return;
                 }
             }
 
@@ -272,19 +272,17 @@ namespace Gopherwood {
                 if (blockID >= 0) {
                     //3.1.1 the block is in the SSD bucket
                     bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
+                    LOG(INFO, "InputStreamImpl::checkStatus isEqual=%d", isEqual);
                     if (isEqual) {
                         LOG(INFO, "3.1.1. InputStreamImpl::checkStatus the block is in the SSD bucket");
                         vector<int32_t> newPingBlockVector;
                         newPingBlockVector.push_back(blockID);
                         filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
-                        for (int i = 0; i < newPingBlockVector.size(); i++) {
-                            filesystem->changePingBlockActive(newPingBlockVector[i]);
-                        }
                         return;
                     } else {
                         //3.1.2 the block is in the OSS
                         LOG(INFO, "3.1.2. InputStreamImpl::checkStatus the block is in the OSS");
-                        filesystem->catchUpFileStatusFromLog((char *) fileName.data(), status->getLogOffset());
+                        filesystem->catchUpFileStatusFromLog((char *) fileName.data());
                         filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
                     }
                 } else {

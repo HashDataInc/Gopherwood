@@ -81,7 +81,7 @@ namespace Gopherwood {
              */
             virtual void rebuildFileStatusFromLog(char *fileName)=0;
 
-            virtual void catchUpFileStatusFromLog(char *fileName, int64_t logOffset)=0;
+            virtual void catchUpFileStatusFromLog(char *fileName)=0;
 
             virtual bool checkFileExist(char *fileName)=0;
 
@@ -109,7 +109,7 @@ namespace Gopherwood {
 
             virtual void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
 
-            virtual void evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
+            virtual std::vector<int> evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
 
             virtual int getIndexAccordingBlockID(char *fileName, int blockID)=0;
 

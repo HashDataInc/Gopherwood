@@ -182,7 +182,6 @@ TEST_F(TestReadWriteSeek, WriteEvictBlock) {
 
 
 
-
 /**
 TEST_F(TestReadWriteSeek, ReadEvictBlock) {
     char *fileName = "TestReadWriteSeek-ReadEvictBlock";
@@ -250,8 +249,6 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
 //    filesystem->readCloseFileStatus(fileName);
 }
 **/
-
-
 
 
 
@@ -326,8 +323,6 @@ TEST_F(TestReadWriteSeek, WriteBlockWithEvictOtherFileBlock) {
 
 
 
-
-/**
 TEST_F(TestReadWriteSeek, ThirdThread) {
     char *fileName = "TestReadWriteSeek-ThirdThread";
     int flag = O_RDWR;
@@ -369,14 +364,15 @@ TEST_F(TestReadWriteSeek, ThirdThread) {
     //6. close file
     filesystem->closeFile(fileName);
 }
- **/
+
+
+
 
 
 
 
 
 TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
-
     int count = 3;
 
     std::string fileNameArr[count];
@@ -401,7 +397,7 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
 
 
 
-/**
+
 TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
     int count = 3;
 
@@ -457,7 +453,8 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
         filesystem->closeFile((char *) fileNameArr[i].c_str());
     }
 }
-**/
+
+
 
 
 
