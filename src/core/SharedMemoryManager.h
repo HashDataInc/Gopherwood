@@ -44,10 +44,10 @@ namespace Gopherwood {
 
             struct smBucketStruct {
                 char type;
+                char isKick;
                 int32_t blockIndex;
                 char fileName[256];
             };
-
 
             SharedMemoryManager();
 
@@ -98,9 +98,21 @@ namespace Gopherwood {
             int getBlockIDIndex(int blockID);
 
             std::vector<int> getBlocksWhichTypeEqual2(int count);
+
             void printSMStatus();
 
             char getBlockType(int blockID);
+
+            bool checkFileNameAndType(int blockID, string fileName);
+
+            bool checkFileNameAndTypeAndSetKick(int blockID, string fileName);
+
+            bool isKickType(int blockID);
+
+            void getLock();
+
+            void releaseLock();
+
         private:
             int32_t sharedMemoryFd = -1;// the shared memory file descriptor
             int32_t sharedMemoryID;// the shared memory id, when create a new shared memory, it will return a sharedMemoryID
@@ -141,8 +153,6 @@ namespace Gopherwood {
             char *generateStr(int length);
 
             bool checkBlockIDIsLegal(int blockID);
-
-
 
 
         };

@@ -52,10 +52,9 @@ namespace Gopherwood {
 
             void rebuildFileStatusFromLog(char *fileName);
 
-            void catchUpFileStatusFromLog(char *fileName, int64_t logOffset);
+            void catchUpFileStatusFromLog(char *fileName);
 
             bool checkBlockIDWithFileName(int blockID, string fileName);
-            bool checkBlockIDWithFileNameAndType(int blockID, string fileName);
             void writeDataFromOSS2Bucket(int64_t ossindex, string fileName);
 
             int getOneBlockForWrite(int ossindex, string fileName);
@@ -92,7 +91,7 @@ namespace Gopherwood {
 
             void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-            void evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
+            std::vector<int> evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
 
             int64_t getTheEOFOffset(const char *fileName);

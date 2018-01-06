@@ -164,29 +164,8 @@ namespace Gopherwood {
          * check whether the blockID belongs to the file or not,
          */
         bool FileSystemImpl::checkBlockIDWithFileName(int blockID, string fileName) {
-            string smFileName = sharedMemoryManager->getFileNameAccordingBlockID(blockID);
-            LOG(INFO, "FileSystemImpl::checkBlockIDWithFileName. smFileName=%s, fileName=%s", smFileName.data(),
-                fileName.data());
-            if (std::strcmp(fileName.data(), smFileName.data()) == 0) {
-                LOG(INFO, "FileSystemImpl::checkBlockIDWithFileName. fileName == smFileName");
-                return true;
-            }
-            LOG(INFO, "FileSystemImpl::checkBlockIDWithFileName. fileName != smFileName");
-            return false;
-        }
-
-        bool FileSystemImpl::checkBlockIDWithFileNameAndType(int blockID, string fileName) {
-            string smFileName = sharedMemoryManager->getFileNameAccordingBlockID(blockID);
-            char type = sharedMemoryManager->getBlockType(blockID);
-
-            LOG(INFO, "FileSystemImpl::checkBlockIDWithFileNameAndType. smFileName=%s, fileName=%s", smFileName.data(),
-                fileName.data());
-            if ((std::strcmp(fileName.data(), smFileName.data()) == 0) && (type == '2')) {
-                LOG(INFO, "FileSystemImpl::checkBlockIDWithFileNameAndType. fileName == smFileName");
-                return true;
-            }
-            LOG(INFO, "FileSystemImpl::checkBlockIDWithFileNameAndType. fileName != smFileName");
-            return false;
+            bool isNotKicked = sharedMemoryManager->checkFileNameAndTypeAndSetKick(blockID, fileName);
+            return isNotKicked;
         }
 
 
@@ -228,45 +207,16 @@ namespace Gopherwood {
                 //2. set last bucket
                 int lastBlockID = fileStatus->getBlockIdVector()[blockIDSize - 1];
 
-                //3. BUGFIX, check the rebuild file status is right?. because when other file rebuild from file status,
-                // it will check the status is right or not. maybe the other file have change the its status while have not write log
-                if (lastBlockID >= 0) {
-                    bool isEqual = checkBlockIDWithFileNameAndType(lastBlockID, fileName);
-
-                    while ((!isEqual) && (lastBlockID >= 0)) {
-                        LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog NOT EQUAL");
-                        int logFd = open(filePathName, flags, 0644);
-                        fileStatus.reset(new FileStatus());
-                        char bufLength[4];
-                        int32_t length = read(logFd, bufLength, sizeof(bufLength));
-                        while (length == 4) {
-                            int32_t dataSize = DecodeFixed32(bufLength);
-//                LOG(INFO, "FileSystemImpl::readCloseFileStatus read length = %d, dataSize size =%d", length, dataSize);
-                            std::string logRecord;
-                            char res[dataSize];
-                            read(logFd, res, sizeof(res));
-                            logRecord.append(res, dataSize);
-                            logFormat->deserializeLog(logRecord, fileStatus);
-                            length = read(logFd, bufLength, sizeof(bufLength));
-                        }
-
-                        lastBlockID = fileStatus->getBlockIdVector()[blockIDSize - 1];
-                        if (lastBlockID >= 0) {
-                            isEqual = checkBlockIDWithFileNameAndType(lastBlockID, fileName);
-                        }
-                        close(logFd);
-                    }
-                }
-
-
                 //4. set the last bucket
                 fileStatus->setLastBucket(lastBlockID);
 
                 //5. add the last bucket to ping block if its not in the OSS
-                if (lastBlockID >= 0) {
+                if (lastBlockID >= 0 && sharedMemoryManager->checkFileNameAndTypeAndSetKick(lastBlockID, fileName)) {
 
-                    //5.1 change the shared memory
-                    changePingBlockActive(lastBlockID);
+                    LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog. lastBlockID >= 0 and return true ");
+                    //5.1 change the shared memory .NO NEED, BECAUSE checkFileNameAndTypeAndSetKick(), have been done
+
+
                     //5.2 add to the ping block vector
                     pingBlockVector.push_back(lastBlockID);
                     quotaCount++;
@@ -280,9 +230,11 @@ namespace Gopherwood {
                 int tmpBlockID = fileStatus->getBlockIdVector()[blockIndex];
                 int lastBlockID = fileStatus->getLastBucket();
                 if ((tmpBlockID >= 0) && (tmpBlockID != lastBlockID) &&
-                    (checkBlockIDWithFileNameAndType(tmpBlockID, fileName))) {
-                    //3.1 change the shared memory
-                    changePingBlockActive(tmpBlockID);
+                    (sharedMemoryManager->checkFileNameAndTypeAndSetKick(tmpBlockID, fileName))) {
+                    //3.1 change the shared memory, NO NEED, BECAUSE checkFileNameAndTypeAndSetKick(), have been done
+
+                    LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog. tmpBlockID >= 0 and return true ");
+
                     //3.2 add to the ping block vector
                     pingBlockVector.push_back(tmpBlockID);
                     quotaCount++;
@@ -291,11 +243,6 @@ namespace Gopherwood {
             }
             fileStatus->setPingIDVector(pingBlockVector);
 
-            //4. change the shared memory
-            for (int i = 0; i < pingBlockVector.size(); i++) {
-                int pingID = pingBlockVector[i];
-                changePingBlockActive(pingID);
-            }
 
             LOG(INFO, "******* rebuildFileStatusFromLog in the end, before the close File Status***********");
             int64_t endOffsetOfBucket = fileStatus->getEndOffsetOfBucket();
@@ -306,12 +253,10 @@ namespace Gopherwood {
             }
 
             LOG(INFO, "****** rebuildFileStatusFromLog in the end, after the close File Status*********");
-
-
         }
 
         //TODO
-        void FileSystemImpl::catchUpFileStatusFromLog(char *fileName, int64_t logOffset) {
+        void FileSystemImpl::catchUpFileStatusFromLog(char *fileName) {
 
             //1. open file
             int flags = O_CREAT | O_RDWR;
@@ -548,7 +493,7 @@ namespace Gopherwood {
                 LOG(INFO, "FileSystemImpl::acquireNewBlock middle 2 file status");
                 //TODO FOR TEST***************
 
-                evictBlock(fileName, remainBlockVector);
+                std::vector<int> noEvictBlockVector = evictBlock(fileName, remainBlockVector);
 
 
                 //TODO FOR TEST***************
@@ -558,7 +503,9 @@ namespace Gopherwood {
                 //TODO FOR TEST***************
 
 
-                blockIDVector.insert(blockIDVector.end(), remainBlockVector.begin(), remainBlockVector.end());
+                std::vector<int> newRemainBlockVector = deleteVector(remainBlockVector, noEvictBlockVector);
+
+                blockIDVector.insert(blockIDVector.end(), newRemainBlockVector.begin(), newRemainBlockVector.end());
             }
 
 
@@ -645,7 +592,10 @@ namespace Gopherwood {
 
         }
 
-        void FileSystemImpl::evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector) {
+        std::vector<int> FileSystemImpl::evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector) {
+
+            std::vector<int> noEvictBlockVector;
+
             for (int i = 0; i < blockIdVector.size(); i++) {
                 //1. get the previous fileName of the block id
                 int tmpBlockID = blockIdVector[i];
@@ -656,28 +606,55 @@ namespace Gopherwood {
                 int index = sharedMemoryManager->getBlockIDIndex(tmpBlockID);
                 index = index + 1;
 
-                //3&4. 3.set the shared memory 2->1;   4. change the file name
-                sharedMemoryManager->evictBlock(tmpBlockID, fileName);
+                //3. write data to oss;
+                writeDate2OSS((char *) previousFileName.c_str(), tmpBlockID, index);
 
 
-                //6. write data to oss;
-                writeDate2OSS((char *) previousFileName.data(), tmpBlockID, index);
+
+                //4. BEGIN A TRANSACTION
+                //4.1 get lock
+                sharedMemoryManager->getLock();
+
+                //4.2 check the block type is right
+                bool isKick = sharedMemoryManager->isKickType(tmpBlockID);
+
+                LOG(INFO, "FileSystemImpl::evictBlock. isKick = %d", isKick);
+
+                if (!isKick) {
+                    LOG(INFO, "FileSystemImpl::evictBlock, is not Kickm, so cancel what have done before");
+                    //4.2.1 END OF THE TRANSACTION
+                    sharedMemoryManager->releaseLock();
+                    //4.2.2 return to the original condition
+                    noEvictBlockVector.push_back(tmpBlockID);
+
+                    //4.2.3. delete the oss
+                    string fileKey;
+                    fileKey = constructFileKey(previousFileName, index);
+                    qsReadWrite->qsDeleteObject(fileKey.c_str());
+                } else {
+                    //4.3.1 . write the previous file log
+                    LOG(INFO, "FileSystemImpl::evictBlock, before index = %d, do really job", index);
+                    std::vector<int32_t> previousVector;
+                    previousVector.push_back(-index);
+                    string previousRes = logFormat->serializeLog(previousVector, LogFormat::RecordType::remoteBlock);
+                    writeFileStatusToLog((char *) previousFileName.c_str(), previousRes);
+
+                    //4.3.2.set the shared memory 2->1;   4. change the file name
+                    sharedMemoryManager->evictBlock(tmpBlockID, fileName);
+
+                    //4.3.3  write the new file status to Log.
+                    std::vector<int32_t> newVector;
+                    newVector.push_back(tmpBlockID);
+                    string res = logFormat->serializeLog(newVector, LogFormat::RecordType::evictBlock);
+                    writeFileStatusToLog(fileName, res);
 
 
-                //5. write the previous file log
-                LOG(INFO, "FileSystemImpl::evictBlock, before index = %d", index);
-                std::vector<int32_t> previousVector;
-                previousVector.push_back(-index);
-                string previousRes = logFormat->serializeLog(previousVector, LogFormat::RecordType::remoteBlock);
-                writeFileStatusToLog((char *) previousFileName.data(), previousRes);
-
+                    //4.3.4  END OF THE TRANSACTION
+                    sharedMemoryManager->releaseLock();
+                }
 
             }
-
-            //8.  write the new file status to Log.
-            string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::evictBlock);
-            writeFileStatusToLog(fileName, res);
-
+            return noEvictBlockVector;
         }
 
 
