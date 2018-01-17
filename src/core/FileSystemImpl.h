@@ -55,6 +55,7 @@ namespace Gopherwood {
             void catchUpFileStatusFromLog(char *fileName);
 
             bool checkBlockIDWithFileName(int blockID, string fileName);
+
             void writeDataFromOSS2Bucket(int64_t ossindex, string fileName);
 
             int getOneBlockForWrite(int ossindex, string fileName);
@@ -63,8 +64,20 @@ namespace Gopherwood {
 
 
             // TODO JUST FOT TEST
-            int64_t readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
-            void writeUtil(string fileName, char *buf, int64_t size);
+            void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
+
+            void readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus);
+
+            void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,std::shared_ptr<FileStatus> fileStatus);
+
+            void writeCharStrUtil(string fileName, char *buf, int64_t size);
+
+            void writeIntArrayUtil(string fileName, vector<int32_t> randomVector);
+
+            void
+            readDataFromFileAccordingToBlockID(int blockID, std::shared_ptr<FileStatus> fileStatus, string suffixName);
+
+            int getRandomIntValue(int start, int end);
             // TODO JUST FOT TEST
 
         private:

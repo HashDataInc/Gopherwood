@@ -121,6 +121,25 @@ namespace Gopherwood {
 
             virtual void changePingBlockActive(int blockID)=0;
 
+            // TODO JUST FOT TEST
+            virtual void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus) = 0;
+
+            virtual void readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus) = 0;
+
+            virtual void readTotalRandomDataFromVerifyFile(vector <int32_t> randomIndexVector,
+                                                           std::shared_ptr<FileStatus> fileStatus) = 0;
+
+            virtual void writeCharStrUtil(string fileName, char *buf, int64_t size) = 0;
+
+            virtual void writeIntArrayUtil(string fileName, vector <int32_t> randomVector) = 0;
+
+            virtual void
+            readDataFromFileAccordingToBlockID(int blockID, std::shared_ptr<FileStatus> fileStatus,
+                                               string suffixName) = 0;
+
+            virtual int getRandomIntValue(int start, int end) = 0;
+            // TODO JUST FOT TEST
+
         };
 
     }

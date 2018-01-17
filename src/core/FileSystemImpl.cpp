@@ -244,6 +244,9 @@ namespace Gopherwood {
             fileStatus->setPingIDVector(pingBlockVector);
 
 
+            //4. set the fileName
+            fileStatus->setFileName(fileName);
+
             LOG(INFO, "******* rebuildFileStatusFromLog in the end, before the close File Status***********");
             int64_t endOffsetOfBucket = fileStatus->getEndOffsetOfBucket();
             vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
@@ -912,7 +915,11 @@ namespace Gopherwood {
 
 
             //read data from the block id lists without change the cache
-            readTotalDataFromFile(fileStatus);
+//            readTotalDataFromFile(fileStatus);
+
+
+            //read random data from file without change the cache.
+            readTotalRandomDataFromFile(fileStatus);
 
         }
 
@@ -946,98 +953,225 @@ namespace Gopherwood {
 
 
         //TODO ,JUST FOR TEST
-        int64_t FileSystemImpl::readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus) {
+        void FileSystemImpl::readDataFromFileAccordingToBlockID(int blockID, std::shared_ptr<FileStatus> fileStatus,
+                                                                string suffixName) {
             int SIZE = 128;
             char *readBuf = new char[SIZE];
             int iter = SIZE_OF_BLOCK / SIZE;
             std::string fileName = fileStatus->getFileName();
 
             stringstream ss;
-            ss << "/ssdfile/ssdkv/" << fileName << "-readTotalDataFromFile";
-
+            ss << "/ssdfile/ssdkv/" << fileName << "-" << suffixName;
             string filePath = ss.str();
 
             vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
-            LOG(INFO, "1. FileSystemImpl::readTotalDataFromFile. filePath=%s. block vector size = %d", filePath.c_str(),
+            LOG(INFO, "1. FileSystemImpl::readDataFromFileAccordingToBlockID. filePath=%s. block vector size = %d",
+                filePath.c_str(),
                 blockIDVector.size());
 
-            for (int i = 0; i < blockIDVector.size(); i++) {
-                int blockID = blockIDVector[i];
-                LOG(INFO, "2. FileSystemImpl::readTotalDataFromFile. blockID=%d, i=%d", blockID, i);
-                if (i == blockIDVector.size() - 1) {
-                    LOG(INFO, "3. FileSystemImpl::readTotalDataFromFile. come in if");
+            if (blockID == fileStatus->getLastBucket()) {
+                LOG(INFO, "3. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if");
 
-                    int64_t endOfBucketOffset = fileStatus->getEndOffsetOfBucket();
+                int64_t endOfBucketOffset = fileStatus->getEndOffsetOfBucket();
 
-                    if (blockID >= 0) {
-                        fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
-                        while (endOfBucketOffset > 0) {
-                            int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
-                            LOG(INFO,
-                                "4. FileSystemImpl::readTotalDataFromFile. come in if. leftData=%d,endOfBucketOffset=%d",
-                                leftData, endOfBucketOffset);
-
-                            int64_t readData = readDataFromBucket(readBuf, leftData);
-                            writeUtil(filePath, readBuf, readData);
-                            readBuf = new char[SIZE];
-                            endOfBucketOffset -= readData;
-                        }
-
-                    } else {
-                        std::string ossFileName = constructFileKey(fileName, -blockID);
+                if (blockID >= 0) {
+                    fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+                    while (endOfBucketOffset > 0) {
+                        int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
                         LOG(INFO,
-                            "5. FileSystemImpl::readTotalDataFromFile. come in if. ossFileName = %s",
-                            ossFileName.c_str());
+                            "4. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. leftData=%d,endOfBucketOffset=%d",
+                            leftData, endOfBucketOffset);
 
-                        qsReadWrite->getGetObject((char *) ossFileName.data());
-                        while (endOfBucketOffset > 0) {
-                            int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
-                            LOG(INFO,
-                                "5. FileSystemImpl::readTotalDataFromFile. come in if. leftData=%d,endOfBucketOffset=%d",
-                                leftData, endOfBucketOffset);
-
-                            int64_t readData = qsReadWrite->qsRead((char *) ossFileName.c_str(), readBuf, leftData);
-                            writeUtil(filePath, readBuf, readData);
-                            readBuf = new char[SIZE];
-                            endOfBucketOffset -= readData;
-                        }
-
-                        qsReadWrite->closeGetObject();
+                        int64_t readData = readDataFromBucket(readBuf, leftData);
+                        writeCharStrUtil(filePath, readBuf, readData);
+                        readBuf = new char[SIZE];
+                        endOfBucketOffset -= readData;
                     }
 
                 } else {
-                    LOG(INFO, "FileSystemImpl::readTotalDataFromFile. come in else");
-                    if (blockID >= 0) {
-                        fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
-                        for (int j = 0; j < iter; j++) {
-                            readDataFromBucket(readBuf, SIZE);
-                            LOG(INFO, "7. FileSystemImpl::readTotalDataFromFile. come in if. j=%d, readBuf=%s", j,
-                                readBuf);
-                            writeUtil(filePath, readBuf, SIZE);
-                            readBuf = new char[SIZE];
-                        }
-                    } else {
-                        std::string ossFileName = constructFileKey(fileName, -blockID);
-                        qsReadWrite->getGetObject((char *) ossFileName.data());
-                        for (int j = 0; j < iter; j++) {
-                            LOG(INFO, "8. FileSystemImpl::readTotalDataFromFile. come in if. j=%d, ossFileName=%s", j,
-                                ossFileName.c_str());
-                            qsReadWrite->qsRead((char *) ossFileName.c_str(), readBuf, SIZE);
-                            LOG(INFO, "8. FileSystemImpl::readTotalDataFromFile. readBuf=%s", readBuf);
-                            writeUtil(filePath, readBuf, SIZE);
-                            readBuf = new char[SIZE];
-                        }
-                        qsReadWrite->closeGetObject();
+                    std::string ossFileName = constructFileKey(fileName, -blockID);
+                    LOG(INFO,
+                        "5. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. ossFileName = %s",
+                        ossFileName.c_str());
+
+                    qsReadWrite->getGetObject((char *) ossFileName.data());
+                    while (endOfBucketOffset > 0) {
+                        int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
+                        LOG(INFO,
+                            "5. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. leftData=%d,endOfBucketOffset=%d",
+                            leftData, endOfBucketOffset);
+
+                        int64_t readData = qsReadWrite->qsRead((char *) ossFileName.c_str(), readBuf, leftData);
+                        writeCharStrUtil(filePath, readBuf, readData);
+                        readBuf = new char[SIZE];
+                        endOfBucketOffset -= readData;
+                    }
+
+                    qsReadWrite->closeGetObject();
+                }
+
+            } else {
+                LOG(INFO, "FileSystemImpl::readDataFromFileAccordingToBlockID. come in else");
+                if (blockID >= 0) {
+                    fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+                    for (int j = 0; j < iter; j++) {
+                        readDataFromBucket(readBuf, SIZE);
+                        LOG(INFO, "7. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. j=%d, readBuf=%s",
+                            j,
+                            readBuf);
+                        writeCharStrUtil(filePath, readBuf, SIZE);
+                        readBuf = new char[SIZE];
+                    }
+                } else {
+                    std::string ossFileName = constructFileKey(fileName, -blockID);
+                    qsReadWrite->getGetObject((char *) ossFileName.data());
+                    for (int j = 0; j < iter; j++) {
+                        LOG(INFO,
+                            "8. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. j=%d, ossFileName=%s",
+                            j,
+                            ossFileName.c_str());
+                        qsReadWrite->qsRead((char *) ossFileName.c_str(), readBuf, SIZE);
+                        LOG(INFO, "8. FileSystemImpl::readDataFromFileAccordingToBlockID. readBuf=%s", readBuf);
+                        writeCharStrUtil(filePath, readBuf, SIZE);
+                        readBuf = new char[SIZE];
+                    }
+                    qsReadWrite->closeGetObject();
+                }
+            }
+        }
+
+
+        //TODO ,JUST FOR TEST
+        void FileSystemImpl::readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus) {
+            vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
+            string suffixName = "readTotalDataFromFile";
+            for (int i = 0; i < blockIDVector.size(); i++) {
+                int blockID = blockIDVector[i];
+                readDataFromFileAccordingToBlockID(blockID, fileStatus, suffixName);
+            }
+        }
+
+        //TODO ,JUST FOR TEST
+        void FileSystemImpl::readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus) {
+            vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
+            string suffixName = "readTotalRandomData";
+            int start = 0;
+            int end = blockIDVector.size() - 1;
+
+
+            //1. read data and write the result to file
+            vector<int32_t> randomBlockIDVector;
+            vector<int32_t> randomIndexVector;
+            for (int i = 0; i < blockIDVector.size(); i++) {
+                int randomIndex = getRandomIntValue(start, end);
+                randomIndexVector.push_back(randomIndex);
+                int randomBlockID = blockIDVector[randomIndex];
+                randomBlockIDVector.push_back(randomBlockID);
+                readDataFromFileAccordingToBlockID(randomBlockID, fileStatus, suffixName);
+            }
+
+            //2. write the random blockID vector to file to check the read is right or not
+            stringstream ss;
+            ss << "/ssdfile/ssdkv/" << fileStatus->getFileName() << "-randomBlockID";
+            string filePath = ss.str();
+
+            writeIntArrayUtil(filePath, randomBlockIDVector);
+
+
+            //2. write the random index vector to file to check the read is right or not
+            stringstream ss2;
+            ss2 << "/ssdfile/ssdkv/" << fileStatus->getFileName() << "-randomIndex";
+            string filePathForIndex = ss2.str();
+
+            writeIntArrayUtil(filePathForIndex, randomIndexVector);
+
+            //3. read the verify file status to check the random read is right or not?
+            readTotalRandomDataFromVerifyFile(randomIndexVector, fileStatus);
+        }
+
+        //TODO ,JUST FOR TEST
+        void FileSystemImpl::readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,
+                                                               std::shared_ptr<FileStatus> fileStatus) {
+            stringstream ss;
+            ss << "/ssdfile/ssdkv/" << fileStatus->getFileName() << "-readTotalDataFromFile";
+            string fileTobeRead = ss.str();
+
+            LOG(INFO, "FileSystemImpl::readTotalRandomDataFromVerifyFile fileTobeRead=%s", fileTobeRead.c_str());
+
+            stringstream ss2;
+            ss2 << "/ssdfile/ssdkv/" << fileStatus->getFileName() << "-readTotalRandomDataFromVerifyFile";
+            string fileTobeWrite = ss2.str();
+
+            LOG(INFO, "FileSystemImpl::readTotalRandomDataFromVerifyFile fileTobeWrite=%s", fileTobeWrite.c_str());
+
+            //read data from the verify file
+            int flags = O_CREAT | O_RDWR;
+            int verifyFd = open(fileTobeRead.c_str(), flags, 0644);
+            int SIZE = 128;
+            char *readBuf = new char[SIZE];
+            int iter = SIZE_OF_BLOCK / SIZE;
+
+            for (int i = 0; i < randomIndexVector.size(); i++) {
+                int64_t offset = randomIndexVector[i] * 1024;
+                int blockID = fileStatus->getBlockIdVector()[i];
+                if (blockID == fileStatus->getLastBucket()) {
+                    int64_t res = lseek(verifyFd, offset, SEEK_SET);
+                    int64_t endOfBucketOffset = fileStatus->getEndOffsetOfBucket();
+                    while (endOfBucketOffset > 0) {
+                        int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
+                        LOG(INFO,
+                            "4. FileSystemImpl::readTotalRandomDataFromVerifyFile. come in if. leftData=%d,endOfBucketOffset=%d",
+                            leftData, endOfBucketOffset);
+
+                        int64_t readData = read(verifyFd, readBuf, SIZE);
+                        writeCharStrUtil(fileTobeWrite, readBuf, readData);
+                        readBuf = new char[SIZE];
+                        endOfBucketOffset -= readData;
+                    }
+                } else {
+                    int64_t res = lseek(verifyFd, offset, SEEK_SET);
+                    for (int j = 0; j < iter; j++) {
+                        int64_t readData = read(verifyFd, readBuf, SIZE);
+                        LOG(INFO, "7. FileSystemImpl::readTotalRandomDataFromVerifyFile. come in if. j=%d, readBuf=%s",
+                            j,
+                            readBuf);
+                        writeCharStrUtil(fileTobeWrite, readBuf, readData);
+                        readBuf = new char[SIZE];
                     }
                 }
             }
         }
 
+
+        /**
+         *
+         * @param start
+         * @param end
+         * @return the int value between [start,end]
+         */
+        int FileSystemImpl::getRandomIntValue(int start, int end) {
+            int val = (rand() % (end - start + 1)) + start;
+            return val;
+        }
+
+
         //TODO ,JUST FOR TEST
-        void FileSystemImpl::writeUtil(string fileName, char *buf, int64_t size) {
+        void FileSystemImpl::writeCharStrUtil(string fileName, char *buf, int64_t size) {
             std::ofstream ostrm(fileName, std::ios::out | std::ios::app);
-            LOG(INFO, "FileSystemImpl::writeUtil .fileName=%s,  buf=%s", fileName.c_str(), buf);
+            LOG(INFO, "FileSystemImpl::writeCharStrUtil .fileName=%s,  buf=%s", fileName.c_str(), buf);
             ostrm.write(buf, size);
+        }
+
+        //TODO ,JUST FOR TEST
+        void FileSystemImpl::writeIntArrayUtil(string fileName, vector<int32_t> randomVector) {
+            std::ofstream ostrm(fileName, std::ios::out | std::ios::app);
+            LOG(INFO, "FileSystemImpl::writeIntArrayUtil .fileName=%s", fileName.c_str());
+            for (int i = 0; i < randomVector.size(); i++) {
+                ostrm << randomVector[i];
+                if (i != randomVector.size() - 1) {
+                    ostrm << ",";
+                }
+            }
         }
 
 
