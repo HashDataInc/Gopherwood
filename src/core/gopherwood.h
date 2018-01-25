@@ -14,17 +14,17 @@
 //#include "XmlConfig.h"
 //#include "fcntl.h"
 
-//#ifndef O_RDONLY
-//#define O_RDONLY 1
-//#endif
-//
-//#ifndef O_WRONLY
-//#define O_WRONLY 2
-//#endif
-//
-//#ifndef EINTERNAL
-//#define EINTERNAL 255
-//#endif
+//the access file's type
+typedef enum AccessFileType {
+
+    sequenceType = 0,
+
+    randomType = 1,
+
+    hintRandomType = 2,
+
+    hintSequenceType = 3,
+};
 
 /** All APIs set errno to meaningful values */
 

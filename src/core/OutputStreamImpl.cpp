@@ -251,47 +251,40 @@ namespace Gopherwood {
             LOG(INFO, "OutputStreamImpl::checkStatus. blockID=%d", blockID);
 
             //3. check the blockID is PING or not.(its type='1' or not)
-            int index = 0;
-            for (index = 0; index < status->getPingIDVector().size(); index++) {
-                if (status->getPingIDVector()[index] == blockID) {
-                    return;
-                }
+            if (status->getLruCache()->get(blockID)) {
+                return;
             }
 
             /*********************************todo FOR TEST********************/
-            for (int j = 0; j < status->getPingIDVector().size(); j++) {
-                LOG(INFO, "OutputStreamImpl::checkStatus. status->getPingIDVector()[i]=%d",
-                    status->getPingIDVector()[j]);
-            }
+            LOG(INFO, "OutputStreamImpl::checkStatus. start of the status print lru cache");
+            status->getLruCache()->printLruCache();
+            LOG(INFO, "OutputStreamImpl::checkStatus. end of the status print lru cache");
             /*********************************DOTO FOR TEST********************/
 
             //3.1 see the block is in the SSD bucket or in the OSS.
-            if (index >= status->getPingIDVector().size()) {
-                if (blockID >= 0) {
-                    //3.1.1 the block is in the SSD bucket
-                    bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
+            if (blockID >= 0) {
+                //3.1.1 the block is in the SSD bucket
+                bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
 
-                    LOG(INFO, "OutputStreamImpl::checkStatus isEqual=%d", isEqual);
-                    if (isEqual) {
-                        LOG(INFO, "3.1.1. OutputStreamImpl::checkStatus the block is in the SSD bucket");
-                        vector<int32_t> newPingBlockVector;
-                        newPingBlockVector.push_back(blockID);
-                        filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
-                        return;
-                    } else {
-                        //3.1.2 the block is in the OSS
-                        LOG(INFO, "3.1.2. OutputStreamImpl::checkStatus the block is in the OSS");
-                        filesystem->catchUpFileStatusFromLog((char *) fileName.data());
-                        filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
-                    }
+                LOG(INFO, "OutputStreamImpl::checkStatus isEqual=%d", isEqual);
+                if (isEqual) {
+                    LOG(INFO, "3.1.1. OutputStreamImpl::checkStatus the block is in the SSD bucket");
+                    vector<int32_t> newPingBlockVector;
+                    newPingBlockVector.push_back(blockID);
+                    filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
+                    return;
                 } else {
-                    //3.2.the block is in the OSS
+                    //3.1.2 the block is in the OSS
+                    LOG(INFO, "3.1.2. OutputStreamImpl::checkStatus the block is in the OSS");
+                    filesystem->catchUpFileStatusFromLog((char *) fileName.data());
                     filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
-                    LOG(INFO, "3.2. OutputStreamImpl::checkStatus the block is in OSS");
                 }
             } else {
-                LOG(INFO, "2. OutputStreamImpl::checkStatus see the block is in the SSD bucket ");
+                //3.2.the block is in the OSS
+                filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
+                LOG(INFO, "3.2. OutputStreamImpl::checkStatus the block is in OSS");
             }
+
         }
 
 

@@ -1,5 +1,5 @@
 //
-// Created by root on 11/17/17.
+// Created by houliang on 11/17/17.
 //
 
 #ifndef _GOPHERWOOD_CORE_FILESTATUS_H_
@@ -12,8 +12,13 @@
 #include <ostream>
 #include <cstring>
 #include <iostream>
-#include "Logger.h"
+#include <memory>
 
+#include "Logger.h"
+#include "FSConfig.h"
+
+
+#include "../common/LRUCache.cpp"
 #include "../common/Logger.h"
 
 namespace Gopherwood {
@@ -24,21 +29,45 @@ namespace Gopherwood {
 
     public:
 
-        FileStatus() {
+        typedef enum AccessFileType {
 
+            sequenceType = 0,
+
+            randomType = 1,
+
+            hintRandomType = 2,
+
+            hintSequenceType = 3,
+        };
+
+
+        FileStatus() {
+            LRUCache<int, int> *tmpLruCache = new LRUCache<int, int>(Gopherwood::Internal::MAX_QUOTA_SIZE);
+            std::shared_ptr<LRUCache<int, int> > tmpPtr(tmpLruCache);
+            lruCache = tmpPtr;
         }
 
         ~FileStatus() {
 
         }
 
+
+        shared_ptr<LRUCache<int, int>> getLruCache() const {
+            return lruCache;
+        }
+
+        void setLruCache(const shared_ptr<LRUCache<int, int>> lruCache) {
+            FileStatus::lruCache = lruCache;
+        }
+
+
         vector<int32_t> getBlockIdVector() {
             return blockIdVector;
         }
 
-        vector<int32_t> getPingIDVector() {
-            return pingIDVector;
-        }
+//        vector<int32_t> getPingIDVector() {
+//            return pingIDVector;
+//        }
 
         int32_t getLastBucket() {
             return lastBucket;
@@ -52,9 +81,9 @@ namespace Gopherwood {
             FileStatus::blockIdVector = blockIdVector;
         }
 
-        void setPingIDVector(vector<int32_t> pingIDVector) {
-            FileStatus::pingIDVector = pingIDVector;
-        }
+//        void setPingIDVector(vector<int32_t> pingIDVector) {
+//            FileStatus::pingIDVector = pingIDVector;
+//        }
 
 
         void setLastBucket(int32_t lastBucket) {
@@ -86,6 +115,13 @@ namespace Gopherwood {
 
         FileStatus *deSerializeFileStatus(char *res);
 
+        AccessFileType getAccessFileType() const {
+            return accessFileType;
+        }
+
+        void setAccessFileType(AccessFileType accessFileType) {
+            FileStatus::accessFileType = accessFileType;
+        }
 
     private:
         vector<int32_t> blockIdVector;//the block id's list that the file contains;
@@ -93,7 +129,10 @@ namespace Gopherwood {
         int32_t lastBucket = 0; // the last bucket that contains the real data;
         int64_t endOffsetOfBucket = 0; // the end offset of the bucket;
         int64_t logOffset = 0; // the log offset that have been chased
-        vector<int32_t> pingIDVector; // the block id's list which shared memory type ='1', and can not be
+//        vector<int32_t> pingIDVector; // the block id's list which shared memory type ='1', and can not be
+        std::shared_ptr<LRUCache<int, int>> lruCache;
+
+        AccessFileType accessFileType;
 
     };
 

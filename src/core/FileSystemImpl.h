@@ -60,15 +60,13 @@ namespace Gopherwood {
 
             int getOneBlockForWrite(int ossindex, string fileName);
 
-            void updatePingBlockIDOrder(char *fileName);
-
-
             // TODO JUST FOT TEST
             void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
             void readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
-            void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,std::shared_ptr<FileStatus> fileStatus);
+            void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,
+                                                   std::shared_ptr<FileStatus> fileStatus);
 
             void writeCharStrUtil(string fileName, char *buf, int64_t size);
 

@@ -25,11 +25,15 @@ namespace Gopherwood {
         extern int NUMBER_OF_BLOCKS;
         extern char *FILE_LOG_PERSISTENCE_PATH;
         extern int FILENAME_MAX_LENGTH;
-        extern int QUOTA_SIZE;
+        extern int MIN_QUOTA_SIZE;
 
         extern int QINGSTOR_BUFFER_SIZE;
         extern int32_t READ_BUFFER_SIZE;
         extern int WRITE_BUFFER_SIZE;
+
+        extern int MAX_PROCESS;//maximum number of processes running at the same time.
+        extern int MAX_QUOTA_SIZE;
+
     }
 
 

@@ -189,7 +189,7 @@ namespace Gopherwood {
 
                     resVector.push_back(i);
 
-                    if (resVector.size() >= QUOTA_SIZE) {
+                    if (resVector.size() >= MIN_QUOTA_SIZE) {
                         break;
                     }
                 }
