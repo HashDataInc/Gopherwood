@@ -81,8 +81,12 @@ namespace Gopherwood {
             LOG(INFO, "cursorOffset = %d, cursorIndex=%d,cursorBucketID=%d", cursorOffset, cursorIndex, cursorBucketID);
             LOG(INFO, "data write size = %d, remainOffsetInBlock=%d", size, remainOffsetInBlock);
             if (size <= remainOffsetInBlock) {
+
+                filesystem->getLock();
                 filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                 filesystem->writeDataToBucket(buf, size);
+                filesystem->releaseLock();
+
                 cursorOffset += size;
             } else {
                 int64_t remainOffsetTotal = getRemainLength();
@@ -100,23 +104,34 @@ namespace Gopherwood {
                 }
 
                 //1. BUG-FIX, IMPORTANT. because, when above code execute, especially the acquireNewBlock method execute,
+
+                filesystem->getLock();
                 // it will change the ssd bucket's offset.
                 filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                 //2. write remainOffsetInBlock data to the bucket first;
                 filesystem->writeDataToBucket(buf, remainOffsetInBlock);
+                filesystem->releaseLock();
+
                 int64_t haveWriteSize = remainOffsetInBlock;
                 int64_t remainSize = size - haveWriteSize;
 
                 while (remainSize > 0) {
                     if (remainSize > SIZE_OF_BLOCK) {
+
+                        filesystem->getLock();
                         seekToNextBlock();
                         filesystem->writeDataToBucket(buf + haveWriteSize, SIZE_OF_BLOCK);
+                        filesystem->releaseLock();
+
                         cursorOffset = SIZE_OF_BLOCK;
                         remainSize -= SIZE_OF_BLOCK;
                         haveWriteSize += SIZE_OF_BLOCK;
                     } else {
+                        filesystem->getLock();
                         seekToNextBlock();
                         filesystem->writeDataToBucket(buf + haveWriteSize, remainSize);
+                        filesystem->releaseLock();
+
                         cursorOffset = remainSize;
                         remainSize -= remainSize;
                         haveWriteSize += remainSize;

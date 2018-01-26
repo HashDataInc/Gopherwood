@@ -70,7 +70,14 @@ namespace Gopherwood {
                 }
                 int64_t remainOffsetInBlock = status->getEndOffsetOfBucket() - cursorOffset;
                 int64_t bufLength = size < remainOffsetInBlock ? size : remainOffsetInBlock;
+
+                //1.get the lock 2. seek to the offset 3. read the data 4. release the lock
+                filesystem->getLock();
+                this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                 int64_t readLength = filesystem->readDataFromBucket(buf, bufLength);
+                filesystem->releaseLock();
+
+
                 cursorOffset += readLength;
                 LOG(INFO, "InputStreamImpl::readInternal. 1.&&&&&&&&&&&&&&&&&&&&&&&&&&&& buf=%s", buf);
                 LOG(INFO,
@@ -86,7 +93,13 @@ namespace Gopherwood {
                     cursorOffset);
                 int64_t remainOffsetInBlock = SIZE_OF_BLOCK - cursorOffset;
                 if (size <= remainOffsetInBlock) {
+
+                    //1.get the lock 2. seek to the offset 3. read the data 4. release the lock
+                    filesystem->getLock();
+                    this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                     int64_t readLength = filesystem->readDataFromBucket(buf, size);
+                    filesystem->releaseLock();
+
 //                LOG(INFO, "1. InputStreamImpl::readInternal. readLength=%d", readLength);
                     cursorOffset += readLength;
                     LOG(INFO, "InputStreamImpl::readInternal. 2.&&&&&&&&&&&&&&&&&&&&&&&&&&&& buf=%s", buf);
@@ -102,21 +115,36 @@ namespace Gopherwood {
                     int64_t bufLength = size < remainOffsetTotal ? size : remainOffsetTotal;
 
                     //1. read the remain data in the block
+
+                    // 1.get the lock 2. seek to the offset 3. read the data 4. release the lock
+                    filesystem->getLock();
+                    this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                     int64_t readLength = filesystem->readDataFromBucket(buf, remainOffsetInBlock);
+                    filesystem->releaseLock();
+
                     int totalOffset = 0;
                     totalOffset += readLength;
                     bufLength -= readLength;
 
                     while (bufLength > 0) {
                         if (bufLength > SIZE_OF_BLOCK) {
+
+                            filesystem->getLock();
                             seekToNextBlock();
                             readLength = filesystem->readDataFromBucket(buf + totalOffset, SIZE_OF_BLOCK);
+                            filesystem->releaseLock();
+
+
                             bufLength -= readLength;
                             totalOffset += readLength;
                             cursorOffset += readLength;
                         } else {
+
+                            filesystem->getLock();
                             seekToNextBlock();
                             readLength = filesystem->readDataFromBucket(buf + totalOffset, bufLength);
+                            filesystem->releaseLock();
+
                             bufLength -= readLength;
                             totalOffset += readLength;
                             cursorOffset += readLength;

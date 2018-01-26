@@ -391,7 +391,7 @@ TEST_F(TestReadWriteSeek, ThirdThread) {
 
 
 
-
+/**
 //read test without cache
 TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
     int count = 3;
@@ -413,13 +413,15 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
         filesystem->readCloseFileStatus(fileName);
     }
 }
+ **/
+
+
 
 
 
 
 
 //read test with cache
-/**
 TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
     int count = 3;
 
@@ -475,7 +477,6 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
         filesystem->closeFile((char *) fileNameArr[i].c_str());
     }
 }
-**/
 
 
 

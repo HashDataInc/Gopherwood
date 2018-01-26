@@ -54,20 +54,26 @@ namespace Gopherwood {
 
             int64_t totalOffset = blockID * SIZE_OF_BLOCK;
 
-            fsSeek(totalOffset, SEEK_SET);
 
             LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. blockID=%d,", blockID);
             //2. read data from OSS, and write the data to bucket.
             char buf[SIZE_OF_BLOCK / 8];
             int64_t readLength = qsReadWrite->qsRead((char *) ossFileName.data(), buf, sizeof(buf));
             while (readLength > 0) {
-                writeDataToBucket(buf, readLength);
-                totalOffset += readLength;
+                LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. readLength=%d, buf = %s", readLength, buf);
+
+                //1. get the lock
+                sharedMemoryManager->getLock();
                 fsSeek(totalOffset, SEEK_SET);
+                writeDataToBucket(buf, readLength);
+                sharedMemoryManager->releaseLock();
+                //2. release the lock
+
+                totalOffset += readLength;
+
 
                 readLength = qsReadWrite->qsRead((char *) ossFileName.data(), buf, sizeof(buf));
 
-//                LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. readLength=%d,", readLength);
             }
 
             qsReadWrite->closeGetObject();
@@ -659,7 +665,6 @@ namespace Gopherwood {
             int64_t baseOffsetInBucket = blockID * SIZE_OF_BLOCK;
 
 
-
             int j;
             for (j = 0; j < iter; j++) {
 
@@ -761,6 +766,14 @@ namespace Gopherwood {
             }
         }
 
+
+        void FileSystemImpl::getLock() {
+            sharedMemoryManager->getLock();
+        }
+
+        void FileSystemImpl::releaseLock() {
+            sharedMemoryManager->releaseLock();
+        }
 
         void FileSystemImpl::closeBucketFile() {
             close(bucketFd);
@@ -966,17 +979,23 @@ namespace Gopherwood {
                 int64_t endOfBucketOffset = fileStatus->getEndOffsetOfBucket();
 
                 if (blockID >= 0) {
-                    fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+
+                    int64_t readOffset = blockID * SIZE_OF_BLOCK;
                     while (endOfBucketOffset > 0) {
                         int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
                         LOG(INFO,
                             "4. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. leftData=%d,endOfBucketOffset=%d",
                             leftData, endOfBucketOffset);
 
+                        sharedMemoryManager->getLock();
+                        fsSeek(readOffset, SEEK_SET);
                         int64_t readData = readDataFromBucket(readBuf, leftData);
+                        sharedMemoryManager->releaseLock();
+
                         writeCharStrUtil(filePath, readBuf, readData);
                         readBuf = new char[SIZE];
                         endOfBucketOffset -= readData;
+                        readOffset += readData;
                     }
 
                 } else {
@@ -1004,14 +1023,21 @@ namespace Gopherwood {
             } else {
                 LOG(INFO, "FileSystemImpl::readDataFromFileAccordingToBlockID. come in else");
                 if (blockID >= 0) {
-                    fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+                    int64_t readOffset = blockID * SIZE_OF_BLOCK;
+
                     for (int j = 0; j < iter; j++) {
-                        readDataFromBucket(readBuf, SIZE);
+
+                        sharedMemoryManager->getLock();
+                        fsSeek(readOffset, SEEK_SET);
+                        int64_t readData = readDataFromBucket(readBuf, SIZE);
+                        sharedMemoryManager->releaseLock();
+
                         LOG(INFO, "7. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. j=%d, readBuf=%s",
                             j,
                             readBuf);
                         writeCharStrUtil(filePath, readBuf, SIZE);
                         readBuf = new char[SIZE];
+                        readOffset+=readData;
                     }
                 } else {
                     std::string ossFileName = constructFileKey(fileName, -blockID);

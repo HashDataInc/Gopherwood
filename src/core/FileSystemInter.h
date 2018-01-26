@@ -140,6 +140,10 @@ namespace Gopherwood {
             virtual int getRandomIntValue(int start, int end) = 0;
             // TODO JUST FOT TEST
 
+            // get lock and release lock
+            virtual void getLock() = 0;
+            virtual void releaseLock() = 0;
+
         };
 
     }

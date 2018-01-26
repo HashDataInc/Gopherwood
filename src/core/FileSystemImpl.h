@@ -78,6 +78,11 @@ namespace Gopherwood {
             int getRandomIntValue(int start, int end);
             // TODO JUST FOT TEST
 
+
+            void getLock();
+
+            void releaseLock();
+
         private:
 
             int32_t bucketFd = -1;// the bucket file descriptor
