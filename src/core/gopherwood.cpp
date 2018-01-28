@@ -108,14 +108,30 @@ public:
         return input;
     }
 
+    bool isOutput() const {
+        return output;
+    }
+
+    bool isInputAndOutput() const {
+        return inputAndOutput;
+    }
+
     void setInput(bool input) {
         this->input = input;
-        this->inputAndOutput = ~input;
+        this->output = !input;
+        this->inputAndOutput = !input;
+    }
+
+    void setOutput(bool output) {
+        this->output = output;
+        this->input = !output;
+        this->inputAndOutput = !output;
     }
 
     void setInputAndOutput(bool inputAndOutput) {
         this->inputAndOutput = inputAndOutput;
-        this->input = ~inputAndOutput;
+        this->input = !inputAndOutput;
+        this->output = !inputAndOutput;
     }
 
     void setInputStream(void *stream) {
@@ -128,6 +144,7 @@ public:
 
 private:
     bool input;
+    bool output;
     bool inputAndOutput;
     void *inputStream;
     void *outputStream;
@@ -214,7 +231,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags, int bufferSi
         if ((flags & O_CREAT) || (flags & O_APPEND) || (flags & O_WRONLY)) {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is write only");
             int internalFlags = Gopherwood::WriteOnly;
-            file->setInput(false);
+            file->setOutput(true);
             os = new OutputStream(fs->getFilesystem(), (char *) fileName, internalFlags);
             file->setOutputStream(os);
         } else if ((flags & O_RDONLY)) {
@@ -256,7 +273,10 @@ int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos) {
     try {
         if (file->isInput()) {
             file->getInputStream().seek(desiredPos);
+        } else if (file->isOutput()) {
+            file->getOutputStream().seek(desiredPos);
         } else {
+            file->getInputStream().seek(desiredPos);
             file->getOutputStream().seek(desiredPos);
         }
         return 0;
@@ -291,7 +311,34 @@ int32_t gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length) 
 }
 
 
+int gwCloseFile(gopherwoodFS fs, gwFile file) {
+    try {
+        if (file) {
+            if (file->isInput()) {
+                file->getInputStream().close();
+            } else if (file->isOutput()) {
+                file->getOutputStream().close();
+            } else {
+                file->getInputStream().close();
+                file->getOutputStream().close();
+            }
+            delete file;
+        }
 
+        return 0;
+    } catch (const std::bad_alloc &e) {
+        delete file;
+        SetErrorMessage("Out of memory");
+        errno = ENOMEM;
+    } catch (...) {
+        delete file;
+        SetLastException(Gopherwood::current_exception());
+    }
+
+    return -1;
+
+
+}
 
 
 

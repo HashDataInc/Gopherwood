@@ -187,7 +187,6 @@ TEST_F(TestReadWriteSeek, WriteEvictBlock) {
 
 
 
-
 /**
 //write to gopherwood process 1
 TEST_F(TestReadWriteSeek, ReadEvictBlock) {
@@ -256,8 +255,6 @@ TEST_F(TestReadWriteSeek, ReadEvictBlock) {
 //    filesystem->readCloseFileStatus(fileName);
 }
 **/
-
-
 
 
 
@@ -339,8 +336,6 @@ TEST_F(TestReadWriteSeek, WriteBlockWithEvictOtherFileBlock) {
 
 
 
-
-
 /**
 //write to gopherwood process 3
 TEST_F(TestReadWriteSeek, ThirdThread) {
@@ -389,10 +384,8 @@ TEST_F(TestReadWriteSeek, ThirdThread) {
 
 
 
-
-
 /**
-//read test without cache
+//read test no cache
 TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
     int count = 3;
 
@@ -413,9 +406,7 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
         filesystem->readCloseFileStatus(fileName);
     }
 }
- **/
-
-
+**/
 
 
 
@@ -477,7 +468,6 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
         filesystem->closeFile((char *) fileNameArr[i].c_str());
     }
 }
-
 
 
 

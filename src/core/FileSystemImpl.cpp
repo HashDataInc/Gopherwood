@@ -109,6 +109,9 @@ namespace Gopherwood {
 
             while (index >= status->getBlockIdVector().size()) {
                 acquireNewBlock((char *) fileName.data());
+
+                // 2. regain the last block id
+                blockID = status->getLastBucket();
                 index = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
                 LOG(LOG_ERROR,
                     "FileSystemImpl::getOneBlockForWrite, ACQUIRE ZERO BLOCKS, SO ACQUIRE AGAIN UNTIL GET ONE");
@@ -632,7 +635,13 @@ namespace Gopherwood {
                     writeFileStatusToLog(fileName, res);
 
 
-                    //4.3.4  END OF THE TRANSACTION
+                    //4.3.4 BUG FIX.  we should replace the last block is we evict it to the OSS.
+                    auto &status = fileStatusMap[fileName];
+                    if (tmpBlockID == status->getLastBucket()) {
+                        status->setLastBucket(tmpBlockID);
+                    }
+
+                    //4.3.5  END OF THE TRANSACTION
                     sharedMemoryManager->releaseLock();
                 }
 
@@ -1037,7 +1046,7 @@ namespace Gopherwood {
                             readBuf);
                         writeCharStrUtil(filePath, readBuf, SIZE);
                         readBuf = new char[SIZE];
-                        readOffset+=readData;
+                        readOffset += readData;
                     }
                 } else {
                     std::string ossFileName = constructFileKey(fileName, -blockID);

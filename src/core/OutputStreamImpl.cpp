@@ -180,7 +180,6 @@ namespace Gopherwood {
 
         }
 
-
         void OutputStreamImpl::close() {
             filesystem->closeFile((char *) fileName.data());
         }

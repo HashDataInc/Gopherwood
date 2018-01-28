@@ -76,13 +76,13 @@ tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length);
 tSize gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length);
 
 
-/**
- * gwFlush - Flush the data.
- * @param fs The configured filesystem handle.
- * @param file The file handle.
- * @return Returns 0 on success, -1 on error.
- */
-int gwFlush(gopherwoodFS fs, gwFile file);
+///**
+// * gwFlush - Flush the data.
+// * @param fs The configured filesystem handle.
+// * @param file The file handle.
+// * @return Returns 0 on success, -1 on error.
+// */
+//int gwFlush(gopherwoodFS fs, gwFile file);
 
 
 /**
@@ -109,5 +109,9 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags, int bufferSi
 //TODO in this implement, only the read-only mode can seek the file,
 //TODO write mode are not allowed.
 int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos);
+
+
+
+int gwCloseFile(gopherwoodFS fs, gwFile file);
 
 #endif /* _GOPHERWOOD_CORE_GOPHERWOOD_H_ */
