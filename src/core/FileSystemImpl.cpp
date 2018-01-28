@@ -635,10 +635,12 @@ namespace Gopherwood {
                     writeFileStatusToLog(fileName, res);
 
 
-                    //4.3.4 BUG FIX.  we should replace the last block is we evict it to the OSS.
+                    //4.3.4 BUG FIX.  we should replace the last block when we evict it to the OSS.
                     auto &status = fileStatusMap[fileName];
                     if (tmpBlockID == status->getLastBucket()) {
-                        status->setLastBucket(tmpBlockID);
+                        LOG(INFO, "FileSystemImpl::evictBlock. change the last bucket ID, before = %d, after= %d.",
+                            status->getLastBucket(), -index);
+                        status->setLastBucket(-index);
                     }
 
                     //4.3.5  END OF THE TRANSACTION
