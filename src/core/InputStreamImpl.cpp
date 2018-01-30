@@ -304,7 +304,7 @@ namespace Gopherwood {
                     filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
                     return;
                 } else {
-                    //3.1.2 the block is in the OSS
+                    //3.1.2 the block is in the OSS. this means the block have been evicted to the OSS
                     LOG(INFO, "3.1.2. InputStreamImpl::checkStatus the block is in the OSS");
                     filesystem->catchUpFileStatusFromLog((char *) fileName.data());
                     filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
@@ -315,6 +315,95 @@ namespace Gopherwood {
                 LOG(INFO, "3.2. InputStreamImpl::checkStatus the block is in OSS");
             }
 
+        }
+
+
+        void InputStreamImpl::deleteFile() {
+            //1. first catch up the file status
+            filesystem->catchUpFileStatusFromLog((char *) fileName.c_str());
+
+            //2. get the end of the file
+            int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
+
+            int64_t offset = 0;
+
+            //3. delete the file block
+            while (offset < theEOFOffset) {
+                deleteFileBucket(offset);
+                offset += SIZE_OF_BLOCK;
+            }
+
+            //4. delete the file status
+            filesystem->deleteFile((char *) fileName.c_str());
+        }
+
+
+        void InputStreamImpl::deleteFileBucket(int64_t pos) {
+            LOG(INFO, "InputStreamImpl::deleteFileBucket pos = %d", pos);
+            if (pos < 0) {
+                LOG(LOG_ERROR, "InputStreamImpl::deleteFileBucket pos can not be smaller than zero");
+            }
+            //1. check the size of the file
+            int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. theEOFOffset=%d", theEOFOffset);
+
+            if (theEOFOffset == 0) {
+                LOG(INFO, "the file do not contain any one bucket");
+                return;
+            }
+            if (status->getBlockIdVector().size() == 0) {
+                LOG(LOG_ERROR, "InputStreamImpl::deleteFileBucket. do not contain any file");
+                return;
+            }
+
+            if (pos > theEOFOffset) {
+                //todo, throw error
+                LOG(LOG_ERROR, "InputStreamImpl::deleteFileBucket. error, the given pos exceed the size of the file");
+                return;
+            }
+
+            //2. get the blockID which seeks to
+            int64_t blockIndex = pos / SIZE_OF_BLOCK;
+            int blockID = status->getBlockIdVector()[blockIndex];
+
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. blockID=%d", blockID);
+
+            //3. check the blockID is PING or not.(its type='1' or not)
+            if (status->getLruCache()->get(blockID)) {
+
+                std::vector<int32_t> releaseBlockVector;
+                releaseBlockVector.push_back(blockID);
+                filesystem->releaseBlock((char *) fileName.c_str(), releaseBlockVector);
+                return;
+            }
+
+
+            /*********************************DOTO FOR TEST********************/
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. start of the status print lru cache");
+            status->getLruCache()->printLruCache();
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. end of the status print lru cache");
+            /*********************************DOTO FOR TEST********************/
+
+            //3.1 see the block is in the SSD bucket(not ping) or in the OSS.
+            if (blockID >= 0) {
+                //3.1.1 the block is in the SSD bucket
+                bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
+                LOG(INFO, "InputStreamImpl::deleteFileBucket isEqual=%d", isEqual);
+                if (isEqual) {
+                    LOG(INFO, "3.1.1. InputStreamImpl::deleteFileBucket the block is in the SSD bucket");
+                    vector<int32_t> releaseBlockVector;
+                    releaseBlockVector.push_back(blockID);
+                    filesystem->releaseBlock((char *) fileName.c_str(), releaseBlockVector);
+                    return;
+                } else {
+                    //3.1.2 the block is in the OSS
+                    filesystem->deleteBlockFromOSS(blockIndex, fileName);
+                }
+            } else {
+                //3.2.the block is in the OSS
+                filesystem->deleteBlockFromOSS(blockIndex, fileName);
+                LOG(INFO, "3.2. InputStreamImpl::deleteFileBucket the block is in OSS");
+            }
         }
 
     }

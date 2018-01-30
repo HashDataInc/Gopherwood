@@ -97,6 +97,8 @@ namespace Gopherwood {
              * Output a readable string of this input stream.
              */
             virtual string toString() = 0;
+
+            virtual void deleteFile()=0;
         };
 
     }

@@ -42,6 +42,12 @@ namespace Gopherwood {
         }
 
 
+        void FileSystemImpl::deleteBlockFromOSS(int64_t ossindex, string fileName) {
+            string ossFileName = constructFileKey(fileName, ossindex + 1);
+            qsReadWrite->qsDeleteObject(ossFileName.c_str());
+        }
+
+
         //TODO ******************************
         void FileSystemImpl::writeDataFromOSS2Bucket(int64_t ossindex, string fileName) {
             //1. prapre qingstor context
@@ -107,21 +113,41 @@ namespace Gopherwood {
             LOG(INFO, "FileSystemImpl::getOneBlockForWrite, before index  = %d,status->getBlockIdVector().size()=%d",
                 index, status->getBlockIdVector().size());
 
-            while (index >= status->getBlockIdVector().size()) {
-                acquireNewBlock((char *) fileName.data());
 
-                // 2. regain the last block id
-                blockID = status->getLastBucket();
-                index = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
+            //2. check the newBlockID is pin or not
+            vector<int32_t> blockIDVector = status->getBlockIdVector();
+            int newBlockID = blockIDVector[index];
+            bool isExist = status->getLruCache()->exists(newBlockID);;
+
+
+            while (!(index < status->getBlockIdVector().size() && isExist)) {
                 LOG(LOG_ERROR,
                     "FileSystemImpl::getOneBlockForWrite, ACQUIRE ZERO BLOCKS, SO ACQUIRE AGAIN UNTIL GET ONE");
+                acquireNewBlock((char *) fileName.data());
+
+                // 3. regain the last block id
+                blockID = status->getLastBucket();
+                index = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
+
+                LOG(INFO, "FileSystemImpl::getOneBlockForWrite, index  = %d,status->getBlockIdVector().size()=%d",
+                    index, status->getBlockIdVector().size());
+
+                // 4. recheck the newBlockID is pin or not
+                blockIDVector = status->getBlockIdVector();
+
+                LOG(INFO, "FileSystemImpl::getOneBlockForWrite, blockIDVector size  = %d", blockIDVector.size());
+
+                newBlockID = blockIDVector[index];
+                isExist = status->getLruCache()->exists(newBlockID);
+                LOG(INFO, "FileSystemImpl::getOneBlockForWrite, isExist  = %d,newBlockID=%d", isExist, newBlockID);
+
+
             }
             LOG(INFO, "FileSystemImpl::getOneBlockForWrite, after index  = %d, status->getBlockIdVector().size()=%d",
                 index, status->getBlockIdVector().size());
 
 
-            vector<int32_t> blockIDVector = status->getBlockIdVector();
-            int newBlockID = blockIDVector[index];
+
             /******************TODO FOR TEST****************************/
             for (int i = 0; i < blockIDVector.size(); i++) {
                 LOG(INFO, "FileSystemImpl::getOneBlockForWrite, before blockIDVector[i] = %d,", blockIDVector[i]);
@@ -362,8 +388,13 @@ namespace Gopherwood {
                 if (itElement != previousVector.end()) {
                     int position = distance(previousVector.begin(), itElement);
                     previousVector[position] = -(position + 1);
-                }
 
+                    //BUG-FIX. this will change the last bucket. eg. if the blockIDToCheck is the last bucket before,
+                    // so when check the block, we should also check the block is the last block or not.
+                    if (blockIDToCheck == status->getLastBucket()) {
+                        status->setLastBucket(-(position + 1));
+                    }
+                }
                 previousVector.push_back(blockIDToCheck);
             }
             status->setBlockIdVector(previousVector);
@@ -425,9 +456,37 @@ namespace Gopherwood {
                 int tmpBlockID = blockIDVector[i];
                 //1.1 update the lru cache
                 std::vector<int32_t> inactiveBlockVector = status->getLruCache()->put(tmpBlockID, tmpBlockID);
+
+
                 //2. set this blocks in shared memory block to inactive.
                 if (inactiveBlockVector.size() > 0) {
-                    inactiveBlock(fileName, inactiveBlockVector);
+
+                    // BUG-FIX. in the lru cache. the block ID maybe empty or full. so should be checked first.
+
+                    std::vector<int32_t> emptyBlockVector;
+                    std::vector<int32_t> fullBlockVector;
+                    int lastBlockIndex = getIndexAccordingBlockID(fileName, status->getLastBucket());
+                    for (int j = 0; j < inactiveBlockVector.size(); j++) {
+                        int tmpBlockID = inactiveBlockVector[j];
+                        int index = getIndexAccordingBlockID(fileName, tmpBlockID);
+                        if (index > lastBlockIndex) {
+                            emptyBlockVector.push_back(tmpBlockID);
+                            LOG(INFO,
+                                "FileSystemImpl::checkAndAddPingBlockID. the evict block is empty, and the blockID =%d, lastBlock =%d.",
+                                tmpBlockID, status->getLastBucket());
+                        } else {
+                            fullBlockVector.push_back(tmpBlockID);
+                            LOG(INFO,
+                                "FileSystemImpl::checkAndAddPingBlockID. the evict block is full, and the blockID =%d, lastBlock =%d.",
+                                tmpBlockID, status->getLastBucket());
+                        }
+                    }
+
+                    // inactive the full block ID
+                    inactiveBlock(fileName, fullBlockVector);
+
+                    //release the empty block
+                    releaseBlock(fileName, emptyBlockVector);
                 }
             }
         }
@@ -517,7 +576,6 @@ namespace Gopherwood {
             for (int i = 0; i < blockIDVector.size(); i++) {
                 LOG(INFO, "the acquired id block list index = %d, blockID = %d ", i, blockIDVector[i]);
             }
-
         }
 
 
@@ -718,7 +776,6 @@ namespace Gopherwood {
 
         int64_t FileSystemImpl::getTheEOFOffset(const char *fileName) {
             vector<int32_t> blockIDVector = fileStatusMap[fileName]->getBlockIdVector();
-
             int32_t lastBucket = fileStatusMap[fileName]->getLastBucket();
             int64_t endOffsetOfBucket = fileStatusMap[fileName]->getEndOffsetOfBucket();
 
@@ -876,6 +933,12 @@ namespace Gopherwood {
             lseek(logFd, 0, SEEK_SET);
             int writeSize = write(logFd, res.data(), res.size());
             close(logFd);
+        }
+
+        void FileSystemImpl::deleteFile(char *fileName) {
+            char *filePathName = getFilePath(fileName);
+            LOG(INFO, "FileSystemImpl::deleteFile. delete the file =%s", fileName);
+            remove(filePathName);
         }
 
 

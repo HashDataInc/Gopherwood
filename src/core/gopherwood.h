@@ -95,7 +95,7 @@ tSize gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length);
  * to use the default configured values.
  * @return Returns the handle to the open file or NULL on error.
  */
-gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags, int bufferSize);
+gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
 
 
 
@@ -113,5 +113,9 @@ int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos);
 
 
 int gwCloseFile(gopherwoodFS fs, gwFile file);
+
+
+
+int deleteFile(gopherwoodFS fs, gwFile file);
 
 #endif /* _GOPHERWOOD_CORE_GOPHERWOOD_H_ */

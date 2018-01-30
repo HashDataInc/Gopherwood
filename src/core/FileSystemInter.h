@@ -142,7 +142,13 @@ namespace Gopherwood {
 
             // get lock and release lock
             virtual void getLock() = 0;
+
             virtual void releaseLock() = 0;
+
+            virtual void deleteFile(char *fileName) = 0;
+
+            virtual void deleteBlockFromOSS(int64_t ossindex, string fileName) = 0;
+
 
         };
 

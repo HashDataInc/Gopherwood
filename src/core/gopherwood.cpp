@@ -84,21 +84,26 @@ public:
     }
 
     InputStream &getInputStream() {
-        if (!input) {
+        if (!input&&!inputAndOutput) {
             THROW(Gopherwood::GopherwoodException,
                   "Internal error: file was not opened for read.");
         }
 
         if (!inputStream) {
-            THROW(Gopherwood::GopherwoodIOException, "File is not opened.");
+            THROW(Gopherwood::GopherwoodIOException, "Inputstream. File is not opened.");
         }
 
         return *static_cast<InputStream *>(inputStream);
     }
 
     OutputStream &getOutputStream() {
+        if (!output&&!inputAndOutput) {
+            THROW(Gopherwood::GopherwoodException,
+                  "Internal error: file was not opened for write.");
+        }
+
         if (!outputStream) {
-            THROW(Gopherwood::GopherwoodIOException, "File is not opened.");
+            THROW(Gopherwood::GopherwoodIOException, "OutputStream. File is not opened.");
         }
 
         return *static_cast<OutputStream *>(outputStream);
@@ -221,7 +226,7 @@ tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length) {
 }
 
 
-gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags, int bufferSize) {
+gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
     GWFileInternalWrapper *file = NULL;
     OutputStream *os = NULL;
     InputStream *is = NULL;
@@ -336,8 +341,34 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
     }
 
     return -1;
+}
 
 
+int deleteFile(gopherwoodFS fs, gwFile file) {
+    try {
+        if (file) {
+            if (file->isInput()) {
+                file->getInputStream().deleteFile();
+            } else if (file->isOutput()) {
+//                file->getOutputStream().deleteFile();
+            } else {
+                //TODO, need think more
+                file->getInputStream().deleteFile();
+            }
+            delete file;
+        }
+
+        return 0;
+    } catch (const std::bad_alloc &e) {
+        delete file;
+        SetErrorMessage("Out of memory");
+        errno = ENOMEM;
+    } catch (...) {
+        delete file;
+        SetLastException(Gopherwood::current_exception());
+    }
+
+    return -1;
 }
 
 

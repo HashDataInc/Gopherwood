@@ -45,6 +45,10 @@ namespace Gopherwood {
     void InputStream::close() {
         impl->close();
     }
+
+    void InputStream::deleteFile(){
+        impl->deleteFile();
+    }
 }
 
 

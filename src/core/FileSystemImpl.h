@@ -60,6 +60,9 @@ namespace Gopherwood {
 
             int getOneBlockForWrite(int ossindex, string fileName);
 
+            void deleteBlockFromOSS(int64_t ossindex, string fileName);
+
+
             // TODO JUST FOT TEST
             void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
@@ -82,6 +85,8 @@ namespace Gopherwood {
             void getLock();
 
             void releaseLock();
+
+            void deleteFile(char *fileName);
 
         private:
 
