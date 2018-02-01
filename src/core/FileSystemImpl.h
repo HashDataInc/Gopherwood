@@ -63,6 +63,10 @@ namespace Gopherwood {
             void deleteBlockFromOSS(int64_t ossindex, string fileName);
 
 
+            //  TODO .FOR TEST. not use .tmp file in OSS .should be deleted
+            bool writeDate2OSSAndCheckIfExist(char *fileNameInOSS, int blockID);
+
+
             // TODO JUST FOT TEST
             void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
@@ -112,7 +116,9 @@ namespace Gopherwood {
 
             void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-            std::vector<int> evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
+            void deleteBlockFromSSD(char *fileName, const std::vector<int32_t> &blockIdVector);
+
+            std::vector<int> evictBlock(char *fileName, std::unordered_map<int, std::string> blockStatusMap);
 
 
             int64_t getTheEOFOffset(const char *fileName);
@@ -145,7 +151,7 @@ namespace Gopherwood {
 
             char *getFilePath(char *fileName);
 
-            void writeDate2OSS(char *fileName, int blockID, int index);
+            void writeDate2OSS(char *fileNameInOSS, int blockID);
 
             int getIndexAccordingBlockID(char *fileName, int blockID);
 

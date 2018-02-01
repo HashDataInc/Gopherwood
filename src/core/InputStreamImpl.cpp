@@ -311,8 +311,9 @@ namespace Gopherwood {
                 }
             } else {
                 //3.2.the block is in the OSS
-                filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
                 LOG(INFO, "3.2. InputStreamImpl::checkStatus the block is in OSS");
+                filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
+
             }
 
         }
@@ -370,10 +371,9 @@ namespace Gopherwood {
 
             //3. check the blockID is PING or not.(its type='1' or not)
             if (status->getLruCache()->get(blockID)) {
-
-                std::vector<int32_t> releaseBlockVector;
-                releaseBlockVector.push_back(blockID);
-                filesystem->releaseBlock((char *) fileName.c_str(), releaseBlockVector);
+                std::vector<int32_t> deleteBlockVector;
+                deleteBlockVector.push_back(blockID);
+                filesystem->deleteBlockFromSSD((char *) fileName.c_str(), deleteBlockVector);
                 return;
             }
 
@@ -391,9 +391,9 @@ namespace Gopherwood {
                 LOG(INFO, "InputStreamImpl::deleteFileBucket isEqual=%d", isEqual);
                 if (isEqual) {
                     LOG(INFO, "3.1.1. InputStreamImpl::deleteFileBucket the block is in the SSD bucket");
-                    vector<int32_t> releaseBlockVector;
-                    releaseBlockVector.push_back(blockID);
-                    filesystem->releaseBlock((char *) fileName.c_str(), releaseBlockVector);
+                    vector<int32_t> deleteBlockVector;
+                    deleteBlockVector.push_back(blockID);
+                    filesystem->deleteBlockFromSSD((char *) fileName.c_str(), deleteBlockVector);
                     return;
                 } else {
                     //3.1.2 the block is in the OSS

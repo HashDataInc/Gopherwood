@@ -44,7 +44,7 @@ namespace Gopherwood {
 
         void FileSystemImpl::deleteBlockFromOSS(int64_t ossindex, string fileName) {
             string ossFileName = constructFileKey(fileName, ossindex + 1);
-            qsReadWrite->qsDeleteObject(ossFileName.c_str());
+            qsReadWrite->qsDeleteObject((char *) ossFileName.c_str());
         }
 
 
@@ -85,7 +85,7 @@ namespace Gopherwood {
             qsReadWrite->closeGetObject();
 
             //3. delete the data in oss.
-            qsReadWrite->qsDeleteObject(ossFileName.c_str());
+            qsReadWrite->qsDeleteObject((char *) ossFileName.c_str());
 
             //4. write replace log, delete it because it have been writen to log in the acquire block logs.
             // we use this block to replace the one block in OSS
@@ -517,12 +517,13 @@ namespace Gopherwood {
             //3. check the block vector size is enough or not, if not,see the shared memory's type =2, and acquire more blocks
             if (blockIDVector.size() < MIN_QUOTA_SIZE) {
                 int remainNeedBlocks = MIN_QUOTA_SIZE - blockIDVector.size();
-                std::vector<int32_t> remainBlockVector = sharedMemoryManager->getBlocksWhichTypeEqual2(
+
+                std::unordered_map<int, std::string> remainBlockStatusMap = sharedMemoryManager->getBlocksWhichTypeEqual2(
                         remainNeedBlocks);
-                int totalSize = remainBlockVector.size() + blockIDVector.size();
+                int totalSize = remainBlockStatusMap.size() + blockIDVector.size();
 
                 LOG(INFO, "FileSystemImpl::acquireNewBlock, acquire %d blocks which type = '2' ",
-                    remainBlockVector.size());
+                    remainBlockStatusMap.size());
 
                 if (totalSize == 0) {
                     LOG(LOG_ERROR, "FileSystemImpl::acquireNewBlock, acquire blocks fail, do not acquire any blocks");
@@ -543,7 +544,7 @@ namespace Gopherwood {
                 LOG(INFO, "FileSystemImpl::acquireNewBlock middle 2 file status");
                 //TODO FOR TEST***************
 
-                std::vector<int> noEvictBlockVector = evictBlock(fileName, remainBlockVector);
+                std::vector<int> noEvictBlockVector = evictBlock(fileName, remainBlockStatusMap);
 
 
                 //TODO FOR TEST***************
@@ -553,6 +554,10 @@ namespace Gopherwood {
                 //TODO FOR TEST***************
 
 
+                std::vector<int> remainBlockVector;
+                for (const auto &blockStatus: remainBlockStatusMap) {
+                    remainBlockVector.push_back(blockStatus.first);
+                }
                 std::vector<int> newRemainBlockVector = deleteVector(remainBlockVector, noEvictBlockVector);
 
                 blockIDVector.insert(blockIDVector.end(), newRemainBlockVector.begin(), newRemainBlockVector.end());
@@ -636,22 +641,71 @@ namespace Gopherwood {
 
         }
 
-        std::vector<int> FileSystemImpl::evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector) {
+        void FileSystemImpl::deleteBlockFromSSD(char *fileName, const std::vector<int32_t> &blockIdVector) {
+            //1. set the shared memory
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                sharedMemoryManager->releaseBlock(blockIdVector[i]);
+            }
+
+            auto &status = fileStatusMap[fileName];
+
+
+            //2. release the block in the lru cache
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                int tmpBlockID = blockIdVector[i];
+                status->getLruCache()->deleteObject(tmpBlockID);
+            }
+        }
+
+
+        std::vector<int>
+        FileSystemImpl::evictBlock(char *fileName, std::unordered_map<int, std::string> blockStatusMap) {
 
             std::vector<int> noEvictBlockVector;
 
-            for (int i = 0; i < blockIdVector.size(); i++) {
+            for (const auto &blockStatus: blockStatusMap) {
                 //1. get the previous fileName of the block id
-                int tmpBlockID = blockIdVector[i];
-                string previousFileName = sharedMemoryManager->getFileNameAccordingBlockID(tmpBlockID);
+                int tmpBlockID = blockStatus.first;
+                std::string previousFileName = sharedMemoryManager->getFileNameAccordingBlockID(tmpBlockID);
                 LOG(INFO, "FileSystemImpl::evictBlock, previousFileName=%s", previousFileName.data());
 
                 //2. get the previous block index
-                int index = sharedMemoryManager->getBlockIDIndex(tmpBlockID);
-                index = index + 1;
+                int blockIndex = sharedMemoryManager->getBlockIDIndex(tmpBlockID);
+                blockIndex = blockIndex + 1;
+
+
+
+                //3. construct the fileNameInOSS in OSS
+                stringstream ss;
+                string fileNameInOSS;
+                fileNameInOSS.append(previousFileName.c_str(), strlen(previousFileName.c_str()));
+                int processPID = getpid();
+
+                //TODO, bacause the rename function in QingStor have not been implemented, so this time not add the processPID
+//                ss << fileNameInOSS << "-" << blockIndex << "-" << processPID;
+                ss << fileNameInOSS << "-" << blockIndex;
+                fileNameInOSS = ss.str();
+
+
+                LOG(INFO, "FileSystemImpl::evictBlock, fileNameInOSS=%s", fileNameInOSS.c_str());
+
+                LOG(INFO,
+                    "FileSystemImpl::evictBlock, previousFileName=%s, blockIndex=%d, processPID=%d, fileNameInOSS=%s",
+                    previousFileName.c_str(), blockIndex, processPID, fileNameInOSS.c_str());
 
                 //3. write data to oss;
-                writeDate2OSS((char *) previousFileName.c_str(), tmpBlockID, index);
+//                writeDate2OSS((char *) fileNameInOSS.c_str(), tmpBlockID);
+
+
+                /****************************TODO FOT TEST.**********************/
+                bool isExist = writeDate2OSSAndCheckIfExist((char *) fileNameInOSS.c_str(), tmpBlockID);
+                if (isExist) {
+                    LOG(INFO,
+                        "FileSystemImpl::evictBlock. the file have been exist in the OSS, so cancel what have done");
+                    noEvictBlockVector.push_back(tmpBlockID);
+                    continue;
+                }
+                /****************************TODO FOT TEST.**********************/
 
 
 
@@ -659,27 +713,28 @@ namespace Gopherwood {
                 //4.1 get lock
                 sharedMemoryManager->getLock();
 
-                //4.2 check the block type is right
-                bool isKick = sharedMemoryManager->isKickType(tmpBlockID);
+                //4.2 check the block status is right or not
+                std::string nowBlockStatus = sharedMemoryManager->getBlockStatus(tmpBlockID);
 
-                LOG(INFO, "FileSystemImpl::evictBlock. isKick = %d", isKick);
+                LOG(INFO, "FileSystemImpl::evictBlock. nowBlockStatus = %s, before blockStatus=%s",
+                    nowBlockStatus.c_str(), blockStatus.second.c_str());
 
-                if (!isKick) {
-                    LOG(INFO, "FileSystemImpl::evictBlock, is not Kickm, so cancel what have done before");
+                int isEqual = nowBlockStatus.compare(blockStatus.second);
+
+                if (isEqual != 0) {
+                    LOG(INFO, "FileSystemImpl::evictBlock, is not equal, so cancel what have done before");
                     //4.2.1 END OF THE TRANSACTION
                     sharedMemoryManager->releaseLock();
                     //4.2.2 return to the original condition
                     noEvictBlockVector.push_back(tmpBlockID);
 
                     //4.2.3. delete the oss
-                    string fileKey;
-                    fileKey = constructFileKey(previousFileName, index);
-                    qsReadWrite->qsDeleteObject(fileKey.c_str());
+                    qsReadWrite->qsDeleteObject((char *) fileNameInOSS.c_str());
                 } else {
                     //4.3.1 . write the previous file log
-                    LOG(INFO, "FileSystemImpl::evictBlock, before index = %d, do really job", index);
+                    LOG(INFO, "FileSystemImpl::evictBlock, before blockIndex = %d, do really job", blockIndex);
                     std::vector<int32_t> previousVector;
-                    previousVector.push_back(-index);
+                    previousVector.push_back(-blockIndex);
                     string previousRes = logFormat->serializeLog(previousVector, LogFormat::RecordType::remoteBlock);
                     writeFileStatusToLog((char *) previousFileName.c_str(), previousRes);
 
@@ -694,14 +749,30 @@ namespace Gopherwood {
 
 
                     //4.3.4 BUG FIX.  we should replace the last block when we evict it to the OSS.
+                    // this is in the same process
                     auto &status = fileStatusMap[fileName];
                     if (tmpBlockID == status->getLastBucket()) {
+
+                        int lastBucketIndex = getIndexAccordingBlockID(fileName, tmpBlockID);
+
+                        //1. update the last bucket
+                        status->setLastBucket(-(lastBucketIndex + 1));
+
+
                         LOG(INFO, "FileSystemImpl::evictBlock. change the last bucket ID, before = %d, after= %d.",
-                            status->getLastBucket(), -index);
-                        status->setLastBucket(-index);
+                            tmpBlockID, -(lastBucketIndex + 1));
+
+                        //2. update the block vector
+                        std::vector<int32_t> blockVector = status->getBlockIdVector();
+                        blockVector[lastBucketIndex] = -(lastBucketIndex + 1);
+                        status->setBlockIdVector(blockVector);
                     }
 
-                    //4.3.5  END OF THE TRANSACTION
+                    //4.3.5 rename the file in OSS
+                    //TODO IMPORTANT
+
+
+                    //4.3.6  END OF THE TRANSACTION
                     sharedMemoryManager->releaseLock();
                 }
 
@@ -710,22 +781,31 @@ namespace Gopherwood {
         }
 
 
-        std::string FileSystemImpl::constructFileKey(std::string str, int index) {
+        std::string FileSystemImpl::constructFileKey(std::string str, int blockIndex) {
             stringstream ss;
-            ss << str << "-" << index;
+            string resVal;
+            resVal.append(str.c_str(), strlen(str.c_str()));
+
+            ss << resVal << "-" << blockIndex;
             return ss.str();
         }
 
 
-        void FileSystemImpl::writeDate2OSS(char *fileName, int blockID, int index) {
-            //1. parpre qingstor context
-            string fileKey;
-            fileKey.append(fileName, strlen(fileName));
-            fileKey = constructFileKey(fileKey, index);
-            qsReadWrite->getPutObject((char *) fileKey.data());
+        //  TODO .FOR TEST. not use .tmp file in OSS .should be deleted
+        // TODO, just check if the file exist in OSS. do not write again.
+        bool FileSystemImpl::writeDate2OSSAndCheckIfExist(char *fileNameInOSS, int blockID) {
+            qingstorObject tmpGetObject = qsReadWrite->getGetObjectForTest(fileNameInOSS);
+            LOG(INFO, "FileSystemImpl::writeDate2OSS, tmpGetObject=%d", tmpGetObject);
 
-            LOG(INFO, "FileSystemImpl::writeDate2OSS, index = %d, fileKey = %s, blockID=%d", index, fileKey.data(),
-                blockID);
+            if (tmpGetObject) {
+                LOG(INFO, "FileSystemImpl::writeDate2OSS, the fileName which =%s  in OSS exist", fileNameInOSS);
+                return true;
+            }
+
+
+            qsReadWrite->getPutObject(fileNameInOSS);
+
+            LOG(INFO, "FileSystemImpl::writeDate2OSS, blockID=%d, fileNameInOSS=%s", blockID, fileNameInOSS);
 
 
             char *buffer = (char *) malloc(READ_BUFFER_SIZE * sizeof(char));
@@ -748,7 +828,45 @@ namespace Gopherwood {
                 if (readBytes <= 0) {
                     break;
                 }
-                qsReadWrite->qsWrite((char *) fileKey.data(), buffer, readBytes);
+                qsReadWrite->qsWrite(fileNameInOSS, buffer, readBytes);
+                baseOffsetInBucket += READ_BUFFER_SIZE;
+            }
+
+            //2. delete qingstor context
+            qsReadWrite->closePutObject();
+
+            return false;
+        }
+
+
+        void FileSystemImpl::writeDate2OSS(char *fileNameInOSS, int blockID) {
+
+            qsReadWrite->getPutObject(fileNameInOSS);
+
+            LOG(INFO, "FileSystemImpl::writeDate2OSS, blockID=%d, fileNameInOSS=%s", blockID, fileNameInOSS);
+
+
+            char *buffer = (char *) malloc(READ_BUFFER_SIZE * sizeof(char));
+            const int iter = (int) (SIZE_OF_BLOCK / READ_BUFFER_SIZE);
+
+            int64_t baseOffsetInBucket = blockID * SIZE_OF_BLOCK;
+
+
+            int j;
+            for (j = 0; j < iter; j++) {
+
+                //MAYBE THIS IS A BUG. use lock to ensure the data we want to read is exactly the offset we have been seek
+                sharedMemoryManager->getLock();
+                fsSeek(baseOffsetInBucket, SEEK_SET);
+                int64_t readBytes = readDataFromBucket(buffer, READ_BUFFER_SIZE);
+                sharedMemoryManager->releaseLock();
+
+                LOG(INFO, "FileSystemImpl::writeDate2OSS, readBytes = %d", readBytes);
+                LOG(INFO, "FileSystemImpl::writeDate2OSS, read buffer = %s", buffer);
+                if (readBytes <= 0) {
+                    break;
+                }
+                qsReadWrite->qsWrite(fileNameInOSS, buffer, readBytes);
                 baseOffsetInBucket += READ_BUFFER_SIZE;
             }
 
@@ -757,6 +875,7 @@ namespace Gopherwood {
         }
 
 
+        // start from 0
         int FileSystemImpl::getIndexAccordingBlockID(char *fileName, int blockID) {
 //            LOG(INFO, "FileSystemImpl::getIndexAccordingBlockID fileName=%s", fileName);
             auto &fileStatus = fileStatusMap[fileName];
@@ -935,6 +1054,7 @@ namespace Gopherwood {
             close(logFd);
         }
 
+        // delete the file status's log
         void FileSystemImpl::deleteFile(char *fileName) {
             char *filePathName = getFilePath(fileName);
             LOG(INFO, "FileSystemImpl::deleteFile. delete the file =%s", fileName);

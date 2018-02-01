@@ -64,7 +64,7 @@ namespace Gopherwood {
         }
 
         //  TODO .the file is logical deleted
-        int64_t QingStoreReadWrite::qsDeleteObject(const char *filename) {
+        int64_t QingStoreReadWrite::qsDeleteObject(char *filename) {
             LOG(INFO, "QingStoreReadWrite::qsDeleteObject. delete file with name = %s", filename);
             int res = qingstorDeleteObject(qsContext, bucket_name, filename);
             LOG(INFO, "QingStoreReadWrite::qsDeleteObject. delete res = %d", res);
@@ -79,6 +79,13 @@ namespace Gopherwood {
         void QingStoreReadWrite::getGetObject(char *filename) {
             getObject = qingstorGetObject(qsContext, bucket_name, filename, -1, -1);
         }
+
+        //  TODO .FOR TEST. not use .tmp file in OSS .should be deleted
+        qingstorObject QingStoreReadWrite::getGetObjectForTest(char *filename) {
+            qingstorObject tmpGetObject = qingstorGetObject(qsContext, bucket_name, filename, -1, -1);
+            return tmpGetObject;
+        }
+
 
         void QingStoreReadWrite::closePutObject() {
             qingstorCloseObject(qsContext, putObject);

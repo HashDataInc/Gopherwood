@@ -36,13 +36,15 @@ namespace Gopherwood {
             }
             status = filesystem->getFileStatus(fileName);
             //3. default seek to the end of the file
-            LOG(INFO, "OutputStreamImpl::OutputStreamImpl. getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",
+            LOG(INFO,
+                "OutputStreamImpl::OutputStreamImpl. getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",
                 status->getBlockIdVector().size(), status->getLastBucket(), status->getEndOffsetOfBucket());
             int64_t endOfOffset = filesystem->getTheEOFOffset(fileName);
             LOG(INFO, "OutputStreamImpl::OutputStreamImpl. endOfOffset = %d", endOfOffset);
 
             if (status->getBlockIdVector().size() == 0) {
-                LOG(INFO, "OutputStreamImpl::OutputStreamImpl. openFile do not seek, because the file do not contain any bucket");
+                LOG(INFO,
+                    "OutputStreamImpl::OutputStreamImpl. openFile do not seek, because the file do not contain any bucket");
                 //do nothing, because the file do not contain any bucket.
             } else {
                 seek(endOfOffset);

@@ -1,3 +1,4 @@
+#include <sstream>
 #include "SharedMemoryManager.h"
 #include "../util/Coding.h"
 
@@ -94,10 +95,11 @@ namespace Gopherwood {
                 smb = (smBucketStruct *) (mem + length);
                 char type = smb->type;
                 int blockIndex = smb->blockIndex;
+                char isKick = smb->isKick;
                 char fileName[256];
                 memcpy(fileName, smb->fileName, sizeof(fileName));
                 if (type != '0') {
-                    LOG(INFO, "type = %c, blockIndex = %d, fileName=%s", type, blockIndex, fileName);
+                    LOG(INFO, "type = %c, blockIndex = %d, fileName=%s, isKick=%c", type, blockIndex, fileName, isKick);
                 } else {
                     LOG(INFO, "type = %c, length = %d", type, length);
                 }
@@ -210,11 +212,11 @@ namespace Gopherwood {
         }
 
 
-        std::vector<int> SharedMemoryManager::getBlocksWhichTypeEqual2(int count) {
+        std::unordered_map<int, std::string> SharedMemoryManager::getBlocksWhichTypeEqual2(int count) {
 
             getLock();
 
-            std::vector<int> resVector;
+            std::unordered_map<int, std::string> blockStatusMap;
 
             int i = 0;
             int length = 1;
@@ -225,11 +227,27 @@ namespace Gopherwood {
             while (length < TOTAL_SHARED_MEMORY_LENGTH) {
                 smb = (smBucketStruct *) (mem + length);
                 char type = smb->type;
-                char isKic = smb->isKick;
-                if (type == '2' && isKic != '1') {
-                    resVector.push_back(i);
+                char isKick = smb->isKick;
+                if (type == '2' && isKick != '1') {
+                    //2. set the isKick='1'
                     smb->isKick = '1';
-                    if (resVector.size() >= count) {
+
+                    // 3. construct the block status
+                    char *fileName = smb->fileName;
+                    int blockIndex = smb->blockIndex;
+
+                    string blockStatus;
+                    blockStatus.append(fileName, strlen(fileName));
+
+                    stringstream ss;
+                    ss << blockStatus << "-" << blockIndex << "-" << type << "-1";
+                    blockStatusMap[i] = ss.str();
+
+                    LOG(INFO,
+                        "SharedMemoryManager::getBlocksWhichTypeEqual2. the bloclIO =%d, and the block status =%s", i,
+                        ss.str().c_str());
+
+                    if (blockStatusMap.size() >= count) {
                         break;
                     }
                 }
@@ -240,7 +258,7 @@ namespace Gopherwood {
             if (length >= TOTAL_SHARED_MEMORY_LENGTH) {
                 LOG(LOG_ERROR, "SharedMemoryManager::getBlocksWhichTypeEqual2. no enough room for the ssd bucket");
             }
-            return resVector;
+            return blockStatusMap;
         }
 
 
@@ -343,11 +361,11 @@ namespace Gopherwood {
         }
 
 
-        bool SharedMemoryManager::isKickType(int blockID) {
+        // BUG-FIX. do not have to get lock, because the outside of the function have acquire the block
 
-            LOG(INFO, "come in the SharedMemoryManager::isKickType");
-
+        std::string SharedMemoryManager::getBlockStatus(int blockID) {
             if (!checkBlockIDIsLegal(blockID)) {
+                LOG(LOG_ERROR, "SharedMemoryManager::getBlockStatus. the blockID=%d is not legal", blockID);
                 return NULL;
             }
 
@@ -357,8 +375,22 @@ namespace Gopherwood {
 
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
-            return (smb->type == '2') && (smb->isKick == '1');
 
+            // 3. construct the block status
+            char *fileName = smb->fileName;
+            int blockIndex = smb->blockIndex;
+            char type = smb->type;
+            char isKick = smb->isKick;
+
+            string blockStatus;
+            blockStatus.append(fileName, strlen(fileName));
+            stringstream ss;
+            ss << blockStatus << "-" << blockIndex << "-" << type << "-" << isKick;
+
+            LOG(INFO, "SharedMemoryManager::getBlockStatus. the blockID=%d, and the block status=%s.", blockID,
+                ss.str().c_str());
+
+            return ss.str();
         }
 
 
@@ -469,7 +501,7 @@ namespace Gopherwood {
 
 
         bool SharedMemoryManager::checkFileNameAndTypeAndSetKick(int blockID, string fileName) {
-            LOG(INFO,"SharedMemoryManager::checkFileNameAndTypeAndSetKick. come in here");
+            LOG(INFO, "SharedMemoryManager::checkFileNameAndTypeAndSetKick. come in here");
             if (!checkBlockIDIsLegal(blockID)) {
                 return NULL;
             }
@@ -492,6 +524,24 @@ namespace Gopherwood {
             memcpy(tmpName, smb->fileName, sizeof(smb->fileName));
             std::string previousFileName;
             previousFileName.append(tmpName, sizeof(smb->fileName));
+
+            //BUG-FIX. before, we want to only check the type == '2' or not. do not check the  isKick parameter,
+            // just because we want to use this block(pin this block) even if the block is evicting to OSS.
+            //however, it will cause error kile below:
+            /**
+                        process A                                           process B
+             t0                                                             acquire new block, (type,isKick):(2,0)->(2,1);
+             t1         find and pin the block. type:(2)->type:(1);
+             t2         inactive the block. type:(1)->(type,isKick):(2,0);
+             t3         acquire the block. (type,isKick):(2,0)->(2,1);
+             t4
+             t5                                                             check the sm block status is right. (type,isKick):(2,0)->(2,1);
+             t6                                                             commit the change;type,isKick):(1,*)
+             t7         find error;
+            **/
+
+            // Solution. still do not check the isKick, we solve the problem by recheck the block status(fileName, index,type)
+            // in the FileSystemImpl::evictBlock() method.
 
             if ((std::strcmp(fileName.data(), previousFileName.data()) == 0) && (type == '2')) {
                 smb->type = '1';

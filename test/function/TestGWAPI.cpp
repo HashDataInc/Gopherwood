@@ -11,7 +11,7 @@
 #include <sstream>
 #include <cstring>
 #include "gopherwood.h"
-#include "../../src/core/gopherwood.h"
+//#include "../../src/core/gopherwood.h"
 
 using namespace std;
 
@@ -98,6 +98,16 @@ void testGWRead(string fileName) {
 }
 
 
+void testGWDelete(string fileName) {
+    AccessFileType type = AccessFileType::randomType;
+    gopherwoodFS gwFS = gwCreateContext((char *) fileName.c_str());
+    gwFile file = gwOpenFile(gwFS, (char *) fileName.c_str(), O_RDONLY);
+    std::cout << "***********START OF DELETE**************" << std::endl;
+    deleteFile(gwFS, file);
+    std::cout << "***********END OF  DELETE**************" << std::endl;
+}
+
+
 int main(int agrInt, char **agrStr) {
 
     int count = 3;
@@ -110,31 +120,37 @@ int main(int agrInt, char **agrStr) {
 
     cout << "********main*******agrInt= " << agrInt << ", agrStr[1]= " << agrStr[1] << endl;
 
+    int timeCount = 10;
+
 
     if (strcmp(agrStr[1], "write-1") == 0) {
-        cout << "the argInt =1" << endl;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < timeCount; i++) {
             testGWWrite(fileNameArr[0]);
         }
-    } else if (strcmp(agrStr[1], "read-1") == 0) {
-        cout << "the argInt =2" << endl;
-        testGWRead(fileNameArr[0]);
     } else if (strcmp(agrStr[1], "write-2") == 0) {
-        cout << "the argInt =3" << endl;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < timeCount; i++) {
             testGWWrite(fileNameArr[1]);
         }
-    } else if (strcmp(agrStr[1], "read-2") == 0) {
-        cout << "the argInt =4" << endl;
-        testGWRead(fileNameArr[1]);
     } else if (strcmp(agrStr[1], "write-3") == 0) {
-        cout << "the argInt =5" << endl;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < timeCount; i++) {
             testGWWrite(fileNameArr[2]);
         }
+    }
+
+    else if (strcmp(agrStr[1], "read-1") == 0) {
+        testGWRead(fileNameArr[0]);
+    } else if (strcmp(agrStr[1], "read-2") == 0) {
+        testGWRead(fileNameArr[1]);
     } else if (strcmp(agrStr[1], "read-3") == 0) {
-        cout << "the argInt =6" << endl;
         testGWRead(fileNameArr[2]);
+    }
+
+    else if (strcmp(agrStr[1], "delete-1") == 0) {
+        testGWDelete(fileNameArr[0]);
+    } else if (strcmp(agrStr[1], "delete-2") == 0) {
+        testGWDelete(fileNameArr[1]);
+    } else if (strcmp(agrStr[1], "delete-3") == 0) {
+        testGWDelete(fileNameArr[2]);
     }
 
 

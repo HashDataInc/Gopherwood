@@ -41,11 +41,14 @@ namespace Gopherwood {
 
             void getGetObject(char *filename);
 
+            //  TODO .FOR TEST. not use .tmp file in OSS .should be deleted
+            qingstorObject getGetObjectForTest(char *filename);
+
             void closePutObject();
 
             void closeGetObject();
 
-            int64_t qsDeleteObject(const char *filename);
+            int64_t qsDeleteObject(char *filename);
 
         private:
 

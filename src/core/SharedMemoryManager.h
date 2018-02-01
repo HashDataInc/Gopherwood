@@ -97,7 +97,7 @@ namespace Gopherwood {
 
             int getBlockIDIndex(int blockID);
 
-            std::vector<int> getBlocksWhichTypeEqual2(int count);
+            std::unordered_map<int, std::string> getBlocksWhichTypeEqual2(int count);
 
             void printSMStatus();
 
@@ -107,7 +107,8 @@ namespace Gopherwood {
 
             bool checkFileNameAndTypeAndSetKick(int blockID, string fileName);
 
-            bool isKickType(int blockID);
+            std::string getBlockStatus(int blockID);
+
 
             void getLock();
 
