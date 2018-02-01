@@ -13,7 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include "qingstor/qingstor.h"
+#include "oss/oss.h"
+#include "oss/buffer.h"
 
 namespace Gopherwood {
     namespace Internal {
@@ -41,8 +42,6 @@ namespace Gopherwood {
 
             void getGetObject(char *filename);
 
-            //  TODO .FOR TEST. not use .tmp file in OSS .should be deleted
-            qingstorObject getGetObjectForTest(char *filename);
 
             void closePutObject();
 
@@ -50,6 +49,10 @@ namespace Gopherwood {
 
             int64_t qsDeleteObject(char *filename);
 
+            int renameObject(char *beforeFilename, char *afterFilename);
+
+
+            //TODO. should add the create bucket method.(first ,check wether the bucket exist or not? second, create it)
         private:
 
             const char *access_key_id = "CNQHLNCMKNSMQXMMTGVL";
@@ -57,11 +60,17 @@ namespace Gopherwood {
             const char *location = "pek3a";
             const char *bucket_name = "gopherwood";
 
-            int64_t file_nums = 16;
 
-            qingstorContext qsContext;
-            qingstorObject putObject;
-            qingstorObject getObject;
+//            char qs_ak[100] = {"CNQHLNCMKNSMQXMMTGVL"};
+//            char qs_sk[100] = {"RV9HRXHLpcBQe5cSqwZN7i2OBYpmvEO1wXpRugx7"};
+//            char qs_loc[20] = {"pek3a"};
+            int64_t write_buffer_size = 8 << 20;
+            int64_t read_buffer_size = 32 << 20;
+
+
+            context qsContext;
+            ossObject putObject;
+            ossObject getObject;
 
         };
 

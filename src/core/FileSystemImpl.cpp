@@ -502,9 +502,10 @@ namespace Gopherwood {
             assert(blockIDVector.size() == MIN_QUOTA_SIZE);
 
             //2.  write the new file status to Log.
-            string res = logFormat->serializeLog(blockIDVector, LogFormat::RecordType::acquireNewBlock);
-//            LOG(INFO, "8, LogFormat res size = %d", res.size());
-            writeFileStatusToLog(fileName, res);
+            if(blockIDVector.size()>0){
+                string res = logFormat->serializeLog(blockIDVector, LogFormat::RecordType::acquireNewBlock);
+                writeFileStatusToLog(fileName, res);
+            }
 
 
 
@@ -681,31 +682,24 @@ namespace Gopherwood {
                 fileNameInOSS.append(previousFileName.c_str(), strlen(previousFileName.c_str()));
                 int processPID = getpid();
 
-                //TODO, bacause the rename function in QingStor have not been implemented, so this time not add the processPID
-//                ss << fileNameInOSS << "-" << blockIndex << "-" << processPID;
                 ss << fileNameInOSS << "-" << blockIndex;
                 fileNameInOSS = ss.str();
 
 
-                LOG(INFO, "FileSystemImpl::evictBlock, fileNameInOSS=%s", fileNameInOSS.c_str());
+                ss << fileNameInOSS << "-" << processPID;
+                string fileNameInOSStmp = ss.str();;
+
+                LOG(INFO, "FileSystemImpl::evictBlock, fileNameInOSS=%s, fileNameInOSStmp=%s.", fileNameInOSS.c_str(),
+                    fileNameInOSStmp.c_str());
 
                 LOG(INFO,
                     "FileSystemImpl::evictBlock, previousFileName=%s, blockIndex=%d, processPID=%d, fileNameInOSS=%s",
                     previousFileName.c_str(), blockIndex, processPID, fileNameInOSS.c_str());
 
                 //3. write data to oss;
-//                writeDate2OSS((char *) fileNameInOSS.c_str(), tmpBlockID);
+                writeDate2OSS((char *) fileNameInOSStmp.c_str(), tmpBlockID);
 
 
-                /****************************TODO FOT TEST.**********************/
-                bool isExist = writeDate2OSSAndCheckIfExist((char *) fileNameInOSS.c_str(), tmpBlockID);
-                if (isExist) {
-                    LOG(INFO,
-                        "FileSystemImpl::evictBlock. the file have been exist in the OSS, so cancel what have done");
-                    noEvictBlockVector.push_back(tmpBlockID);
-                    continue;
-                }
-                /****************************TODO FOT TEST.**********************/
 
 
 
@@ -729,7 +723,7 @@ namespace Gopherwood {
                     noEvictBlockVector.push_back(tmpBlockID);
 
                     //4.2.3. delete the oss
-                    qsReadWrite->qsDeleteObject((char *) fileNameInOSS.c_str());
+                    qsReadWrite->qsDeleteObject((char *) fileNameInOSStmp.c_str());
                 } else {
                     //4.3.1 . write the previous file log
                     LOG(INFO, "FileSystemImpl::evictBlock, before blockIndex = %d, do really job", blockIndex);
@@ -771,6 +765,7 @@ namespace Gopherwood {
 
                     //4.3.5 rename the file in OSS
                     //TODO IMPORTANT
+                    qsReadWrite->renameObject((char *) fileNameInOSStmp.c_str(), (char *) fileNameInOSS.c_str());
 
 
                     //4.3.6  END OF THE TRANSACTION
@@ -789,54 +784,6 @@ namespace Gopherwood {
 
             ss << resVal << "-" << blockIndex;
             return ss.str();
-        }
-
-
-        //  TODO .FOR TEST. not use .tmp file in OSS .should be deleted
-        // TODO, just check if the file exist in OSS. do not write again.
-        bool FileSystemImpl::writeDate2OSSAndCheckIfExist(char *fileNameInOSS, int blockID) {
-            qingstorObject tmpGetObject = qsReadWrite->getGetObjectForTest(fileNameInOSS);
-            LOG(INFO, "FileSystemImpl::writeDate2OSS, tmpGetObject=%d", tmpGetObject);
-
-            if (tmpGetObject) {
-                LOG(INFO, "FileSystemImpl::writeDate2OSS, the fileName which =%s  in OSS exist", fileNameInOSS);
-                return true;
-            }
-
-
-            qsReadWrite->getPutObject(fileNameInOSS);
-
-            LOG(INFO, "FileSystemImpl::writeDate2OSS, blockID=%d, fileNameInOSS=%s", blockID, fileNameInOSS);
-
-
-            char *buffer = (char *) malloc(READ_BUFFER_SIZE * sizeof(char));
-            const int iter = (int) (SIZE_OF_BLOCK / READ_BUFFER_SIZE);
-
-            int64_t baseOffsetInBucket = blockID * SIZE_OF_BLOCK;
-
-
-            int j;
-            for (j = 0; j < iter; j++) {
-
-                //MAYBE THIS IS A BUG. use lock to ensure the data we want to read is exactly the offset we have been seek
-                sharedMemoryManager->getLock();
-                fsSeek(baseOffsetInBucket, SEEK_SET);
-                int64_t readBytes = readDataFromBucket(buffer, READ_BUFFER_SIZE);
-                sharedMemoryManager->releaseLock();
-
-                LOG(INFO, "FileSystemImpl::writeDate2OSS, readBytes = %d", readBytes);
-                LOG(INFO, "FileSystemImpl::writeDate2OSS, read buffer = %s", buffer);
-                if (readBytes <= 0) {
-                    break;
-                }
-                qsReadWrite->qsWrite(fileNameInOSS, buffer, readBytes);
-                baseOffsetInBucket += READ_BUFFER_SIZE;
-            }
-
-            //2. delete qingstor context
-            qsReadWrite->closePutObject();
-
-            return false;
         }
 
 

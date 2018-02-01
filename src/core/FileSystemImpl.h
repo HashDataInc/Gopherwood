@@ -63,9 +63,6 @@ namespace Gopherwood {
             void deleteBlockFromOSS(int64_t ossindex, string fileName);
 
 
-            //  TODO .FOR TEST. not use .tmp file in OSS .should be deleted
-            bool writeDate2OSSAndCheckIfExist(char *fileNameInOSS, int blockID);
-
 
             // TODO JUST FOT TEST
             void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
