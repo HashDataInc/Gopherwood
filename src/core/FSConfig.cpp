@@ -29,7 +29,7 @@ namespace Gopherwood {
         int32_t READ_BUFFER_SIZE = SIZE_OF_BLOCK / 4;
         int WRITE_BUFFER_SIZE = 8 * 1024 * 1024;
 
-        int MAX_PROCESS = 5;//maximum number of processes running at the same time.
+        int MAX_PROCESS = 3;//maximum number of processes running at the same time.
         int MAX_QUOTA_SIZE =NUMBER_OF_BLOCKS/MAX_PROCESS;
     }
 

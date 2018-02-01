@@ -751,7 +751,8 @@ namespace Gopherwood {
                     //4.3.4 BUG FIX.  we should replace the last block when we evict it to the OSS.
                     // this is in the same process
                     auto &status = fileStatusMap[fileName];
-                    if (tmpBlockID == status->getLastBucket()) {
+                    if ((std::strcmp(previousFileName.c_str(), fileName) == 0) &&
+                        (tmpBlockID == status->getLastBucket())) {
 
                         int lastBucketIndex = getIndexAccordingBlockID(fileName, tmpBlockID);
 
