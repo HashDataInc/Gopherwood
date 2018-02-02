@@ -63,7 +63,6 @@ namespace Gopherwood {
             void deleteBlockFromOSS(int64_t ossindex, string fileName);
 
 
-
             // TODO JUST FOT TEST
             void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
@@ -135,6 +134,8 @@ namespace Gopherwood {
             void closeFile(char *fileName);
 
             void stopSystem();
+
+            void releaseOrInactiveLRUCache(char *fileName);
 
             std::shared_ptr<FileStatus> getFileStatus(char *fileName);
 

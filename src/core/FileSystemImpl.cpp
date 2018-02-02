@@ -925,11 +925,8 @@ namespace Gopherwood {
             qsReadWrite->destroyContext();
         }
 
-        //TODO, flush, write log and so on
-        void FileSystemImpl::closeFile(char *fileName) {
+        void FileSystemImpl::releaseOrInactiveLRUCache(char *fileName){
             auto &status = fileStatusMap[fileName];
-
-            // 1. get the full lru cache, inactive it or release it
             std::vector<int32_t> lruBlockVector = status->getLruCache()->getAllKeyObject();
             if (lruBlockVector.size() > 0) {
                 // BUG-FIX. in the lru cache. the block ID maybe empty or full. so should be checked first.
@@ -958,6 +955,15 @@ namespace Gopherwood {
                 //release the empty block
                 releaseBlock(fileName, emptyBlockVector);
             }
+        }
+
+
+
+        //TODO, flush, write log and so on
+        void FileSystemImpl::closeFile(char *fileName) {
+
+            // 1. get the full lru cache, inactive it or release it
+            releaseOrInactiveLRUCache(fileName);
 
 
             //4. write the close status to log
@@ -985,6 +991,8 @@ namespace Gopherwood {
                 logFormat->deserializeLog(logRecord, rebuildFileStatus);
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
+
+            auto &status = fileStatusMap[fileName];
             rebuildFileStatus->setEndOffsetOfBucket(status->getEndOffsetOfBucket());
 
             LOG(INFO, "FileSystemImpl::closeFile out read length = %d", length);
@@ -999,9 +1007,21 @@ namespace Gopherwood {
 
         // delete the file status's log
         void FileSystemImpl::deleteFile(char *fileName) {
+            // 1. get the full lru cache, inactive it or release it
+            releaseOrInactiveLRUCache(fileName);
+
+
+
             char *filePathName = getFilePath(fileName);
             LOG(INFO, "FileSystemImpl::deleteFile. delete the file =%s", fileName);
             remove(filePathName);
+
+            //**************TODO JUST FOR TEST, NEET TO BE DELETED********************************
+            LOG(INFO, "FileSystemImpl::deleteFile. 1. in the end the  shared memory status is :");
+            sharedMemoryManager->printSMStatus();
+            LOG(INFO, "FileSystemImpl::deleteFile. 2. in the end the  shared memory status is :");
+            //**************TODO JUST FOR TEST, NEET TO BE DELETED********************************
+
         }
 
 
