@@ -313,6 +313,7 @@ namespace Gopherwood {
             LOG(INFO, "OutputStreamImpl::seekToNextBlock before. cursorBucketID=%d, last bucket id =%d ",
                 cursorBucketID, status->getLastBucket());
             status->setLastBucket(cursorBucketID);
+            status->setLastBucketIndex(cursorIndex);
             LOG(INFO, "OutputStreamImpl::seekToNextBlock after. cursorBucketID=%d, last bucket id = %d", cursorBucketID,
                 status->getLastBucket());
 
