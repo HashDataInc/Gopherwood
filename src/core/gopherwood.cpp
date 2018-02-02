@@ -84,7 +84,7 @@ public:
     }
 
     InputStream &getInputStream() {
-        if (!input&&!inputAndOutput) {
+        if (!input && !inputAndOutput) {
             THROW(Gopherwood::GopherwoodException,
                   "Internal error: file was not opened for read.");
         }
@@ -97,7 +97,7 @@ public:
     }
 
     OutputStream &getOutputStream() {
-        if (!output&&!inputAndOutput) {
+        if (!output && !inputAndOutput) {
             THROW(Gopherwood::GopherwoodException,
                   "Internal error: file was not opened for write.");
         }
@@ -324,7 +324,7 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
             } else if (file->isOutput()) {
                 file->getOutputStream().close();
             } else {
-                file->getInputStream().close();
+                //BUG-FIX. just one close is enough, because they share the same FileSystem object
                 file->getOutputStream().close();
             }
             delete file;
@@ -353,6 +353,7 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
 //                file->getOutputStream().deleteFile();
             } else {
                 //TODO, need think more
+                //BUG-FIX. just one close is enough, because they share the same FileSystem object
                 file->getInputStream().deleteFile();
             }
             delete file;

@@ -502,7 +502,7 @@ namespace Gopherwood {
             assert(blockIDVector.size() == MIN_QUOTA_SIZE);
 
             //2.  write the new file status to Log.
-            if(blockIDVector.size()>0){
+            if (blockIDVector.size() > 0) {
                 string res = logFormat->serializeLog(blockIDVector, LogFormat::RecordType::acquireNewBlock);
                 writeFileStatusToLog(fileName, res);
             }
@@ -686,7 +686,7 @@ namespace Gopherwood {
                 fileNameInOSS = ss.str();
 
 
-                ss << fileNameInOSS << "-" << processPID;
+                ss << "-" << processPID;
                 string fileNameInOSStmp = ss.str();;
 
                 LOG(INFO, "FileSystemImpl::evictBlock, fileNameInOSS=%s, fileNameInOSStmp=%s.", fileNameInOSS.c_str(),
@@ -926,44 +926,36 @@ namespace Gopherwood {
         void FileSystemImpl::closeFile(char *fileName) {
             auto &status = fileStatusMap[fileName];
 
-            //2. release the empty block
-            std::vector<int32_t> blockVector = status->getBlockIdVector();
-            int lastBucket = status->getLastBucket();
-            LOG(INFO, "FileSystemImpl::closeFile. lastBucket = %d,blockVector.size= %d", lastBucket,
-                blockVector.size());
-            int i = 0;
-            for (; i < blockVector.size(); i++) {
-                if (lastBucket == blockVector[i]) {
-                    LOG(INFO, "FileSystemImpl::closeFile. i=%d", i);
-                    i++;
-                    break;
+            // 1. get the full lru cache, inactive it or release it
+            std::vector<int32_t> lruBlockVector = status->getLruCache()->getAllKeyObject();
+            if (lruBlockVector.size() > 0) {
+                // BUG-FIX. in the lru cache. the block ID maybe empty or full. so should be checked first.
+                std::vector<int32_t> emptyBlockVector;
+                std::vector<int32_t> fullBlockVector;
+                int lastBlockIndex = getIndexAccordingBlockID(fileName, status->getLastBucket());
+                for (int j = 0; j < lruBlockVector.size(); j++) {
+                    int tmpBlockID = lruBlockVector[j];
+                    int index = getIndexAccordingBlockID(fileName, tmpBlockID);
+                    if (index > lastBlockIndex) {
+                        emptyBlockVector.push_back(tmpBlockID);
+                        LOG(INFO,
+                            "FileSystemImpl::closeFile. the evict block is empty, and the blockID =%d, lastBlock =%d.",
+                            tmpBlockID, status->getLastBucket());
+                    } else {
+                        fullBlockVector.push_back(tmpBlockID);
+                        LOG(INFO,
+                            "FileSystemImpl::closeFile. the evict block is full, and the blockID =%d, lastBlock =%d.",
+                            tmpBlockID, status->getLastBucket());
+                    }
                 }
-            }
 
-            std::vector<int32_t> emptyBlockVector;
-            if (i < blockVector.size()) {
-                LOG(INFO, "FileSystemImpl::closeFile come in IF STATEMENT the file");
-                for (; i < blockVector.size(); i++) {
-                    LOG(INFO, "FileSystemImpl::closeFile come in second IF STATEMENT");
-                    emptyBlockVector.push_back(blockVector[i]);
-                }
+                // inactive the full block ID
+                inactiveBlock(fileName, fullBlockVector);
+
+                //release the empty block
                 releaseBlock(fileName, emptyBlockVector);
             }
 
-
-            //3. BUG FIX. if the ping block have been release, this block should not be inactive
-            //add by houliang: however, the releaseBlock method have been update the lru cache
-
-
-            //4. set the shared memory, inactive the block
-            std::vector<int> remainCacheBlockVector = status->getLruCache()->getAllKeyObject();
-            for (int i = 0; i < remainCacheBlockVector.size(); i++) {
-                if (remainCacheBlockVector[i] >= 0) {
-                    int blockID = remainCacheBlockVector[i];
-                    int index = getIndexAccordingBlockID(fileName, blockID);
-                    sharedMemoryManager->inactiveBlock(blockID, index);
-                }
-            }
 
             //4. write the close status to log
 
