@@ -54,7 +54,7 @@ namespace Gopherwood {
             string ossFileName = constructFileKey(fileName, ossindex + 1);
             qsReadWrite->getGetObject((char *) ossFileName.data());
 
-            // 1. get the block which can write and seek to the begin of the block.
+            // 1. get the block which can write, and seek to the begin of the block.
             int blockID = getOneBlockForWrite(ossindex, fileName);
             auto &status = fileStatusMap[fileName];
 
@@ -594,9 +594,10 @@ namespace Gopherwood {
             }
 
             //3.  write the new file status to Log.
-            string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::inactiveBlock);
-            writeFileStatusToLog(fileName, res);
-
+            if(blockIdVector.size()>0){
+                string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::inactiveBlock);
+                writeFileStatusToLog(fileName, res);
+            }
         }
 
         std::vector<int32_t>
@@ -637,8 +638,10 @@ namespace Gopherwood {
             }
 
             //5.  write the new file status to Log.
-            string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::releaseBlock);
-            writeFileStatusToLog(fileName, res);
+            if(blockIdVector.size()>0){
+                string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::releaseBlock);
+                writeFileStatusToLog(fileName, res);
+            }
 
         }
 
