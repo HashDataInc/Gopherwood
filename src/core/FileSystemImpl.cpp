@@ -349,8 +349,10 @@ namespace Gopherwood {
 
             //7. set the last bucket
             int lastBucketIndex = fileStatusMap[fileName]->getLastBucketIndex();
-            std::vector<int32_t> blockIDVector = fileStatusMap[fileName]->getBlockIdVector();
+            std::vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
             if (lastBucketIndex < blockIDVector.size()) {
+                LOG(INFO, "FileSystemImpl::catchUpFileStatusFromLog. the lastBlockIndex=%d, and the lastBlockID=%d",
+                    lastBucketIndex, blockIDVector[lastBucketIndex]);
                 fileStatus->setLastBucket(blockIDVector[lastBucketIndex]);
             } else {
                 LOG(LOG_ERROR,
