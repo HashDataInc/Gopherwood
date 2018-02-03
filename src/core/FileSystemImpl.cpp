@@ -251,7 +251,6 @@ namespace Gopherwood {
                     LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog. lastBlockID >= 0 and return true ");
                     //5.1 change the shared memory .NO NEED, BECAUSE checkFileNameAndTypeAndSetKick(), have been done
 
-
                     //5.2 add to the lru cache
 //                    pingBlockVector.push_back(lastBlockID);
                     fileStatus->getLruCache()->put(lastBlockID, lastBlockID);
@@ -561,7 +560,6 @@ namespace Gopherwood {
 
                 std::vector<int> noEvictBlockVector = evictBlock(fileName, remainBlockStatusMap);
 
-
                 //TODO FOR TEST***************
                 LOG(INFO, "FileSystemImpl::acquireNewBlock after 1 file status");
                 sharedMemoryManager->printSMStatus();
@@ -693,7 +691,6 @@ namespace Gopherwood {
                 blockIndex = blockIndex + 1;
 
 
-
                 //3. construct the fileNameInOSS in OSS
                 stringstream ss;
                 string fileNameInOSS;
@@ -735,6 +732,7 @@ namespace Gopherwood {
 
                 if (isEqual != 0) {
                     LOG(INFO, "FileSystemImpl::evictBlock, is not equal, so cancel what have done before");
+
                     //4.2.1 END OF THE TRANSACTION
                     sharedMemoryManager->releaseLock();
                     //4.2.2 return to the original condition
@@ -788,6 +786,7 @@ namespace Gopherwood {
 
 
                     //4.3.6  END OF THE TRANSACTION
+
                     sharedMemoryManager->releaseLock();
                 }
 
@@ -1091,7 +1090,11 @@ namespace Gopherwood {
 
 
             //read data from the block id lists without change the cache
-            readTotalDataFromFile(fileStatus);
+//            readTotalDataFromFile(fileStatus);
+
+
+            //read random data from file without change the cache.
+            readTotalRandomDataFromFile(fileStatus);
 
 
             //read random data from file without change the cache.
@@ -1168,6 +1171,7 @@ namespace Gopherwood {
                         readBuf = new char[SIZE];
                         endOfBucketOffset -= readData;
                         readOffset += readData;
+
                     }
 
                 } else {
@@ -1204,6 +1208,7 @@ namespace Gopherwood {
                         int64_t readData = readDataFromBucket(readBuf, SIZE);
                         sharedMemoryManager->releaseLock();
 
+
                         LOG(INFO, "7. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. j=%d, readBuf=%s",
                             j,
                             readBuf);
@@ -1239,7 +1244,6 @@ namespace Gopherwood {
                 readDataFromFileAccordingToBlockID(blockID, fileStatus, suffixName);
             }
         }
-
         //TODO ,JUST FOR TEST
         void FileSystemImpl::readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus) {
             vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();

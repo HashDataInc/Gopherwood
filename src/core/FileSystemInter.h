@@ -151,7 +151,6 @@ namespace Gopherwood {
 
             virtual void deleteBlockFromOSS(int64_t ossindex, string fileName) = 0;
 
-
         };
 
     }

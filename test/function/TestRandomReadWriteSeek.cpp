@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ///**
 // * User: Houliang Qi
 // * Date: 1/17/18

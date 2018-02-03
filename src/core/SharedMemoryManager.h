@@ -99,6 +99,7 @@ namespace Gopherwood {
 
             std::unordered_map<int, std::string> getBlocksWhichTypeEqual2(int count);
 
+
             void printSMStatus();
 
             char getBlockType(int blockID);
