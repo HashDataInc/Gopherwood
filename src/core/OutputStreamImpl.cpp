@@ -231,7 +231,7 @@ namespace Gopherwood {
         }
 
         void OutputStreamImpl::checkStatus(int64_t pos) {
-            if (status->getBlockIdVector().size() == 0) {
+            while (status->getBlockIdVector().size() == 0) {
                 LOG(INFO, "checkStatus, the file do not contain any bucket, so create new one for write");
                 filesystem->acquireNewBlock((char *) fileName.data());
             }

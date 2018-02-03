@@ -1,59 +1,59 @@
-///**
-// * User: neuyilan@163.com
-// * Date: 12/14/17
-// * Time: 11:21 AM
-// */
-//
-//
-//#ifndef _TEST_GOPHERWOOD_PREFIX_TestReadWriteSeek_
-//#define _TEST_GOPHERWOOD_PREFIX_TestReadWriteSeek_ "./"
-//
-//
-//#include "gtest/gtest.h"
-//#include "../../src/core/FileSystemInter.h"
-//#include "../../src/core/FileSystem.h"
-//#include "../../src/core/OutputStreamImpl.h"
-//#include "../../src/core/InputStreamImpl.h"
-//
-//using namespace Gopherwood;
-//using namespace Gopherwood::Internal;
-//
-//class TestReadWriteSeek : public ::testing::Test {
-//public:
-//
-//    TestReadWriteSeek() {
-//        printf("Default Constructor of TestReadWriteSeek");
-//    }
-//
-//    ~TestReadWriteSeek() {
-//        printf("Default DeConstructor of TestReadWriteSeek");
-//    }
-//
-//
-//    void writeUtil(char *fileName, char *buf, int size) {
-//        std::ofstream ostrm(fileName, std::ios::out | std::ios::app);
-//        ostrm.write(buf, size);
-//    }
-//
-//
-//    int readUtil(char *fileName, char *buf, int size) {
-//        cout << "************** in the readUtil*************" << endl;
-//        std::ifstream istrm(fileName, std::ios::in);
-//        istrm.read(buf, size);
-//        int readLength = istrm.gcount();
-//        cout << "readLength = " << readLength << endl;
-//        return readLength;
-//    }
-//
-//protected:
-//    std::shared_ptr<FileSystemInter> filesystem;
-//    std::shared_ptr<OutputStreamInter> osiImpl;
-//    std::shared_ptr<InputStreamInter> isImpl;
-//};
-//
-//
-//
-//
+/**
+ * User: neuyilan@163.com
+ * Date: 12/14/17
+ * Time: 11:21 AM
+ */
+
+
+#ifndef _TEST_GOPHERWOOD_PREFIX_TestReadWriteSeek_
+#define _TEST_GOPHERWOOD_PREFIX_TestReadWriteSeek_ "./"
+#endif
+
+#include "gtest/gtest.h"
+#include "../../src/core/FileSystemInter.h"
+#include "../../src/core/FileSystem.h"
+#include "../../src/core/OutputStreamImpl.h"
+#include "../../src/core/InputStreamImpl.h"
+
+using namespace Gopherwood;
+using namespace Gopherwood::Internal;
+
+class TestReadWriteSeek : public ::testing::Test {
+public:
+
+    TestReadWriteSeek() {
+        printf("Default Constructor of TestReadWriteSeek");
+    }
+
+    ~TestReadWriteSeek() {
+        printf("Default DeConstructor of TestReadWriteSeek");
+    }
+
+
+    void writeUtil(char *fileName, char *buf, int size) {
+        std::ofstream ostrm(fileName, std::ios::out | std::ios::app);
+        ostrm.write(buf, size);
+    }
+
+
+    int readUtil(char *fileName, char *buf, int size) {
+        cout << "************** in the readUtil*************" << endl;
+        std::ifstream istrm(fileName, std::ios::in);
+        istrm.read(buf, size);
+        int readLength = istrm.gcount();
+        cout << "readLength = " << readLength << endl;
+        return readLength;
+    }
+
+protected:
+    std::shared_ptr<FileSystemInter> filesystem;
+    std::shared_ptr<OutputStreamInter> osiImpl;
+    std::shared_ptr<InputStreamInter> isImpl;
+};
+
+
+
+
 ////TEST_F(TestReadWriteSeek, WriteAcquireNewBlock) {
 ////    char *fileName = "TestReadWriteSeek-WriteAcquireNewBlock";
 ////    int flag = O_RDWR;
@@ -580,11 +580,6 @@ TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
 }
 
 
-
-
-
-
-
 /**
 //read test with cache
 TEST_F(TestReadWriteSeek, CloseReadBlockWithCache) {
@@ -659,4 +654,3 @@ int main(int argc, char **argv) {
     return RUN_ALL_TESTS();
 }
 
-#endif

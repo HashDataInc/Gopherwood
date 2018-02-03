@@ -1096,12 +1096,8 @@ namespace Gopherwood {
             close(logFd);
 
 
-            //read data from the block id lists without change the cache
-//            readTotalDataFromFile(fileStatus);
-
-
-            //read random data from file without change the cache.
-            readTotalRandomDataFromFile(fileStatus);
+//            read data from the block id lists without change the cache
+            readTotalDataFromFile(fileStatus);
 
 
             //read random data from file without change the cache.
