@@ -1,4 +1,5 @@
 #include <sstream>
+
 #include "FileSystemImpl.h"
 #include "../util/Coding.h"
 
@@ -41,38 +42,50 @@ namespace Gopherwood {
         }
 
 
+        void FileSystemImpl::deleteBlockFromOSS(int64_t ossindex, string fileName) {
+            string ossFileName = constructFileKey(fileName, ossindex + 1);
+            qsReadWrite->qsDeleteObject((char *) ossFileName.c_str());
+        }
+
+
         //TODO ******************************
         void FileSystemImpl::writeDataFromOSS2Bucket(int64_t ossindex, string fileName) {
             //1. prapre qingstor context
             string ossFileName = constructFileKey(fileName, ossindex + 1);
             qsReadWrite->getGetObject((char *) ossFileName.data());
 
-            // 1. get the block which can write and seek to the begin of the block.
+            // 1. get the block which can write, and seek to the begin of the block.
             int blockID = getOneBlockForWrite(ossindex, fileName);
             auto &status = fileStatusMap[fileName];
 
             int64_t totalOffset = blockID * SIZE_OF_BLOCK;
 
-            fsSeek(totalOffset, SEEK_SET);
 
             LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. blockID=%d,", blockID);
             //2. read data from OSS, and write the data to bucket.
             char buf[SIZE_OF_BLOCK / 8];
             int64_t readLength = qsReadWrite->qsRead((char *) ossFileName.data(), buf, sizeof(buf));
             while (readLength > 0) {
-                writeDataToBucket(buf, readLength);
-                totalOffset += readLength;
+                LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. readLength=%d, buf = %s", readLength, buf);
+
+                //1. get the lock
+                sharedMemoryManager->getLock();
                 fsSeek(totalOffset, SEEK_SET);
+                writeDataToBucket(buf, readLength);
+                sharedMemoryManager->releaseLock();
+                //2. release the lock
+
+                totalOffset += readLength;
+
 
                 readLength = qsReadWrite->qsRead((char *) ossFileName.data(), buf, sizeof(buf));
 
-//                LOG(INFO, "FileSystemImpl::writeDataFromOSS2Bucket. readLength=%d,", readLength);
             }
 
             qsReadWrite->closeGetObject();
 
             //3. delete the data in oss.
-            qsReadWrite->qsDeleteObject(ossFileName.c_str());
+            qsReadWrite->qsDeleteObject((char *) ossFileName.c_str());
 
             //4. write replace log, delete it because it have been writen to log in the acquire block logs.
             // we use this block to replace the one block in OSS
@@ -96,32 +109,52 @@ namespace Gopherwood {
             LOG(INFO, "FileSystemImpl::getOneBlockForWrite, the last blockID=%d", blockID);
 
             // 1. get one block which type='0', this is the last bucket's next block
-            int index = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
-            LOG(INFO, "FileSystemImpl::getOneBlockForWrite, before index  = %d,status->getBlockIdVector().size()=%d",
-                index, status->getBlockIdVector().size());
+            int nextBlockIndex = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
+            LOG(INFO,
+                "FileSystemImpl::getOneBlockForWrite, before nextBlockIndex  = %d,status->getBlockIdVector().size()=%d",
+                nextBlockIndex, status->getBlockIdVector().size());
 
-            while (index >= status->getBlockIdVector().size()) {
-                acquireNewBlock((char *) fileName.data());
-                index = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
+
+            //2. check the newBlockID is pin or not
+            vector<int32_t> blockIDVector = status->getBlockIdVector();
+            int newBlockID = blockIDVector[nextBlockIndex];
+            bool isExist = status->getLruCache()->exists(newBlockID);;
+
+
+            while (!(nextBlockIndex < status->getBlockIdVector().size() && isExist)) {
                 LOG(LOG_ERROR,
                     "FileSystemImpl::getOneBlockForWrite, ACQUIRE ZERO BLOCKS, SO ACQUIRE AGAIN UNTIL GET ONE");
+                acquireNewBlock((char *) fileName.data());
+
+                // 3. regain the last block id
+                blockID = status->getLastBucket();
+                nextBlockIndex = getIndexAccordingBlockID((char *) fileName.data(), blockID) + 1;
+
+                LOG(INFO,
+                    "FileSystemImpl::getOneBlockForWrite, nextBlockIndex  = %d,status->getBlockIdVector().size()=%d",
+                    nextBlockIndex, status->getBlockIdVector().size());
+
+                // 4. recheck the newBlockID is pin or not
+                blockIDVector = status->getBlockIdVector();
+
+                LOG(INFO, "FileSystemImpl::getOneBlockForWrite, blockIDVector size  = %d", blockIDVector.size());
+
+                newBlockID = blockIDVector[nextBlockIndex];
+                isExist = status->getLruCache()->exists(newBlockID);
+                LOG(INFO, "FileSystemImpl::getOneBlockForWrite, isExist  = %d,newBlockID=%d", isExist, newBlockID);
+
+
             }
-            LOG(INFO, "FileSystemImpl::getOneBlockForWrite, after index  = %d, status->getBlockIdVector().size()=%d",
-                index, status->getBlockIdVector().size());
+            LOG(INFO,
+                "FileSystemImpl::getOneBlockForWrite, after nextBlockIndex  = %d, status->getBlockIdVector().size()=%d",
+                nextBlockIndex, status->getBlockIdVector().size());
 
 
-            vector<int32_t> blockIDVector = status->getBlockIdVector();
-            int newBlockID = blockIDVector[index];
+
             /******************TODO FOR TEST****************************/
             for (int i = 0; i < blockIDVector.size(); i++) {
                 LOG(INFO, "FileSystemImpl::getOneBlockForWrite, before blockIDVector[i] = %d,", blockIDVector[i]);
             }
-
-            for (int i = 0; i < status->getPingIDVector().size(); i++) {
-                LOG(INFO, "FileSystemImpl::getOneBlockForWrite, before ping blockIDVector[i] = %d,",
-                    status->getPingIDVector()[i]);
-            }
-
             /******************TODO FOR TEST****************************/
 
 
@@ -130,6 +163,7 @@ namespace Gopherwood {
             int tmpBlockID = -(ossindex + 1);
             if (status->getLastBucket() == tmpBlockID) {
                 status->setLastBucket(newBlockID);
+                status->setLastBucketIndex(nextBlockIndex);
                 LOG(INFO,
                     "FileSystemImpl::getOneBlockForWrite. the negative blockID is the last block ID, so replace it");
             }
@@ -139,8 +173,11 @@ namespace Gopherwood {
             blockIDVector[ossindex] = newBlockID;
 
 
-            //4.delete it from block id vector
-            blockIDVector.erase(blockIDVector.begin() + index);
+            //4. change the lru cache
+            status->getLruCache()->put(newBlockID, newBlockID);
+
+            //5.delete it from block id vector
+            blockIDVector.erase(blockIDVector.begin() + nextBlockIndex);
             status->setBlockIdVector(blockIDVector);
 
 
@@ -149,10 +186,7 @@ namespace Gopherwood {
                 LOG(INFO, "FileSystemImpl::getOneBlockForWrite, after blockIDVector[i] = %d,", blockIDVector[i]);
             }
 
-            for (int i = 0; i < status->getPingIDVector().size(); i++) {
-                LOG(INFO, "FileSystemImpl::getOneBlockForWrite, after ping blockIDVector[i] = %d,",
-                    status->getPingIDVector()[i]);
-            }
+            status->getLruCache()->printLruCache();
             /******************TODO FOR TEST****************************/
 
 
@@ -198,7 +232,7 @@ namespace Gopherwood {
             close(logFd);
 
 
-            std::vector<int32_t> pingBlockVector;
+//            std::vector<int32_t> pingBlockVector;
             int quotaCount = 0;
 
             int blockIDSize = fileStatus->getBlockIdVector().size();
@@ -209,6 +243,7 @@ namespace Gopherwood {
 
                 //4. set the last bucket
                 fileStatus->setLastBucket(lastBlockID);
+                fileStatus->setLastBucketIndex(blockIDSize - 1);
 
                 //5. add the last bucket to ping block if its not in the OSS
                 if (lastBlockID >= 0 && sharedMemoryManager->checkFileNameAndTypeAndSetKick(lastBlockID, fileName)) {
@@ -216,9 +251,9 @@ namespace Gopherwood {
                     LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog. lastBlockID >= 0 and return true ");
                     //5.1 change the shared memory .NO NEED, BECAUSE checkFileNameAndTypeAndSetKick(), have been done
 
-
-                    //5.2 add to the ping block vector
-                    pingBlockVector.push_back(lastBlockID);
+                    //5.2 add to the lru cache
+//                    pingBlockVector.push_back(lastBlockID);
+                    fileStatus->getLruCache()->put(lastBlockID, lastBlockID);
                     quotaCount++;
                 }
 
@@ -226,7 +261,7 @@ namespace Gopherwood {
 
             //3. set ping block vector
             int blockIndex = 0;
-            while ((blockIndex < blockIDSize) && (quotaCount < QUOTA_SIZE)) {
+            while ((blockIndex < blockIDSize) && (quotaCount < MIN_QUOTA_SIZE)) {
                 int tmpBlockID = fileStatus->getBlockIdVector()[blockIndex];
                 int lastBlockID = fileStatus->getLastBucket();
                 if ((tmpBlockID >= 0) && (tmpBlockID != lastBlockID) &&
@@ -235,13 +270,14 @@ namespace Gopherwood {
 
                     LOG(INFO, "FileSystemImpl::rebuildFileStatusFromLog. tmpBlockID >= 0 and return true ");
 
-                    //3.2 add to the ping block vector
-                    pingBlockVector.push_back(tmpBlockID);
+                    //3.2 add to the  lru cache
+                    fileStatus->getLruCache()->put(tmpBlockID, tmpBlockID);
+//                    pingBlockVector.push_back(tmpBlockID);
                     quotaCount++;
                 }
                 blockIndex++;
             }
-            fileStatus->setPingIDVector(pingBlockVector);
+//            fileStatus->setPingIDVector(pingBlockVector);
 
 
             //4. set the fileName
@@ -305,12 +341,30 @@ namespace Gopherwood {
 
             LOG(INFO, "FileSystemImpl::catchUpFileStatusFromLog out read length = %d", readLength);
 
-            //5. replace the fileStatus in fileStatusMap
-            vector<int32_t> pingBlockVector = fileStatusMap[fileName]->getPingIDVector();
-            fileStatus->setPingIDVector(pingBlockVector);
-            fileStatus->setLastBucket(fileStatusMap[fileName]->getLastBucket());
+            //5. set the lru cache
+            fileStatus->setLruCache(fileStatusMap[fileName]->getLruCache());
+
+            //6. set the fileType
+            fileStatus->setAccessFileType(fileStatusMap[fileName]->getAccessFileType());
+
+            //7. set the last bucket
+            int lastBucketIndex = fileStatusMap[fileName]->getLastBucketIndex();
+            std::vector<int32_t> blockIDVector = fileStatusMap[fileName]->getBlockIdVector();
+            if (lastBucketIndex < blockIDVector.size()) {
+                fileStatus->setLastBucket(blockIDVector[lastBucketIndex]);
+            } else {
+                LOG(LOG_ERROR,
+                    "FileSystemImpl::catchUpFileStatusFromLog. the last bucket index=%d is larger than the blockIDVector size=%d",
+                    lastBucketIndex, blockIDVector.size());
+            }
+
+            //8. set the end of the offset
             fileStatus->setEndOffsetOfBucket(fileStatusMap[fileName]->getEndOffsetOfBucket());
+
+            //9. replace the fileStatus in fileStatusMap
             fileStatusMap[fileName] = fileStatus;
+
+
         }
 
         bool FileSystemImpl::checkFileExist(char *fileName) {
@@ -346,8 +400,14 @@ namespace Gopherwood {
                 if (itElement != previousVector.end()) {
                     int position = distance(previousVector.begin(), itElement);
                     previousVector[position] = -(position + 1);
-                }
 
+                    //BUG-FIX. this will change the last bucket. eg. if the blockIDToCheck is the last bucket before,
+                    // so when check the block, we should also check the block is the last block or not.
+                    if (blockIDToCheck == status->getLastBucket()) {
+                        status->setLastBucket(-(position + 1));
+                        status->setLastBucketIndex(position);
+                    }
+                }
                 previousVector.push_back(blockIDToCheck);
             }
             status->setBlockIdVector(previousVector);
@@ -368,6 +428,11 @@ namespace Gopherwood {
         }
 
 
+        // DELETE. NOT NEED ANYMORE?   this code is tuning the ping block vector's sequence is the same as the block id's sequence.
+        //for example, the block list id is 0,-2,-3,-4,1,2. and at the same time the ping block id vector is 2,0 and we tune it to 0,2
+        // but in the lru model ,this code can be deleted.
+
+        /**
         void FileSystemImpl::updatePingBlockIDOrder(char *fileName) {
             auto &status = fileStatusMap[fileName];
             std::vector<int32_t> previousPingVector = status->getPingIDVector();
@@ -385,63 +450,58 @@ namespace Gopherwood {
             status->setPingIDVector(newPingVector);
 
 
-            /******************************TODO FOR PRINT********************/
+            //******************************TODO FOR PRINT********************
             LOG(INFO, "FileSystemImpl::updatePingBlockIDOrder, ping block vector size = %d,",
                 status->getPingIDVector().size());
             for (int i = 0; i < status->getPingIDVector().size(); i++) {
                 LOG(INFO, "FileSystemImpl::updatePingBlockIDOrder, ping block id = %d,", status->getPingIDVector()[i]);
             }
-            /******************************TODO FOR PRINT********************/
+            //******************************TODO FOR PRINT********************
         }
+         **/
 
 
         void FileSystemImpl::checkAndAddPingBlockID(char *fileName, std::vector<int32_t> blockIDVector) {
 
-            //1. update the ping vector's order
-            updatePingBlockIDOrder(fileName);
-
-
-            //2. get the inactive blocks
+            //1. add the ping block id to the lru cache
             auto &status = fileStatusMap[fileName];
-            std::vector<int32_t> previousPingVector = status->getPingIDVector();
-            std::vector<int32_t> newPingVector;
-            std::vector<int32_t> inactiveBlockVector;
+            for (int i = 0; i < blockIDVector.size(); i++) {
+                int tmpBlockID = blockIDVector[i];
+                //1.1 update the lru cache
+                std::vector<int32_t> inactiveBlockVector = status->getLruCache()->put(tmpBlockID, tmpBlockID);
 
-            LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID previousPingVector size = %d", previousPingVector.size());
 
-            int index = 0;
-            for (; index < previousPingVector.size(); index++) {
-                if (previousPingVector[index] == status->getLastBucket()) {
-                    break;
-                } else {
-                    LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID inactive block id = %d",
-                        previousPingVector[index]);
-                    inactiveBlockVector.push_back(previousPingVector[index]);
+                //2. set this blocks in shared memory block to inactive.
+                if (inactiveBlockVector.size() > 0) {
 
+                    // BUG-FIX. in the lru cache. the block ID maybe empty or full. so should be checked first.
+
+                    std::vector<int32_t> emptyBlockVector;
+                    std::vector<int32_t> fullBlockVector;
+                    int lastBlockIndex = getIndexAccordingBlockID(fileName, status->getLastBucket());
+                    for (int j = 0; j < inactiveBlockVector.size(); j++) {
+                        int tmpBlockID = inactiveBlockVector[j];
+                        int index = getIndexAccordingBlockID(fileName, tmpBlockID);
+                        if (index > lastBlockIndex) {
+                            emptyBlockVector.push_back(tmpBlockID);
+                            LOG(INFO,
+                                "FileSystemImpl::checkAndAddPingBlockID. the evict block is empty, and the blockID =%d, lastBlock =%d.",
+                                tmpBlockID, status->getLastBucket());
+                        } else {
+                            fullBlockVector.push_back(tmpBlockID);
+                            LOG(INFO,
+                                "FileSystemImpl::checkAndAddPingBlockID. the evict block is full, and the blockID =%d, lastBlock =%d.",
+                                tmpBlockID, status->getLastBucket());
+                        }
+                    }
+
+                    // inactive the full block ID
+                    inactiveBlock(fileName, fullBlockVector);
+
+                    //release the empty block
+                    releaseBlock(fileName, emptyBlockVector);
                 }
             }
-
-            //3. set this blocks in shared memory block to inactive.
-            inactiveBlock(fileName, inactiveBlockVector);
-
-            //4. set the new ping block vector
-            for (; index < previousPingVector.size(); index++) {
-                LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID remain active  block id = %d",
-                    previousPingVector[index]);
-                newPingVector.push_back(previousPingVector[index]);
-            }
-            newPingVector.insert(newPingVector.end(), blockIDVector.begin(), blockIDVector.end());
-            status->setPingIDVector(newPingVector);
-
-            /************************TODO FOR TEST*******************/
-            for (int i = 0; i < status->getPingIDVector().size(); i++) {
-                LOG(INFO, "FileSystemImpl::checkAndAddPingBlockID in the end the active  block id = %d",
-                    status->getPingIDVector()[i]);
-            }
-            /************************TODO FOR TEST*******************/
-
-
-
         }
 
 
@@ -452,12 +512,13 @@ namespace Gopherwood {
             if (blockIDVector.size() == 0) {
                 LOG(LOG_ERROR, "FileSystemImpl::acquireNewBlock, do not have blocks which type='0' ");
             }
-            assert(blockIDVector.size() == QUOTA_SIZE);
+            assert(blockIDVector.size() == MIN_QUOTA_SIZE);
 
             //2.  write the new file status to Log.
-            string res = logFormat->serializeLog(blockIDVector, LogFormat::RecordType::acquireNewBlock);
-//            LOG(INFO, "8, LogFormat res size = %d", res.size());
-            writeFileStatusToLog(fileName, res);
+            if (blockIDVector.size() > 0) {
+                string res = logFormat->serializeLog(blockIDVector, LogFormat::RecordType::acquireNewBlock);
+                writeFileStatusToLog(fileName, res);
+            }
 
 
 
@@ -468,20 +529,21 @@ namespace Gopherwood {
             //TODO FOR TEST***************
 
             //3. check the block vector size is enough or not, if not,see the shared memory's type =2, and acquire more blocks
-            if (blockIDVector.size() < QUOTA_SIZE) {
-                int remainNeedBlocks = QUOTA_SIZE - blockIDVector.size();
-                std::vector<int32_t> remainBlockVector = sharedMemoryManager->getBlocksWhichTypeEqual2(
+            if (blockIDVector.size() < MIN_QUOTA_SIZE) {
+                int remainNeedBlocks = MIN_QUOTA_SIZE - blockIDVector.size();
+
+                std::unordered_map<int, std::string> remainBlockStatusMap = sharedMemoryManager->getBlocksWhichTypeEqual2(
                         remainNeedBlocks);
-                int totalSize = remainBlockVector.size() + blockIDVector.size();
+                int totalSize = remainBlockStatusMap.size() + blockIDVector.size();
 
                 LOG(INFO, "FileSystemImpl::acquireNewBlock, acquire %d blocks which type = '2' ",
-                    remainBlockVector.size());
+                    remainBlockStatusMap.size());
 
                 if (totalSize == 0) {
                     LOG(LOG_ERROR, "FileSystemImpl::acquireNewBlock, acquire blocks fail, do not acquire any blocks");
                 }
 
-                if (totalSize < QUOTA_SIZE) {
+                if (totalSize < MIN_QUOTA_SIZE) {
                     LOG(LOG_ERROR,
                         "FileSystemImpl::acquireNewBlock, do not have enough blocks, only get %d number of blocks",
                         totalSize);
@@ -496,8 +558,7 @@ namespace Gopherwood {
                 LOG(INFO, "FileSystemImpl::acquireNewBlock middle 2 file status");
                 //TODO FOR TEST***************
 
-                std::vector<int> noEvictBlockVector = evictBlock(fileName, remainBlockVector);
-
+                std::vector<int> noEvictBlockVector = evictBlock(fileName, remainBlockStatusMap);
 
                 //TODO FOR TEST***************
                 LOG(INFO, "FileSystemImpl::acquireNewBlock after 1 file status");
@@ -506,6 +567,10 @@ namespace Gopherwood {
                 //TODO FOR TEST***************
 
 
+                std::vector<int> remainBlockVector;
+                for (const auto &blockStatus: remainBlockStatusMap) {
+                    remainBlockVector.push_back(blockStatus.first);
+                }
                 std::vector<int> newRemainBlockVector = deleteVector(remainBlockVector, noEvictBlockVector);
 
                 blockIDVector.insert(blockIDVector.end(), newRemainBlockVector.begin(), newRemainBlockVector.end());
@@ -518,6 +583,7 @@ namespace Gopherwood {
                 LOG(INFO,
                     "this is the first time acquire the new block, so set the last bucket to the first block id that acquired");
                 status->setLastBucket(blockIDVector[0]);
+                status->setLastBucketIndex(0);
             }
 
             //5. check and add the new acquired block id
@@ -529,7 +595,6 @@ namespace Gopherwood {
             for (int i = 0; i < blockIDVector.size(); i++) {
                 LOG(INFO, "the acquired id block list index = %d, blockID = %d ", i, blockIDVector[i]);
             }
-
         }
 
 
@@ -541,16 +606,11 @@ namespace Gopherwood {
                 sharedMemoryManager->inactiveBlock(blockIdVector[i], index);
             }
 
-            //2. change the ping block list
-            auto &status = fileStatusMap[fileName];
-            vector<int32_t> vecPrevious = status->getPingIDVector();
-            vector<int32_t> val = deleteVector(vecPrevious, blockIdVector);
-            status->setPingIDVector(val);
-
             //3.  write the new file status to Log.
-            string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::inactiveBlock);
-            writeFileStatusToLog(fileName, res);
-
+            if (blockIdVector.size() > 0) {
+                string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::inactiveBlock);
+                writeFileStatusToLog(fileName, res);
+            }
         }
 
         std::vector<int32_t>
@@ -584,33 +644,77 @@ namespace Gopherwood {
             status->setBlockIdVector(resVector);
 
 
-            //4. release the block in the pingIDVector
-            vector<int32_t> vecBeforePing = status->getPingIDVector();
-            vector<int32_t> resPing = deleteVector(vecBeforePing, blockIdVector);
-            status->setPingIDVector(resPing);
+            //4. release the block in the lru cache
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                int tmpBlockID = blockIdVector[i];
+                status->getLruCache()->deleteObject(tmpBlockID);
+            }
 
             //5.  write the new file status to Log.
-            string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::releaseBlock);
-            writeFileStatusToLog(fileName, res);
+            if (blockIdVector.size() > 0) {
+                string res = logFormat->serializeLog(blockIdVector, LogFormat::RecordType::releaseBlock);
+                writeFileStatusToLog(fileName, res);
+            }
 
         }
 
-        std::vector<int> FileSystemImpl::evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector) {
+        void FileSystemImpl::deleteBlockFromSSD(char *fileName, const std::vector<int32_t> &blockIdVector) {
+            //1. set the shared memory
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                sharedMemoryManager->releaseBlock(blockIdVector[i]);
+            }
+
+            auto &status = fileStatusMap[fileName];
+
+
+            //2. release the block in the lru cache
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                int tmpBlockID = blockIdVector[i];
+                status->getLruCache()->deleteObject(tmpBlockID);
+            }
+        }
+
+
+        std::vector<int>
+        FileSystemImpl::evictBlock(char *fileName, std::unordered_map<int, std::string> blockStatusMap) {
 
             std::vector<int> noEvictBlockVector;
 
-            for (int i = 0; i < blockIdVector.size(); i++) {
+            for (const auto &blockStatus: blockStatusMap) {
                 //1. get the previous fileName of the block id
-                int tmpBlockID = blockIdVector[i];
-                string previousFileName = sharedMemoryManager->getFileNameAccordingBlockID(tmpBlockID);
+                int tmpBlockID = blockStatus.first;
+                std::string previousFileName = sharedMemoryManager->getFileNameAccordingBlockID(tmpBlockID);
                 LOG(INFO, "FileSystemImpl::evictBlock, previousFileName=%s", previousFileName.data());
 
                 //2. get the previous block index
-                int index = sharedMemoryManager->getBlockIDIndex(tmpBlockID);
-                index = index + 1;
+                int blockIndex = sharedMemoryManager->getBlockIDIndex(tmpBlockID);
+                blockIndex = blockIndex + 1;
+
+
+                //3. construct the fileNameInOSS in OSS
+                stringstream ss;
+                string fileNameInOSS;
+                fileNameInOSS.append(previousFileName.c_str(), strlen(previousFileName.c_str()));
+                int processPID = getpid();
+
+                ss << fileNameInOSS << "-" << blockIndex;
+                fileNameInOSS = ss.str();
+
+
+                ss << "-" << processPID;
+                string fileNameInOSStmp = ss.str();;
+
+                LOG(INFO, "FileSystemImpl::evictBlock, fileNameInOSS=%s, fileNameInOSStmp=%s.", fileNameInOSS.c_str(),
+                    fileNameInOSStmp.c_str());
+
+                LOG(INFO,
+                    "FileSystemImpl::evictBlock, previousFileName=%s, blockIndex=%d, processPID=%d, fileNameInOSS=%s",
+                    previousFileName.c_str(), blockIndex, processPID, fileNameInOSS.c_str());
 
                 //3. write data to oss;
-                writeDate2OSS((char *) previousFileName.c_str(), tmpBlockID, index);
+                writeDate2OSS((char *) fileNameInOSStmp.c_str(), tmpBlockID);
+
+
 
 
 
@@ -618,27 +722,38 @@ namespace Gopherwood {
                 //4.1 get lock
                 sharedMemoryManager->getLock();
 
-                //4.2 check the block type is right
-                bool isKick = sharedMemoryManager->isKickType(tmpBlockID);
+                //4.2 check the block status is right or not
+                std::string nowBlockStatus = sharedMemoryManager->getBlockStatus(tmpBlockID);
 
-                LOG(INFO, "FileSystemImpl::evictBlock. isKick = %d", isKick);
+                LOG(INFO, "FileSystemImpl::evictBlock. nowBlockStatus = %s, before blockStatus=%s",
+                    nowBlockStatus.c_str(), blockStatus.second.c_str());
 
-                if (!isKick) {
-                    LOG(INFO, "FileSystemImpl::evictBlock, is not Kickm, so cancel what have done before");
+                int isEqual = nowBlockStatus.compare(blockStatus.second);
+
+                if (isEqual != 0) {
+                    LOG(INFO, "FileSystemImpl::evictBlock, is not equal, so cancel what have done before");
+
                     //4.2.1 END OF THE TRANSACTION
                     sharedMemoryManager->releaseLock();
                     //4.2.2 return to the original condition
                     noEvictBlockVector.push_back(tmpBlockID);
 
                     //4.2.3. delete the oss
-                    string fileKey;
-                    fileKey = constructFileKey(previousFileName, index);
-                    qsReadWrite->qsDeleteObject(fileKey.c_str());
+                    qsReadWrite->qsDeleteObject((char *) fileNameInOSStmp.c_str());
                 } else {
+
+                    //4.3.5 rename the file in OSS
+                    //BUG-FIX. should first rename the oss file, and then write the log.
+                    //because. suppose this process is A and A is evict B's block.
+                    // if A first write the log, then B can read the log, and knows that the file is in the oss
+                    // however, the rename() operation have been completed. so when B read it from OSS. it will not see the file, so get failure.
+                    qsReadWrite->renameObject((char *) fileNameInOSStmp.c_str(), (char *) fileNameInOSS.c_str());
+
+
                     //4.3.1 . write the previous file log
-                    LOG(INFO, "FileSystemImpl::evictBlock, before index = %d, do really job", index);
+                    LOG(INFO, "FileSystemImpl::evictBlock, before blockIndex = %d, do really job", blockIndex);
                     std::vector<int32_t> previousVector;
-                    previousVector.push_back(-index);
+                    previousVector.push_back(-blockIndex);
                     string previousRes = logFormat->serializeLog(previousVector, LogFormat::RecordType::remoteBlock);
                     writeFileStatusToLog((char *) previousFileName.c_str(), previousRes);
 
@@ -652,7 +767,33 @@ namespace Gopherwood {
                     writeFileStatusToLog(fileName, res);
 
 
-                    //4.3.4  END OF THE TRANSACTION
+                    //4.3.4 BUG FIX.  we should replace the last block when we evict it to the OSS.
+                    // this is in the same process
+                    auto &status = fileStatusMap[fileName];
+                    if ((std::strcmp(previousFileName.c_str(), fileName) == 0) &&
+                        (tmpBlockID == status->getLastBucket())) {
+
+                        int lastBucketIndex = getIndexAccordingBlockID(fileName, tmpBlockID);
+
+                        //1. update the last bucket
+                        status->setLastBucket(-(lastBucketIndex + 1));
+                        status->setLastBucketIndex(lastBucketIndex);
+
+
+                        LOG(INFO, "FileSystemImpl::evictBlock. change the last bucket ID, before = %d, after= %d.",
+                            tmpBlockID, -(lastBucketIndex + 1));
+
+                        //2. update the block vector
+                        std::vector<int32_t> blockVector = status->getBlockIdVector();
+                        blockVector[lastBucketIndex] = -(lastBucketIndex + 1);
+                        status->setBlockIdVector(blockVector);
+                    }
+
+
+
+
+                    //4.3.6  END OF THE TRANSACTION
+
                     sharedMemoryManager->releaseLock();
                 }
 
@@ -661,40 +802,45 @@ namespace Gopherwood {
         }
 
 
-        std::string FileSystemImpl::constructFileKey(std::string str, int index) {
+        std::string FileSystemImpl::constructFileKey(std::string str, int blockIndex) {
             stringstream ss;
-            ss << str << "-" << index;
+            string resVal;
+            resVal.append(str.c_str(), strlen(str.c_str()));
+
+            ss << resVal << "-" << blockIndex;
             return ss.str();
         }
 
 
-        void FileSystemImpl::writeDate2OSS(char *fileName, int blockID, int index) {
-            //1. parpre qingstor context
-            string fileKey;
-            fileKey.append(fileName, strlen(fileName));
-            fileKey = constructFileKey(fileKey, index);
-            qsReadWrite->getPutObject((char *) fileKey.data());
+        void FileSystemImpl::writeDate2OSS(char *fileNameInOSS, int blockID) {
 
-            LOG(INFO, "FileSystemImpl::writeDate2OSS, index = %d, fileKey = %s, blockID=%d", index, fileKey.data(),
-                blockID);
+            qsReadWrite->getPutObject(fileNameInOSS);
+
+            LOG(INFO, "FileSystemImpl::writeDate2OSS, blockID=%d, fileNameInOSS=%s", blockID, fileNameInOSS);
 
 
             char *buffer = (char *) malloc(READ_BUFFER_SIZE * sizeof(char));
             const int iter = (int) (SIZE_OF_BLOCK / READ_BUFFER_SIZE);
 
             int64_t baseOffsetInBucket = blockID * SIZE_OF_BLOCK;
-            fsSeek(baseOffsetInBucket, SEEK_SET);
+
 
             int j;
             for (j = 0; j < iter; j++) {
+
+                //MAYBE THIS IS A BUG. use lock to ensure the data we want to read is exactly the offset we have been seek
+                sharedMemoryManager->getLock();
+                fsSeek(baseOffsetInBucket, SEEK_SET);
                 int64_t readBytes = readDataFromBucket(buffer, READ_BUFFER_SIZE);
+                sharedMemoryManager->releaseLock();
+
                 LOG(INFO, "FileSystemImpl::writeDate2OSS, readBytes = %d", readBytes);
+                LOG(INFO, "FileSystemImpl::writeDate2OSS, read buffer = %s", buffer);
                 if (readBytes <= 0) {
                     break;
                 }
-                qsReadWrite->qsWrite((char *) fileKey.data(), buffer, readBytes);
+                qsReadWrite->qsWrite(fileNameInOSS, buffer, readBytes);
                 baseOffsetInBucket += READ_BUFFER_SIZE;
-                fsSeek(baseOffsetInBucket, SEEK_SET);
             }
 
             //2. delete qingstor context
@@ -702,6 +848,7 @@ namespace Gopherwood {
         }
 
 
+        // start from 0
         int FileSystemImpl::getIndexAccordingBlockID(char *fileName, int blockID) {
 //            LOG(INFO, "FileSystemImpl::getIndexAccordingBlockID fileName=%s", fileName);
             auto &fileStatus = fileStatusMap[fileName];
@@ -721,7 +868,6 @@ namespace Gopherwood {
 
         int64_t FileSystemImpl::getTheEOFOffset(const char *fileName) {
             vector<int32_t> blockIDVector = fileStatusMap[fileName]->getBlockIdVector();
-
             int32_t lastBucket = fileStatusMap[fileName]->getLastBucket();
             int64_t endOffsetOfBucket = fileStatusMap[fileName]->getEndOffsetOfBucket();
 
@@ -781,6 +927,14 @@ namespace Gopherwood {
         }
 
 
+        void FileSystemImpl::getLock() {
+            sharedMemoryManager->getLock();
+        }
+
+        void FileSystemImpl::releaseLock() {
+            sharedMemoryManager->releaseLock();
+        }
+
         void FileSystemImpl::closeBucketFile() {
             close(bucketFd);
         }
@@ -793,48 +947,45 @@ namespace Gopherwood {
             qsReadWrite->destroyContext();
         }
 
-        //TODO, flush, write log and so on
-        void FileSystemImpl::closeFile(char *fileName) {
+        void FileSystemImpl::releaseOrInactiveLRUCache(char *fileName) {
             auto &status = fileStatusMap[fileName];
-
-            //2. release the empty block
-            std::vector<int32_t> blockVector = status->getBlockIdVector();
-            int lastBucket = status->getLastBucket();
-            LOG(INFO, "FileSystemImpl::closeFile. lastBucket = %d,blockVector.size= %d", lastBucket,
-                blockVector.size());
-            int i = 0;
-            for (; i < blockVector.size(); i++) {
-                if (lastBucket == blockVector[i]) {
-                    LOG(INFO, "FileSystemImpl::closeFile. i=%d", i);
-                    i++;
-                    break;
+            std::vector<int32_t> lruBlockVector = status->getLruCache()->getAllKeyObject();
+            if (lruBlockVector.size() > 0) {
+                // BUG-FIX. in the lru cache. the block ID maybe empty or full. so should be checked first.
+                std::vector<int32_t> emptyBlockVector;
+                std::vector<int32_t> fullBlockVector;
+                int lastBlockIndex = getIndexAccordingBlockID(fileName, status->getLastBucket());
+                for (int j = 0; j < lruBlockVector.size(); j++) {
+                    int tmpBlockID = lruBlockVector[j];
+                    int index = getIndexAccordingBlockID(fileName, tmpBlockID);
+                    if (index > lastBlockIndex) {
+                        emptyBlockVector.push_back(tmpBlockID);
+                        LOG(INFO,
+                            "FileSystemImpl::closeFile. the evict block is empty, and the blockID =%d, lastBlock =%d.",
+                            tmpBlockID, status->getLastBucket());
+                    } else {
+                        fullBlockVector.push_back(tmpBlockID);
+                        LOG(INFO,
+                            "FileSystemImpl::closeFile. the evict block is full, and the blockID =%d, lastBlock =%d.",
+                            tmpBlockID, status->getLastBucket());
+                    }
                 }
-            }
 
-            std::vector<int32_t> emptyBlockVector;
-            if (i < blockVector.size()) {
-                LOG(INFO, "FileSystemImpl::closeFile come in IF STATEMENT the file");
-                for (; i < blockVector.size(); i++) {
-                    LOG(INFO, "FileSystemImpl::closeFile come in second IF STATEMENT");
-                    emptyBlockVector.push_back(blockVector[i]);
-                }
+                // inactive the full block ID
+                inactiveBlock(fileName, fullBlockVector);
+
+                //release the empty block
                 releaseBlock(fileName, emptyBlockVector);
             }
+        }
 
 
-            //3. BUG FIX. if the ping block have been release, this block should not be inactive
-            std::vector<int32_t> pingBlockIDVector = status->getPingIDVector();
-            std::vector<int32_t> newPingBlockVector = deleteVector(pingBlockIDVector, emptyBlockVector);
+        //TODO, flush, write log and so on
+        void FileSystemImpl::closeFile(char *fileName) {
 
+            // 1. get the full lru cache, inactive it or release it
+            releaseOrInactiveLRUCache(fileName);
 
-            //4. set the shared memory, inactive the block
-            for (int i = 0; i < newPingBlockVector.size(); i++) {
-                if (newPingBlockVector[i] >= 0) {
-                    int blockID = newPingBlockVector[i];
-                    int index = getIndexAccordingBlockID(fileName, blockID);
-                    sharedMemoryManager->inactiveBlock(blockID, index);
-                }
-            }
 
             //4. write the close status to log
 
@@ -861,6 +1012,8 @@ namespace Gopherwood {
                 logFormat->deserializeLog(logRecord, rebuildFileStatus);
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
+
+            auto &status = fileStatusMap[fileName];
             rebuildFileStatus->setEndOffsetOfBucket(status->getEndOffsetOfBucket());
 
             LOG(INFO, "FileSystemImpl::closeFile out read length = %d", length);
@@ -871,6 +1024,24 @@ namespace Gopherwood {
             lseek(logFd, 0, SEEK_SET);
             int writeSize = write(logFd, res.data(), res.size());
             close(logFd);
+        }
+
+        // delete the file status's log
+        void FileSystemImpl::deleteFile(char *fileName) {
+            // 1. get the full lru cache, inactive it or release it
+            releaseOrInactiveLRUCache(fileName);
+
+
+            char *filePathName = getFilePath(fileName);
+            LOG(INFO, "FileSystemImpl::deleteFile. delete the file =%s", fileName);
+            remove(filePathName);
+
+            //**************TODO JUST FOR TEST, NEET TO BE DELETED********************************
+            LOG(INFO, "FileSystemImpl::deleteFile. 1. in the end the  shared memory status is :");
+            sharedMemoryManager->printSMStatus();
+            LOG(INFO, "FileSystemImpl::deleteFile. 2. in the end the  shared memory status is :");
+            //**************TODO JUST FOR TEST, NEET TO BE DELETED********************************
+
         }
 
 
@@ -898,13 +1069,24 @@ namespace Gopherwood {
                 logFormat->deserializeLog(logRecord, fileStatus);
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
+
+            //1. set the file name
             fileStatus->setFileName(fileName);
+
+            //2. set the last bucket
+            int blockVectorSize = fileStatus->getBlockIdVector().size();
+            if (blockVectorSize > 0) {
+                fileStatus->setLastBucket(fileStatus->getBlockIdVector()[blockVectorSize - 1]);
+                fileStatus->setLastBucketIndex(blockVectorSize - 1);
+            }
 
             LOG(INFO,
                 "*********************** in the end, before the close File Status*********************************");
             int64_t endOffsetOfBucket = fileStatus->getEndOffsetOfBucket();
             vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();
-            LOG(INFO, "endOffsetOfBucket=%d,blockIDVector.size=  %d", endOffsetOfBucket, blockIDVector.size());
+            LOG(INFO,
+                "FileSystemImpl::readCloseFileStatus. the lastBucket=%d, endOffsetOfBucket=%d,blockIDVector.size=  %d",
+                fileStatus->getLastBucket(), endOffsetOfBucket, blockIDVector.size());
             for (int i = 0; i < blockIDVector.size(); i++) {
                 LOG(INFO, " block id = %d", blockIDVector[i]);
             }
@@ -920,6 +1102,10 @@ namespace Gopherwood {
 
             //read random data from file without change the cache.
             readTotalRandomDataFromFile(fileStatus);
+
+
+            //read random data from file without change the cache.
+//            readTotalRandomDataFromFile(fileStatus);
 
         }
 
@@ -975,17 +1161,24 @@ namespace Gopherwood {
                 int64_t endOfBucketOffset = fileStatus->getEndOffsetOfBucket();
 
                 if (blockID >= 0) {
-                    fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+
+                    int64_t readOffset = blockID * SIZE_OF_BLOCK;
                     while (endOfBucketOffset > 0) {
                         int64_t leftData = SIZE <= endOfBucketOffset ? SIZE : endOfBucketOffset;
                         LOG(INFO,
                             "4. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. leftData=%d,endOfBucketOffset=%d",
                             leftData, endOfBucketOffset);
 
+                        sharedMemoryManager->getLock();
+                        fsSeek(readOffset, SEEK_SET);
                         int64_t readData = readDataFromBucket(readBuf, leftData);
+                        sharedMemoryManager->releaseLock();
+
                         writeCharStrUtil(filePath, readBuf, readData);
                         readBuf = new char[SIZE];
                         endOfBucketOffset -= readData;
+                        readOffset += readData;
+
                     }
 
                 } else {
@@ -1013,14 +1206,22 @@ namespace Gopherwood {
             } else {
                 LOG(INFO, "FileSystemImpl::readDataFromFileAccordingToBlockID. come in else");
                 if (blockID >= 0) {
-                    fsSeek(blockID * SIZE_OF_BLOCK, SEEK_SET);
+                    int64_t readOffset = blockID * SIZE_OF_BLOCK;
+
                     for (int j = 0; j < iter; j++) {
-                        readDataFromBucket(readBuf, SIZE);
+
+                        sharedMemoryManager->getLock();
+                        fsSeek(readOffset, SEEK_SET);
+                        int64_t readData = readDataFromBucket(readBuf, SIZE);
+                        sharedMemoryManager->releaseLock();
+
+
                         LOG(INFO, "7. FileSystemImpl::readDataFromFileAccordingToBlockID. come in if. j=%d, readBuf=%s",
                             j,
                             readBuf);
                         writeCharStrUtil(filePath, readBuf, SIZE);
                         readBuf = new char[SIZE];
+                        readOffset += readData;
                     }
                 } else {
                     std::string ossFileName = constructFileKey(fileName, -blockID);

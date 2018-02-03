@@ -13,6 +13,7 @@
 #include "FileSystemInter.h"
 #include "InputStreamInter.h"
 #include "Logger.h"
+
 namespace Gopherwood {
 
     namespace Internal {
@@ -75,6 +76,10 @@ namespace Gopherwood {
              * Output a readable string of this input stream.
              */
             string toString();
+
+            void deleteFileBucket(int64_t pos);
+
+            void deleteFile();
 
 
         private:

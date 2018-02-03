@@ -32,4 +32,8 @@ namespace Gopherwood {
         impl->write(buf,size);
     }
 
+    void OutputStream::close(){
+        impl->close();
+    }
+
 }

@@ -60,7 +60,7 @@ namespace Gopherwood {
 
             int getOneBlockForWrite(int ossindex, string fileName);
 
-            void updatePingBlockIDOrder(char *fileName);
+            void deleteBlockFromOSS(int64_t ossindex, string fileName);
 
 
             // TODO JUST FOT TEST
@@ -68,7 +68,8 @@ namespace Gopherwood {
 
             void readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
-            void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,std::shared_ptr<FileStatus> fileStatus);
+            void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,
+                                                   std::shared_ptr<FileStatus> fileStatus);
 
             void writeCharStrUtil(string fileName, char *buf, int64_t size);
 
@@ -79,6 +80,13 @@ namespace Gopherwood {
 
             int getRandomIntValue(int start, int end);
             // TODO JUST FOT TEST
+
+
+            void getLock();
+
+            void releaseLock();
+
+            void deleteFile(char *fileName);
 
         private:
 
@@ -104,8 +112,9 @@ namespace Gopherwood {
 
             void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-            std::vector<int> evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
+            void deleteBlockFromSSD(char *fileName, const std::vector<int32_t> &blockIdVector);
 
+            std::vector<int> evictBlock(char *fileName, std::unordered_map<int, std::string> blockStatusMap);
 
             int64_t getTheEOFOffset(const char *fileName);
 
@@ -125,6 +134,8 @@ namespace Gopherwood {
 
             void stopSystem();
 
+            void releaseOrInactiveLRUCache(char *fileName);
+
             std::shared_ptr<FileStatus> getFileStatus(char *fileName);
 
             void persistentFileLog(char *fileName);
@@ -137,7 +148,7 @@ namespace Gopherwood {
 
             char *getFilePath(char *fileName);
 
-            void writeDate2OSS(char *fileName, int blockID, int index);
+            void writeDate2OSS(char *fileNameInOSS, int blockID);
 
             int getIndexAccordingBlockID(char *fileName, int blockID);
 

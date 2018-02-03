@@ -70,7 +70,14 @@ namespace Gopherwood {
                 }
                 int64_t remainOffsetInBlock = status->getEndOffsetOfBucket() - cursorOffset;
                 int64_t bufLength = size < remainOffsetInBlock ? size : remainOffsetInBlock;
+
+                //1.get the lock 2. seek to the offset 3. read the data 4. release the lock
+                filesystem->getLock();
+                this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                 int64_t readLength = filesystem->readDataFromBucket(buf, bufLength);
+                filesystem->releaseLock();
+
+
                 cursorOffset += readLength;
                 LOG(INFO, "InputStreamImpl::readInternal. 1.&&&&&&&&&&&&&&&&&&&&&&&&&&&& buf=%s", buf);
                 LOG(INFO,
@@ -86,7 +93,13 @@ namespace Gopherwood {
                     cursorOffset);
                 int64_t remainOffsetInBlock = SIZE_OF_BLOCK - cursorOffset;
                 if (size <= remainOffsetInBlock) {
+
+                    //1.get the lock 2. seek to the offset 3. read the data 4. release the lock
+                    filesystem->getLock();
+                    this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                     int64_t readLength = filesystem->readDataFromBucket(buf, size);
+                    filesystem->releaseLock();
+
 //                LOG(INFO, "1. InputStreamImpl::readInternal. readLength=%d", readLength);
                     cursorOffset += readLength;
                     LOG(INFO, "InputStreamImpl::readInternal. 2.&&&&&&&&&&&&&&&&&&&&&&&&&&&& buf=%s", buf);
@@ -102,21 +115,36 @@ namespace Gopherwood {
                     int64_t bufLength = size < remainOffsetTotal ? size : remainOffsetTotal;
 
                     //1. read the remain data in the block
+
+                    // 1.get the lock 2. seek to the offset 3. read the data 4. release the lock
+                    filesystem->getLock();
+                    this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                     int64_t readLength = filesystem->readDataFromBucket(buf, remainOffsetInBlock);
+                    filesystem->releaseLock();
+
                     int totalOffset = 0;
                     totalOffset += readLength;
                     bufLength -= readLength;
 
                     while (bufLength > 0) {
                         if (bufLength > SIZE_OF_BLOCK) {
+
+                            filesystem->getLock();
                             seekToNextBlock();
                             readLength = filesystem->readDataFromBucket(buf + totalOffset, SIZE_OF_BLOCK);
+                            filesystem->releaseLock();
+
+
                             bufLength -= readLength;
                             totalOffset += readLength;
                             cursorOffset += readLength;
                         } else {
+
+                            filesystem->getLock();
                             seekToNextBlock();
                             readLength = filesystem->readDataFromBucket(buf + totalOffset, bufLength);
+                            filesystem->releaseLock();
+
                             bufLength -= readLength;
                             totalOffset += readLength;
                             cursorOffset += readLength;
@@ -253,45 +281,128 @@ namespace Gopherwood {
             LOG(INFO, "InputStreamImpl::checkStatus. blockID=%d", blockID);
 
             //3. check the blockID is PING or not.(its type='1' or not)
-            int index = 0;
-            for (index = 0; index < status->getPingIDVector().size(); index++) {
-                if (status->getPingIDVector()[index] == blockID) {
+            if (status->getLruCache()->get(blockID)) {
+                return;
+            }
+
+
+            /*********************************DOTO FOR TEST********************/
+            LOG(INFO, "InputStreamImpl::checkStatus. start of the status print lru cache");
+            status->getLruCache()->printLruCache();
+            LOG(INFO, "InputStreamImpl::checkStatus. end of the status print lru cache");
+            /*********************************DOTO FOR TEST********************/
+
+            //3.1 see the block is in the SSD bucket(not ping) or in the OSS.
+            if (blockID >= 0) {
+                //3.1.1 the block is in the SSD bucket
+                bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
+                LOG(INFO, "InputStreamImpl::checkStatus isEqual=%d", isEqual);
+                if (isEqual) {
+                    LOG(INFO, "3.1.1. InputStreamImpl::checkStatus the block is in the SSD bucket");
+                    vector<int32_t> newPingBlockVector;
+                    newPingBlockVector.push_back(blockID);
+                    filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
                     return;
-                }
-            }
-
-            /*********************************DOTO FOR TEST********************/
-            for (int j = 0; j < status->getPingIDVector().size(); j++) {
-                LOG(INFO, "InputStreamImpl::checkStatus. status->getPingIDVector()[j]=%d",
-                    status->getPingIDVector()[j]);
-            }
-            /*********************************DOTO FOR TEST********************/
-
-            //3.1 see the block is in the SSD bucket or in the OSS.
-            if (index >= status->getPingIDVector().size()) {
-                if (blockID >= 0) {
-                    //3.1.1 the block is in the SSD bucket
-                    bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
-                    LOG(INFO, "InputStreamImpl::checkStatus isEqual=%d", isEqual);
-                    if (isEqual) {
-                        LOG(INFO, "3.1.1. InputStreamImpl::checkStatus the block is in the SSD bucket");
-                        vector<int32_t> newPingBlockVector;
-                        newPingBlockVector.push_back(blockID);
-                        filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
-                        return;
-                    } else {
-                        //3.1.2 the block is in the OSS
-                        LOG(INFO, "3.1.2. InputStreamImpl::checkStatus the block is in the OSS");
-                        filesystem->catchUpFileStatusFromLog((char *) fileName.data());
-                        filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
-                    }
                 } else {
-                    //3.2.the block is in the OSS
+                    //3.1.2 the block is in the OSS. this means the block have been evicted to the OSS
+                    LOG(INFO, "3.1.2. InputStreamImpl::checkStatus the block is in the OSS");
+                    filesystem->catchUpFileStatusFromLog((char *) fileName.data());
                     filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
-                    LOG(INFO, "3.2. InputStreamImpl::checkStatus the block is in OSS");
                 }
             } else {
-                LOG(INFO, "2. InputStreamImpl::checkStatus see the block is in the SSD bucket ");
+                //3.2.the block is in the OSS
+                LOG(INFO, "3.2. InputStreamImpl::checkStatus the block is in OSS");
+                filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
+
+            }
+
+        }
+
+
+        void InputStreamImpl::deleteFile() {
+            //1. first catch up the file status
+            filesystem->catchUpFileStatusFromLog((char *) fileName.c_str());
+
+            //2. get the end of the file
+            int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
+
+            int64_t offset = 0;
+
+            //3. delete the file block
+            while (offset < theEOFOffset) {
+                deleteFileBucket(offset);
+                offset += SIZE_OF_BLOCK;
+            }
+
+            //4. delete the file status
+            filesystem->deleteFile((char *) fileName.c_str());
+        }
+
+
+        void InputStreamImpl::deleteFileBucket(int64_t pos) {
+            LOG(INFO, "InputStreamImpl::deleteFileBucket pos = %d", pos);
+            if (pos < 0) {
+                LOG(LOG_ERROR, "InputStreamImpl::deleteFileBucket pos can not be smaller than zero");
+            }
+            //1. check the size of the file
+            int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. theEOFOffset=%d", theEOFOffset);
+
+            if (theEOFOffset == 0) {
+                LOG(INFO, "the file do not contain any one bucket");
+                return;
+            }
+            if (status->getBlockIdVector().size() == 0) {
+                LOG(LOG_ERROR, "InputStreamImpl::deleteFileBucket. do not contain any file");
+                return;
+            }
+
+            if (pos > theEOFOffset) {
+                //todo, throw error
+                LOG(LOG_ERROR, "InputStreamImpl::deleteFileBucket. error, the given pos exceed the size of the file");
+                return;
+            }
+
+            //2. get the blockID which seeks to
+            int64_t blockIndex = pos / SIZE_OF_BLOCK;
+            int blockID = status->getBlockIdVector()[blockIndex];
+
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. blockID=%d", blockID);
+
+            //3. check the blockID is PING or not.(its type='1' or not)
+            if (status->getLruCache()->get(blockID)) {
+                std::vector<int32_t> deleteBlockVector;
+                deleteBlockVector.push_back(blockID);
+                filesystem->deleteBlockFromSSD((char *) fileName.c_str(), deleteBlockVector);
+                return;
+            }
+
+
+            /*********************************DOTO FOR TEST********************/
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. start of the status print lru cache");
+            status->getLruCache()->printLruCache();
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. end of the status print lru cache");
+            /*********************************DOTO FOR TEST********************/
+
+            //3.1 see the block is in the SSD bucket(not ping) or in the OSS.
+            if (blockID >= 0) {
+                //3.1.1 the block is in the SSD bucket
+                bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
+                LOG(INFO, "InputStreamImpl::deleteFileBucket isEqual=%d", isEqual);
+                if (isEqual) {
+                    LOG(INFO, "3.1.1. InputStreamImpl::deleteFileBucket the block is in the SSD bucket");
+                    vector<int32_t> deleteBlockVector;
+                    deleteBlockVector.push_back(blockID);
+                    filesystem->deleteBlockFromSSD((char *) fileName.c_str(), deleteBlockVector);
+                    return;
+                } else {
+                    //3.1.2 the block is in the OSS
+                    filesystem->deleteBlockFromOSS(blockIndex, fileName);
+                }
+            } else {
+                //3.2.the block is in the OSS
+                filesystem->deleteBlockFromOSS(blockIndex, fileName);
+                LOG(INFO, "3.2. InputStreamImpl::deleteFileBucket the block is in OSS");
             }
         }
 

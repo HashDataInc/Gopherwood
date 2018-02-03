@@ -14,17 +14,17 @@
 //#include "XmlConfig.h"
 //#include "fcntl.h"
 
-//#ifndef O_RDONLY
-//#define O_RDONLY 1
-//#endif
-//
-//#ifndef O_WRONLY
-//#define O_WRONLY 2
-//#endif
-//
-//#ifndef EINTERNAL
-//#define EINTERNAL 255
-//#endif
+//the access file's type
+typedef enum AccessFileType {
+
+    sequenceType = 0,
+
+    randomType = 1,
+
+    hintRandomType = 2,
+
+    hintSequenceType = 3,
+};
 
 /** All APIs set errno to meaningful values */
 
@@ -76,13 +76,13 @@ tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length);
 tSize gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length);
 
 
-/**
- * gwFlush - Flush the data.
- * @param fs The configured filesystem handle.
- * @param file The file handle.
- * @return Returns 0 on success, -1 on error.
- */
-int gwFlush(gopherwoodFS fs, gwFile file);
+///**
+// * gwFlush - Flush the data.
+// * @param fs The configured filesystem handle.
+// * @param file The file handle.
+// * @return Returns 0 on success, -1 on error.
+// */
+//int gwFlush(gopherwoodFS fs, gwFile file);
 
 
 /**
@@ -95,7 +95,7 @@ int gwFlush(gopherwoodFS fs, gwFile file);
  * to use the default configured values.
  * @return Returns the handle to the open file or NULL on error.
  */
-gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags, int bufferSize);
+gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
 
 
 
@@ -109,5 +109,13 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags, int bufferSi
 //TODO in this implement, only the read-only mode can seek the file,
 //TODO write mode are not allowed.
 int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos);
+
+
+
+int gwCloseFile(gopherwoodFS fs, gwFile file);
+
+
+
+int deleteFile(gopherwoodFS fs, gwFile file);
 
 #endif /* _GOPHERWOOD_CORE_GOPHERWOOD_H_ */

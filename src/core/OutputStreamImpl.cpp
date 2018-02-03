@@ -13,7 +13,7 @@ namespace Gopherwood {
 
             //1.check the file exist in the fileStatusMap or not
             bool exist = filesystem->checkFileExist(fileName);
-            LOG(INFO, "exist =  %d", exist);
+            LOG(INFO, "OutputStreamImpl::OutputStreamImpl. exist =  %d", exist);
 
             if (!exist) {
                 LOG(INFO,
@@ -36,13 +36,15 @@ namespace Gopherwood {
             }
             status = filesystem->getFileStatus(fileName);
             //3. default seek to the end of the file
-            LOG(INFO, "getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",
+            LOG(INFO,
+                "OutputStreamImpl::OutputStreamImpl. getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",
                 status->getBlockIdVector().size(), status->getLastBucket(), status->getEndOffsetOfBucket());
             int64_t endOfOffset = filesystem->getTheEOFOffset(fileName);
-            LOG(INFO, "endOfOffset = %d", endOfOffset);
+            LOG(INFO, "OutputStreamImpl::OutputStreamImpl. endOfOffset = %d", endOfOffset);
 
             if (status->getBlockIdVector().size() == 0) {
-                LOG(INFO, "openFile do not seek, because the file do not contain any bucket");
+                LOG(INFO,
+                    "OutputStreamImpl::OutputStreamImpl. openFile do not seek, because the file do not contain any bucket");
                 //do nothing, because the file do not contain any bucket.
             } else {
                 seek(endOfOffset);
@@ -81,8 +83,12 @@ namespace Gopherwood {
             LOG(INFO, "cursorOffset = %d, cursorIndex=%d,cursorBucketID=%d", cursorOffset, cursorIndex, cursorBucketID);
             LOG(INFO, "data write size = %d, remainOffsetInBlock=%d", size, remainOffsetInBlock);
             if (size <= remainOffsetInBlock) {
+
+                filesystem->getLock();
                 filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                 filesystem->writeDataToBucket(buf, size);
+                filesystem->releaseLock();
+
                 cursorOffset += size;
             } else {
                 int64_t remainOffsetTotal = getRemainLength();
@@ -100,23 +106,34 @@ namespace Gopherwood {
                 }
 
                 //1. BUG-FIX, IMPORTANT. because, when above code execute, especially the acquireNewBlock method execute,
+
+                filesystem->getLock();
                 // it will change the ssd bucket's offset.
                 filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
                 //2. write remainOffsetInBlock data to the bucket first;
                 filesystem->writeDataToBucket(buf, remainOffsetInBlock);
+                filesystem->releaseLock();
+
                 int64_t haveWriteSize = remainOffsetInBlock;
                 int64_t remainSize = size - haveWriteSize;
 
                 while (remainSize > 0) {
                     if (remainSize > SIZE_OF_BLOCK) {
+
+                        filesystem->getLock();
                         seekToNextBlock();
                         filesystem->writeDataToBucket(buf + haveWriteSize, SIZE_OF_BLOCK);
+                        filesystem->releaseLock();
+
                         cursorOffset = SIZE_OF_BLOCK;
                         remainSize -= SIZE_OF_BLOCK;
                         haveWriteSize += SIZE_OF_BLOCK;
                     } else {
+                        filesystem->getLock();
                         seekToNextBlock();
                         filesystem->writeDataToBucket(buf + haveWriteSize, remainSize);
+                        filesystem->releaseLock();
+
                         cursorOffset = remainSize;
                         remainSize -= remainSize;
                         haveWriteSize += remainSize;
@@ -164,7 +181,6 @@ namespace Gopherwood {
         void OutputStreamImpl::sync() {
 
         }
-
 
         void OutputStreamImpl::close() {
             filesystem->closeFile((char *) fileName.data());
@@ -251,47 +267,40 @@ namespace Gopherwood {
             LOG(INFO, "OutputStreamImpl::checkStatus. blockID=%d", blockID);
 
             //3. check the blockID is PING or not.(its type='1' or not)
-            int index = 0;
-            for (index = 0; index < status->getPingIDVector().size(); index++) {
-                if (status->getPingIDVector()[index] == blockID) {
-                    return;
-                }
+            if (status->getLruCache()->get(blockID)) {
+                return;
             }
 
             /*********************************todo FOR TEST********************/
-            for (int j = 0; j < status->getPingIDVector().size(); j++) {
-                LOG(INFO, "OutputStreamImpl::checkStatus. status->getPingIDVector()[i]=%d",
-                    status->getPingIDVector()[j]);
-            }
+            LOG(INFO, "OutputStreamImpl::checkStatus. start of the status print lru cache");
+            status->getLruCache()->printLruCache();
+            LOG(INFO, "OutputStreamImpl::checkStatus. end of the status print lru cache");
             /*********************************DOTO FOR TEST********************/
 
             //3.1 see the block is in the SSD bucket or in the OSS.
-            if (index >= status->getPingIDVector().size()) {
-                if (blockID >= 0) {
-                    //3.1.1 the block is in the SSD bucket
-                    bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
+            if (blockID >= 0) {
+                //3.1.1 the block is in the SSD bucket
+                bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
 
-                    LOG(INFO, "OutputStreamImpl::checkStatus isEqual=%d", isEqual);
-                    if (isEqual) {
-                        LOG(INFO, "3.1.1. OutputStreamImpl::checkStatus the block is in the SSD bucket");
-                        vector<int32_t> newPingBlockVector;
-                        newPingBlockVector.push_back(blockID);
-                        filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
-                        return;
-                    } else {
-                        //3.1.2 the block is in the OSS
-                        LOG(INFO, "3.1.2. OutputStreamImpl::checkStatus the block is in the OSS");
-                        filesystem->catchUpFileStatusFromLog((char *) fileName.data());
-                        filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
-                    }
+                LOG(INFO, "OutputStreamImpl::checkStatus isEqual=%d", isEqual);
+                if (isEqual) {
+                    LOG(INFO, "3.1.1. OutputStreamImpl::checkStatus the block is in the SSD bucket");
+                    vector<int32_t> newPingBlockVector;
+                    newPingBlockVector.push_back(blockID);
+                    filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
+                    return;
                 } else {
-                    //3.2.the block is in the OSS
+                    //3.1.2 the block is in the OSS
+                    LOG(INFO, "3.1.2. OutputStreamImpl::checkStatus the block is in the OSS");
+                    filesystem->catchUpFileStatusFromLog((char *) fileName.data());
                     filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
-                    LOG(INFO, "3.2. OutputStreamImpl::checkStatus the block is in OSS");
                 }
             } else {
-                LOG(INFO, "2. OutputStreamImpl::checkStatus see the block is in the SSD bucket ");
+                //3.2.the block is in the OSS
+                filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
+                LOG(INFO, "3.2. OutputStreamImpl::checkStatus the block is in OSS");
             }
+
         }
 
 
@@ -304,6 +313,7 @@ namespace Gopherwood {
             LOG(INFO, "OutputStreamImpl::seekToNextBlock before. cursorBucketID=%d, last bucket id =%d ",
                 cursorBucketID, status->getLastBucket());
             status->setLastBucket(cursorBucketID);
+            status->setLastBucketIndex(cursorIndex);
             LOG(INFO, "OutputStreamImpl::seekToNextBlock after. cursorBucketID=%d, last bucket id = %d", cursorBucketID,
                 status->getLastBucket());
 

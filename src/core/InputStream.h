@@ -96,6 +96,8 @@ namespace Gopherwood {
          */
         void close();
 
+        void deleteFile();
+
     private:
         Internal::InputStreamInter *impl;
     };

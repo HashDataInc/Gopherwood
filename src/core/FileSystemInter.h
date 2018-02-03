@@ -109,7 +109,9 @@ namespace Gopherwood {
 
             virtual void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
 
-            virtual std::vector<int> evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
+            virtual void deleteBlockFromSSD(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
+
+            virtual std::vector<int> evictBlock(char *fileName, std::unordered_map<int, std::string> blockStatusMap)=0;
 
             virtual int getIndexAccordingBlockID(char *fileName, int blockID)=0;
 
@@ -139,6 +141,15 @@ namespace Gopherwood {
 
             virtual int getRandomIntValue(int start, int end) = 0;
             // TODO JUST FOT TEST
+
+            // get lock and release lock
+            virtual void getLock() = 0;
+
+            virtual void releaseLock() = 0;
+
+            virtual void deleteFile(char *fileName) = 0;
+
+            virtual void deleteBlockFromOSS(int64_t ossindex, string fileName) = 0;
 
         };
 
