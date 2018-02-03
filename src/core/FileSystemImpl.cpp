@@ -741,6 +741,15 @@ namespace Gopherwood {
                     //4.2.3. delete the oss
                     qsReadWrite->qsDeleteObject((char *) fileNameInOSStmp.c_str());
                 } else {
+
+                    //4.3.5 rename the file in OSS
+                    //BUG-FIX. should first rename the oss file, and then write the log.
+                    //because. suppose this process is A and A is evict B's block.
+                    // if A first write the log, then B can read the log, and knows that the file is in the oss
+                    // however, the rename() operation have been completed. so when B read it from OSS. it will not see the file, so get failure.
+                    qsReadWrite->renameObject((char *) fileNameInOSStmp.c_str(), (char *) fileNameInOSS.c_str());
+
+
                     //4.3.1 . write the previous file log
                     LOG(INFO, "FileSystemImpl::evictBlock, before blockIndex = %d, do really job", blockIndex);
                     std::vector<int32_t> previousVector;
@@ -780,9 +789,7 @@ namespace Gopherwood {
                         status->setBlockIdVector(blockVector);
                     }
 
-                    //4.3.5 rename the file in OSS
-                    //TODO IMPORTANT
-                    qsReadWrite->renameObject((char *) fileNameInOSStmp.c_str(), (char *) fileNameInOSS.c_str());
+
 
 
                     //4.3.6  END OF THE TRANSACTION
@@ -1244,6 +1251,7 @@ namespace Gopherwood {
                 readDataFromFileAccordingToBlockID(blockID, fileStatus, suffixName);
             }
         }
+
         //TODO ,JUST FOR TEST
         void FileSystemImpl::readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus) {
             vector<int32_t> blockIDVector = fileStatus->getBlockIdVector();

@@ -68,12 +68,8 @@ namespace Gopherwood {
 
             void readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
-<<<<<<< HEAD
             void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,
                                                    std::shared_ptr<FileStatus> fileStatus);
-=======
-            void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,std::shared_ptr<FileStatus> fileStatus);
->>>>>>> a267513abd1e27ebdad88d00e9cfd656d59ced49
 
             void writeCharStrUtil(string fileName, char *buf, int64_t size);
 
@@ -116,14 +112,9 @@ namespace Gopherwood {
 
             void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-<<<<<<< HEAD
             void deleteBlockFromSSD(char *fileName, const std::vector<int32_t> &blockIdVector);
 
             std::vector<int> evictBlock(char *fileName, std::unordered_map<int, std::string> blockStatusMap);
-=======
-            std::vector<int> evictBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
->>>>>>> a267513abd1e27ebdad88d00e9cfd656d59ced49
-
 
             int64_t getTheEOFOffset(const char *fileName);
 
