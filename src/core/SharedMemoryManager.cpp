@@ -362,7 +362,6 @@ namespace Gopherwood {
 
 
         // BUG-FIX. do not have to get lock, because the outside of the function have acquire the block
-
         std::string SharedMemoryManager::getBlockStatus(int blockID) {
             if (!checkBlockIDIsLegal(blockID)) {
                 LOG(LOG_ERROR, "SharedMemoryManager::getBlockStatus. the blockID=%d is not legal", blockID);

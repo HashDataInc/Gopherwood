@@ -320,10 +320,13 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
     try {
         if (file) {
             if (file->isInput()) {
+                LOG(Gopherwood::Internal::INFO, "gwCloseFile. this is the inputStream");
                 file->getInputStream().close();
             } else if (file->isOutput()) {
+                LOG(Gopherwood::Internal::INFO, "gwCloseFile. this is the outputStream");
                 file->getOutputStream().close();
             } else {
+                LOG(Gopherwood::Internal::INFO, "gwCloseFile. this is the input and outputStream");
                 //BUG-FIX. just one close is enough, because they share the same FileSystem object
                 file->getOutputStream().close();
             }
@@ -348,13 +351,20 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
     try {
         if (file) {
             if (file->isInput()) {
+                LOG(Gopherwood::Internal::INFO, "deleteFile. this is the inputStream");
                 file->getInputStream().deleteFile();
+
             } else if (file->isOutput()) {
-//                file->getOutputStream().deleteFile();
+                LOG(Gopherwood::Internal::INFO, "deleteFile. this is the outputStream");
+                file->getOutputStream().deleteFile();
+
             } else {
+                LOG(Gopherwood::Internal::INFO, "deleteFile. this is the input and outputStream");
                 //TODO, need think more
                 //BUG-FIX. just one close is enough, because they share the same FileSystem object
                 file->getInputStream().deleteFile();
+
+
             }
             delete file;
         }

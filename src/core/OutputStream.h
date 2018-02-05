@@ -125,6 +125,10 @@ namespace Gopherwood {
         void close();
 
         void seek(int64_t pos);
+
+
+        void deleteFile();
+
     private:
         Internal::OutputStreamInter *impl;
     };

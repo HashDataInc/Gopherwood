@@ -139,11 +139,11 @@ namespace Gopherwood {
 
                 LOG(INFO, "FileSystemImpl::getOneBlockForWrite, blockIDVector size  = %d", blockIDVector.size());
 
-                newBlockID = blockIDVector[nextBlockIndex];
-                isExist = status->getLruCache()->exists(newBlockID);
-                LOG(INFO, "FileSystemImpl::getOneBlockForWrite, isExist  = %d,newBlockID=%d", isExist, newBlockID);
-
-
+                if (nextBlockIndex < blockIDVector.size()) {
+                    newBlockID = blockIDVector[nextBlockIndex];
+                    isExist = status->getLruCache()->exists(newBlockID);
+                    LOG(INFO, "FileSystemImpl::getOneBlockForWrite, isExist  = %d,newBlockID=%d", isExist, newBlockID);
+                }
             }
             LOG(INFO,
                 "FileSystemImpl::getOneBlockForWrite, after nextBlockIndex  = %d, status->getBlockIdVector().size()=%d",
@@ -159,11 +159,14 @@ namespace Gopherwood {
 
 
 
-            //2. check whether the negative blockID is the last block ID
+            // 2. check whether the negative blockID is the last block ID
+            // BUG-FIX. there just need to update the lastBucket, but not needed updated the lastBucketIndex.
+            // becase the last bucket index do not change.
+            // specifically. the code here </code> status->setLastBucketIndex(nextBlockIndex)</code> is WRONG.
+            // because, the last bucket index is not change, the nextBlockIndex is the the last bucket id's next index.
             int tmpBlockID = -(ossindex + 1);
             if (status->getLastBucket() == tmpBlockID) {
                 status->setLastBucket(newBlockID);
-                status->setLastBucketIndex(nextBlockIndex);
                 LOG(INFO,
                     "FileSystemImpl::getOneBlockForWrite. the negative blockID is the last block ID, so replace it");
             }

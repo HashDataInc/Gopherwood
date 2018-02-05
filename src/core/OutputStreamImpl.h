@@ -4,12 +4,14 @@
 
 #ifndef _GOPHERWOOD_CORE_OUTPUTSTREAMIMPL_H_
 #define _GOPHERWOOD_CORE_OUTPUTSTREAMIMPL_H_
+
 #include <iostream>
 #include <memory>
 #include "OutputStreamInter.h"
 #include "Exception.h"
 #include "OutputStream.h"
 #include "Logger.h"
+
 namespace Gopherwood {
     namespace Internal {
         class OutputStreamImpl : public OutputStreamInter {
@@ -65,11 +67,15 @@ namespace Gopherwood {
 
             void seek(int64_t pos);
 
+            void deleteFileBucket(int64_t pos);
+
+            void deleteFile();
+
         private:
             std::shared_ptr<FileSystemInter> filesystem;
-            int32_t cursorBucketID=0; // the cursor bucket id of the output stream
+            int32_t cursorBucketID = 0; // the cursor bucket id of the output stream
             int32_t cursorIndex = 0;//the index of the cursorBucketID. status->getBlockIdVector()[cursorIndex] = cursorBucketID
-            int64_t cursorOffset=0;// the cursor offset of the output stream
+            int64_t cursorOffset = 0;// the cursor offset of the output stream
             string fileName;
             std::shared_ptr<FileStatus> status;
 

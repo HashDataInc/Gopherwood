@@ -36,4 +36,8 @@ namespace Gopherwood {
         impl->close();
     }
 
+    void OutputStream::deleteFile(){
+        impl->deleteFile();
+    }
+
 }

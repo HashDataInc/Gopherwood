@@ -73,11 +73,13 @@ namespace Gopherwood {
         }
 
         void QingStoreReadWrite::closePutObject() {
-            ossCloseObject(qsContext, putObject);
+            int res = ossCloseObject(qsContext, putObject);
+            LOG(INFO, "QingStoreReadWrite::closePutObject, the res = %d", res);
         }
 
         void QingStoreReadWrite::closeGetObject() {
-            ossCloseObject(qsContext, getObject);
+            int res = ossCloseObject(qsContext, getObject);
+            LOG(INFO, "QingStoreReadWrite::closeGetObject, the res = %d", res);
         }
 
 
@@ -92,11 +94,13 @@ namespace Gopherwood {
 
         int QingStoreReadWrite::renameObject(char *beforeFilename, char *afterFilename) {
             int ret = ossMoveObject(qsContext, bucket_name, beforeFilename, bucket_name, afterFilename);
+            LOG(INFO, "QingStoreReadWrite::renameObject, beforeFilename=%s, afterFilename=%s. the ret = %d",
+                beforeFilename, afterFilename, ret);
         }
 
         int64_t QingStoreReadWrite::qsDeleteObject(char *filename) {
             int res = ossDeleteObject(qsContext, bucket_name, filename);
-            LOG(INFO, "QingStoreReadWrite::qsDeleteObject, the res = %d", res);
+            LOG(INFO, "QingStoreReadWrite::qsDeleteObject, filename=%s, the res = %d", filename, res);
         }
 
 

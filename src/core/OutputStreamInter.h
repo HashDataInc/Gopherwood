@@ -93,6 +93,10 @@ namespace Gopherwood {
             virtual string toString()=0;
 
             virtual void setError(const exception_ptr &error) = 0;
+
+            virtual void deleteFile()=0;
+
+
         };
 
     }

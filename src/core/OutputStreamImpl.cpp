@@ -305,13 +305,15 @@ namespace Gopherwood {
 
 
         void OutputStreamImpl::seekToNextBlock() {
+
+            LOG(INFO, "OutputStreamImpl::seekToNextBlock before. cursorBucketID=%d, last bucket id =%d ",
+                cursorBucketID, status->getLastBucket());
+
             this->cursorIndex++;
             if (cursorIndex < status->getBlockIdVector().size()) {
                 this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
             }
             //1. set the last bucket
-            LOG(INFO, "OutputStreamImpl::seekToNextBlock before. cursorBucketID=%d, last bucket id =%d ",
-                cursorBucketID, status->getLastBucket());
             status->setLastBucket(cursorBucketID);
             status->setLastBucketIndex(cursorIndex);
             LOG(INFO, "OutputStreamImpl::seekToNextBlock after. cursorBucketID=%d, last bucket id = %d", cursorBucketID,
@@ -325,6 +327,95 @@ namespace Gopherwood {
         void OutputStreamImpl::setError(const exception_ptr &error) {
 
         }
+
+
+        void OutputStreamImpl::deleteFile() {
+            //1. first catch up the file status
+            filesystem->catchUpFileStatusFromLog((char *) fileName.c_str());
+
+            //2. get the end of the file
+            int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
+
+            int64_t offset = 0;
+
+            //3. delete the file block
+            while (offset < theEOFOffset) {
+                deleteFileBucket(offset);
+                offset += SIZE_OF_BLOCK;
+            }
+
+            //4. delete the file status
+            filesystem->deleteFile((char *) fileName.c_str());
+        }
+
+
+        void OutputStreamImpl::deleteFileBucket(int64_t pos) {
+            LOG(INFO, "OutputStreamImpl::deleteFileBucket pos = %d", pos);
+            if (pos < 0) {
+                LOG(LOG_ERROR, "OutputStreamImpl::deleteFileBucket pos can not be smaller than zero");
+            }
+            //1. check the size of the file
+            int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
+            LOG(INFO, "OutputStreamImpl::deleteFileBucket. theEOFOffset=%d", theEOFOffset);
+
+            if (theEOFOffset == 0) {
+                LOG(INFO, "the file do not contain any one bucket");
+                return;
+            }
+            if (status->getBlockIdVector().size() == 0) {
+                LOG(LOG_ERROR, "OutputStreamImpl::deleteFileBucket. do not contain any file");
+                return;
+            }
+
+            if (pos > theEOFOffset) {
+                //todo, throw error
+                LOG(LOG_ERROR, "OutputStreamImpl::deleteFileBucket. error, the given pos exceed the size of the file");
+                return;
+            }
+
+            //2. get the blockID which seeks to
+            int64_t blockIndex = pos / SIZE_OF_BLOCK;
+            int blockID = status->getBlockIdVector()[blockIndex];
+
+            LOG(INFO, "OutputStreamImpl::deleteFileBucket. blockID=%d", blockID);
+
+            //3. check the blockID is PING or not.(its type='1' or not)
+            if (status->getLruCache()->get(blockID)) {
+                std::vector<int32_t> deleteBlockVector;
+                deleteBlockVector.push_back(blockID);
+                filesystem->deleteBlockFromSSD((char *) fileName.c_str(), deleteBlockVector);
+                return;
+            }
+
+
+            /*********************************DOTO FOR TEST********************/
+            LOG(INFO, "OutputStreamImpl::deleteFileBucket. start of the status print lru cache");
+            status->getLruCache()->printLruCache();
+            LOG(INFO, "OutputStreamImpl::deleteFileBucket. end of the status print lru cache");
+            /*********************************DOTO FOR TEST********************/
+
+            //3.1 see the block is in the SSD bucket(not ping) or in the OSS.
+            if (blockID >= 0) {
+                //3.1.1 the block is in the SSD bucket
+                bool isEqual = filesystem->checkBlockIDWithFileName(blockID, fileName);
+                LOG(INFO, "OutputStreamImpl::deleteFileBucket isEqual=%d", isEqual);
+                if (isEqual) {
+                    LOG(INFO, "3.1.1. OutputStreamImpl::deleteFileBucket the block is in the SSD bucket");
+                    vector<int32_t> deleteBlockVector;
+                    deleteBlockVector.push_back(blockID);
+                    filesystem->deleteBlockFromSSD((char *) fileName.c_str(), deleteBlockVector);
+                    return;
+                } else {
+                    //3.1.2 the block is in the OSS
+                    filesystem->deleteBlockFromOSS(blockIndex, fileName);
+                }
+            } else {
+                //3.2.the block is in the OSS
+                filesystem->deleteBlockFromOSS(blockIndex, fileName);
+                LOG(INFO, "3.2. OutputStreamImpl::deleteFileBucket the block is in OSS");
+            }
+        }
+
 
 
     }
