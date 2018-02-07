@@ -313,9 +313,7 @@ namespace Gopherwood {
                 //3.2.the block is in the OSS
                 LOG(INFO, "3.2. InputStreamImpl::checkStatus the block is in OSS");
                 filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
-
             }
-
         }
 
 
