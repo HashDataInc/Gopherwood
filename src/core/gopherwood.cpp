@@ -1,4 +1,6 @@
 
+#include <cstdio>
+#include <cstdint>
 
 #include "gopherwood.h"
 #include "FileSystem.h"

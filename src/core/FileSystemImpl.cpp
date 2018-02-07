@@ -1,4 +1,5 @@
 #include <sstream>
+#include <sys/file.h>
 
 #include "FileSystemImpl.h"
 #include "../util/Coding.h"
@@ -219,7 +220,9 @@ namespace Gopherwood {
             char *filePathName = getFilePath(fileName);
             int logFd = open(filePathName, flags, 0644);
 
-            //1. rebuild file status from log
+            //1. get the lock
+            flock(logFd, LOCK_EX);
+            //2. rebuild file status from log
             char bufLength[4];
             int32_t length = read(logFd, bufLength, sizeof(bufLength));
             while (length == 4) {
@@ -232,6 +235,8 @@ namespace Gopherwood {
                 logFormat->deserializeLog(logRecord, fileStatus);
                 length = read(logFd, bufLength, sizeof(bufLength));
             }
+            //3. release the lock
+            flock(logFd, LOCK_UN);
             close(logFd);
 
 
@@ -294,7 +299,11 @@ namespace Gopherwood {
                 LOG(INFO, " block id = %d", blockIDVector[i]);
             }
 
+            //5. print the lru cache
+            fileStatus->getLruCache()->printLruCache();
             LOG(INFO, "****** rebuildFileStatusFromLog in the end, after the close File Status*********");
+
+
         }
 
         //TODO
@@ -304,16 +313,17 @@ namespace Gopherwood {
             int flags = O_CREAT | O_RDWR;
             char *filePathName = getFilePath(fileName);
             int logFd = open(filePathName, flags, 0644);
-
-            //2. seek to the offset
+            //2. get the lock
+            flock(logFd, LOCK_EX);
+            //3. seek to the offset
             lseek(logFd, 0, SEEK_SET);
 
-            //3. init the file status
+            //4. init the file status
             FileStatus *fs = new FileStatus();
             std::shared_ptr<FileStatus> fileStatus(fs);
 
 
-            //3. read the log and refresh the file status
+            //5. read the log and refresh the file status
             int64_t totalReadLength = 0;
             char bufLength[4];
             ssize_t readLength = read(logFd, bufLength, sizeof(bufLength));
@@ -335,11 +345,14 @@ namespace Gopherwood {
             }
 
 
-            // 4. write the new file status to log
+            // 6. write the new file status to log
             std::string res = logFormat->serializeFileStatusForClose(fileStatus);
             ftruncate(logFd, 0);
             lseek(logFd, 0, SEEK_SET);
             int writeSize = write(logFd, res.data(), res.size());
+
+            //7. release the lock
+            flock(logFd, LOCK_UN);
             close(logFd);
 
             LOG(INFO, "FileSystemImpl::catchUpFileStatusFromLog out read length = %d", readLength);
@@ -992,42 +1005,72 @@ namespace Gopherwood {
             releaseOrInactiveLRUCache(fileName);
 
 
-            //4. write the close status to log
-
             //4.1. open file
             int flags = O_CREAT | O_RDWR;
             char *filePathName = getFilePath(fileName);
             int logFd = open(filePathName, flags, 0644);
 
-            //4.2. rebuild the file status from log
+            //4.2 get the lock
+            flock(logFd, LOCK_EX);
+
+
+            //4.3. rebuild the file status from log
             FileStatus *fs = new FileStatus();
             std::shared_ptr<FileStatus> rebuildFileStatus(fs);
 
-            //4.3. read the log and refresh the file status
+            //4.4. read the log and refresh the file status
+            int64_t totalReadLength = 0;
             char bufLength[4];
-            int32_t length = read(logFd, bufLength, sizeof(bufLength));
-            while (length == 4) {
+            int64_t tmpLength = read(logFd, bufLength, sizeof(bufLength));
+            totalReadLength += tmpLength;
+            while (tmpLength == 4) {
                 int32_t dataSize = DecodeFixed32(bufLength);
-                LOG(INFO, "FileSystemImpl::closeFile read length = %d, dataSize size =%d", length,
+                LOG(INFO, "FileSystemImpl::closeFile read tmpLength = %d, dataSize size =%d", tmpLength,
                     dataSize);
                 std::string logRecord;
                 char res[dataSize];
-                read(logFd, res, sizeof(res));
+                tmpLength = read(logFd, res, sizeof(res));
+                totalReadLength += tmpLength;
                 logRecord.append(res, dataSize);
                 logFormat->deserializeLog(logRecord, rebuildFileStatus);
-                length = read(logFd, bufLength, sizeof(bufLength));
+                tmpLength = read(logFd, bufLength, sizeof(bufLength));
+                totalReadLength += tmpLength;
             }
+            LOG(INFO, "FileSystemImpl::closeFile out read tmpLength = %d", tmpLength);
+            LOG(INFO, "FileSystemImpl::closeFile out read totalReadLength = %d", totalReadLength);
 
             auto &status = fileStatusMap[fileName];
             rebuildFileStatus->setEndOffsetOfBucket(status->getEndOffsetOfBucket());
 
-            LOG(INFO, "FileSystemImpl::closeFile out read length = %d", length);
 
-            //5. write the close status to log
+            //4.5. write the close status to log
             std::string res = logFormat->serializeFileStatusForClose(rebuildFileStatus);
+
+            //BUG-FIX. should not just ftruncate the log file. because when serializeFileStatusForClose() method execute,
+            // maybe the other process have writen some log in this file, and this process have not been read this log.
+            // please see the below example. we just truncate what we have read before.
+            // SULUTION: use lock
+            /**
+                 process A                              process B
+                 begin read log
+                 ......
+                 ......
+                 ......
+                 end read log
+                 begin serialize log
+                 .....
+                 .....                                  writen process A's log
+                 .....
+                 end serialize log
+                 ftruncate(logFd, 0)// is wrong
+             **/
             ftruncate(logFd, 0);
             lseek(logFd, 0, SEEK_SET);
             int writeSize = write(logFd, res.data(), res.size());
+
+            //4.6 release the lock
+            flock(logFd, LOCK_UN);
+
             close(logFd);
         }
 
@@ -1061,6 +1104,9 @@ namespace Gopherwood {
 
             char *filePathName = getFilePath(fileName);
             int logFd = open(filePathName, flags, 0644);
+
+            // 1. get lock
+            flock(logFd, LOCK_EX);
 
             char bufLength[4];
             int32_t length = read(logFd, bufLength, sizeof(bufLength));
@@ -1098,6 +1144,9 @@ namespace Gopherwood {
 
             LOG(INFO,
                 "*********************** in the end, after the close File Status*********************************");
+
+            //3. release the lock
+            flock(logFd, LOCK_UN);
             close(logFd);
 
 
@@ -1124,17 +1173,18 @@ namespace Gopherwood {
             int flags = O_CREAT | O_RDWR | O_APPEND;
 
             char *filePathName = getFilePath(fileName);
-//            LOG(INFO, "filePathName = %s", filePathName);
 
             int logFd = open(filePathName, flags, 0644);
+            // 1. get the lock
+            flock(logFd, LOCK_EX);
 //            LOG(INFO, "9, LogFormat dataStr size = %d", dataStr.size());
 
 
             int32_t length = write(logFd, dataStr.data(), dataStr.size());
-
+            // 2. release the lock
+            flock(logFd, LOCK_UN);
             close(logFd);
-
-//            LOG(INFO, "FileSystemImpl::writeFileStatusToLog write size = %d", length);
+            LOG(INFO, "FileSystemImpl::writeFileStatusToLog write size = %d,filePathName = %s", length, filePathName);
 
         }
 
@@ -1309,6 +1359,9 @@ namespace Gopherwood {
             //read data from the verify file
             int flags = O_CREAT | O_RDWR;
             int verifyFd = open(fileTobeRead.c_str(), flags, 0644);
+            //1. get the lock
+            flock(verifyFd,LOCK_EX);
+
             int SIZE = 128;
             char *readBuf = new char[SIZE];
             int iter = SIZE_OF_BLOCK / SIZE;
@@ -1342,6 +1395,9 @@ namespace Gopherwood {
                     }
                 }
             }
+            //2. release the lock
+            flock(verifyFd,LOCK_UN);
+            close(verifyFd);
         }
 
 

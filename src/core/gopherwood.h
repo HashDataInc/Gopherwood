@@ -3,8 +3,6 @@
 #define _GOPHERWOOD_CORE_GOPHERWOOD_H_
 
 
-#include <cstdio>
-#include <cstdint>
 
 //#include "FileSystem.h"
 //#include "InputStream.h"

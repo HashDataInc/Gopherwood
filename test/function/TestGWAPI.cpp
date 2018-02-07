@@ -11,7 +11,7 @@
 #include <sstream>
 #include <cstring>
 #include "gopherwood.h"
-#include "../../src/core/gopherwood.h"
+//#include "../../src/core/gopherwood.h"
 
 using namespace std;
 
