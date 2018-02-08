@@ -65,6 +65,8 @@ namespace Gopherwood {
 
         void acquireBlock();
 
+        FileStatus getFileStatus(char *fileName);
+
 //TODO , THIS IS private, for test convenient, set it to public
     public:
 //        Config conf;

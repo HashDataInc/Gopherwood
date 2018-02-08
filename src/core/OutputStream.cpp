@@ -40,4 +40,10 @@ namespace Gopherwood {
         impl->deleteFile();
     }
 
+    std::shared_ptr<FileStatus> OutputStream::getFileStatus() {
+        std::shared_ptr<FileStatus> status = impl->getFileStatus();
+        LOG(INFO, "OutputStream::getFileStatus. status->getFileSize()=%d", status->getFileSize());
+        return status;
+    }
+
 }

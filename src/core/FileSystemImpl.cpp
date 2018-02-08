@@ -1360,7 +1360,7 @@ namespace Gopherwood {
             int flags = O_CREAT | O_RDWR;
             int verifyFd = open(fileTobeRead.c_str(), flags, 0644);
             //1. get the lock
-            flock(verifyFd,LOCK_EX);
+            flock(verifyFd, LOCK_EX);
 
             int SIZE = 128;
             char *readBuf = new char[SIZE];
@@ -1396,7 +1396,7 @@ namespace Gopherwood {
                 }
             }
             //2. release the lock
-            flock(verifyFd,LOCK_UN);
+            flock(verifyFd, LOCK_UN);
             close(verifyFd);
         }
 
@@ -1431,7 +1431,6 @@ namespace Gopherwood {
                 }
             }
         }
-
 
     }
 

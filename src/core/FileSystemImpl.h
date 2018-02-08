@@ -118,8 +118,6 @@ namespace Gopherwood {
 
             int64_t getTheEOFOffset(const char *fileName);
 
-            std::shared_ptr<FileStatus> getFileStatus(const char *fileName);
-
             int64_t readDataFromBucket(char *buf, int32_t size);
 
             void writeDataToBucket(char *buf, int64_t size);
@@ -136,7 +134,7 @@ namespace Gopherwood {
 
             void releaseOrInactiveLRUCache(char *fileName);
 
-            std::shared_ptr<FileStatus> getFileStatus(char *fileName);
+            std::shared_ptr<FileStatus> getFileStatus(const char *fileName);
 
             void persistentFileLog(char *fileName);
 

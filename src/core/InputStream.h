@@ -98,6 +98,8 @@ namespace Gopherwood {
 
         void deleteFile();
 
+        std::shared_ptr<FileStatus> getFileStatus();
+
     private:
         Internal::InputStreamInter *impl;
     };

@@ -71,6 +71,8 @@ namespace Gopherwood {
 
             void deleteFile();
 
+            std::shared_ptr<FileStatus> getFileStatus();
+
         private:
             std::shared_ptr<FileSystemInter> filesystem;
             int32_t cursorBucketID = 0; // the cursor bucket id of the output stream

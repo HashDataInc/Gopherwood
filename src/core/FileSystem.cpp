@@ -3,6 +3,7 @@
 //
 
 #include "FileSystem.h"
+#include "../common/ExceptionInternal.h"
 
 using namespace Gopherwood::Internal;
 
@@ -30,6 +31,14 @@ namespace Gopherwood {
 
 //        this->conf = conf;
 
+    }
+
+    FileStatus FileSystem::getFileStatus(char *fileName) {
+        if (!impl) {
+            THROW(GopherwoodException, "FileSystem: not connected.");
+        }
+
+        std::shared_ptr<FileStatus> status = impl->filesystem->getFileStatus(fileName);
     }
 
 

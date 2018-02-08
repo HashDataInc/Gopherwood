@@ -101,8 +101,6 @@ namespace Gopherwood {
 
             virtual void stopSystem() = 0;
 
-            virtual std::shared_ptr<FileStatus> getFileStatus(const char *fileName)=0;
-
             virtual void acquireNewBlock(char *fileName)=0;
 
             virtual void inactiveBlock(char *fileName, const std::vector<int32_t> &blockIdVector)=0;
@@ -123,6 +121,7 @@ namespace Gopherwood {
 
             virtual void changePingBlockActive(int blockID)=0;
 
+
             // TODO JUST FOT TEST
             virtual void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus) = 0;
 
@@ -142,6 +141,8 @@ namespace Gopherwood {
             virtual int getRandomIntValue(int start, int end) = 0;
             // TODO JUST FOT TEST
 
+
+
             // get lock and release lock
             virtual void getLock() = 0;
 
@@ -151,6 +152,7 @@ namespace Gopherwood {
 
             virtual void deleteBlockFromOSS(int64_t ossindex, string fileName) = 0;
 
+            virtual std::shared_ptr<FileStatus> getFileStatus(const char *fileName)=0;
         };
 
     }

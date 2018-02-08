@@ -13,16 +13,6 @@
 //#include "fcntl.h"
 
 //the access file's type
-typedef enum AccessFileType {
-
-    sequenceType = 0,
-
-    randomType = 1,
-
-    hintRandomType = 2,
-
-    hintSequenceType = 3,
-};
 
 /** All APIs set errno to meaningful values */
 
@@ -39,11 +29,30 @@ struct GWFileInternalWrapper;
 typedef struct GWFileInternalWrapper *gwFile;
 
 
+typedef enum AccessFileType {
+
+    sequenceType = 0,
+
+    randomType = 1,
+
+    hintRandomType = 2,
+
+    hintSequenceType = 3,
+};
+
+
+typedef struct FileInfo {
+
+    tOffset fileSize;
+
+} GWFileInfo;
+
+
 /**
  * gwCreateContext - Connect to a gopherwood file system.
  * @param fileName   the file name
  */
-gopherwoodFS gwCreateContext( char *fileName);
+gopherwoodFS gwCreateContext(char *fileName);
 
 
 /**
@@ -109,11 +118,13 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
 int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos);
 
 
-
 int gwCloseFile(gopherwoodFS fs, gwFile file);
 
 
-
 int deleteFile(gopherwoodFS fs, gwFile file);
+
+
+GWFileInfo *getFileInfo(gopherwoodFS fs, gwFile file);
+
 
 #endif /* _GOPHERWOOD_CORE_GOPHERWOOD_H_ */

@@ -4,7 +4,9 @@
 
 namespace Gopherwood {
     namespace Internal {
+        OutputStreamImpl::~OutputStreamImpl() {
 
+        }
 
         OutputStreamImpl::OutputStreamImpl(std::shared_ptr<FileSystemInter> fs, char *fileName, int flag) {
 
@@ -52,9 +54,13 @@ namespace Gopherwood {
 
         }
 
-        OutputStreamImpl::~OutputStreamImpl() {
 
+        std::shared_ptr<FileStatus> OutputStreamImpl::getFileStatus() {
+            this->status = filesystem->getFileStatus(fileName.data());
+            LOG(INFO, "OutputStreamImpl::getFileStatus, status->getFileSize()=%d", status->getFileSize());
+            return status;
         }
+
 
         void OutputStreamImpl::write(const char *buf, int64_t size) {
 //            LOG(INFO, "come in the write method in OutputStreamImpl");

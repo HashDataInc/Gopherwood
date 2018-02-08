@@ -81,6 +81,8 @@ namespace Gopherwood {
 
             void deleteFile();
 
+            std::shared_ptr<FileStatus> getFileStatus();
+
 
         private:
             std::shared_ptr<FileSystemInter> filesystem;

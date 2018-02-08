@@ -30,7 +30,6 @@
 #define _GOPHERWOOD_CORE_OUTPUTSTREAMINTER_H_
 
 
-
 #include "OutputStream.h"
 #include "FileSystemInter.h"
 
@@ -96,6 +95,7 @@ namespace Gopherwood {
 
             virtual void deleteFile()=0;
 
+            virtual std::shared_ptr<FileStatus> getFileStatus()=0;
 
         };
 

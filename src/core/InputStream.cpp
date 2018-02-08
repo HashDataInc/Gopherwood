@@ -38,7 +38,7 @@ namespace Gopherwood {
 //
 //    }
 
-    void InputStream::seek(int64_t pos){
+    void InputStream::seek(int64_t pos) {
         impl->seek(pos);
     }
 
@@ -46,8 +46,14 @@ namespace Gopherwood {
         impl->close();
     }
 
-    void InputStream::deleteFile(){
+    void InputStream::deleteFile() {
         impl->deleteFile();
+    }
+
+    std::shared_ptr<FileStatus> InputStream::getFileStatus() {
+        std::shared_ptr<FileStatus> status = impl->getFileStatus();
+        LOG(INFO, "InputStream::getFileStatus. status->getFileSize()=%d", status->getFileSize());
+        return status;
     }
 }
 

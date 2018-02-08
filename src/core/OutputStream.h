@@ -32,6 +32,7 @@
 #include "OutputStreamImpl.h"
 #include "Exception.h"
 #include "ExceptionInternal.h"
+
 namespace Gopherwood {
 
 /**
@@ -128,6 +129,8 @@ namespace Gopherwood {
 
 
         void deleteFile();
+
+        std::shared_ptr<FileStatus> getFileStatus();
 
     private:
         Internal::OutputStreamInter *impl;
