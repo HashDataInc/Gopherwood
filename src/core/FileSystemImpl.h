@@ -32,7 +32,7 @@ namespace Gopherwood {
 
         public:
 
-            FileSystemImpl(char *fileName);
+            FileSystemImpl();
 
             /**
             * Destroy a FileSystemBase instance
@@ -87,6 +87,8 @@ namespace Gopherwood {
             void releaseLock();
 
             void deleteFile(char *fileName);
+
+            int destroyFileSystem();
 
         private:
 

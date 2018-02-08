@@ -9,7 +9,7 @@ namespace Gopherwood {
     namespace Internal {
 
 
-        FileSystemImpl::FileSystemImpl(char *fileName) {
+        FileSystemImpl::FileSystemImpl() {
             SharedMemoryManager *smm = new SharedMemoryManager();
             std::shared_ptr<SharedMemoryManager> tmpsmm(smm);
             sharedMemoryManager = tmpsmm;
@@ -1070,8 +1070,24 @@ namespace Gopherwood {
 
             //4.6 release the lock
             flock(logFd, LOCK_UN);
-
             close(logFd);
+
+            //5. remove the fileStatus from the fileStatusMap
+            fileStatusMap.erase(fileName);
+
+        }
+
+
+        int FileSystemImpl::destroyFileSystem() {
+            if (fileStatusMap.size() > 0) {
+                LOG(LOG_ERROR,
+                    "FileSystemImpl::destroyFileSystem. FileSystem contain files that have not been closed. so can not be destroyed");
+                return -1;
+            } else {
+                LOG(INFO, "FileSystemImpl::destroyFileSystem. start to delete the attributes of the fileSystem");
+            }
+
+            return 0;
         }
 
         // delete the file status's log

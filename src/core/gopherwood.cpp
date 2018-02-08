@@ -211,17 +211,22 @@ private:
 };
 
 
-gopherwoodFS gwCreateContext(char *fileName) {
+gopherwoodFS gwCreateContext() {
     gopherwoodFS retVal = NULL;
 
 
     FileSystem *fs = NULL;
 
-    fs = new FileSystem(fileName);
+    fs = new FileSystem();
 
     retVal = new GWFileSystemInternalWrapper(fs);
 
     return retVal;
+}
+
+
+int destroyContext(gopherwoodFS fs) {
+    return fs->getFilesystem().destroyFileSystem();
 }
 
 //TODO

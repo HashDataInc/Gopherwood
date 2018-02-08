@@ -11,11 +11,10 @@ namespace Gopherwood {
 
     namespace Internal {
 
-
     }
 
-    static FileSystemWrapper *createContextInternal(char *fileName) {
-        return new FileSystemWrapper(std::shared_ptr<FileSystemInter>(new FileSystemImpl(fileName)));
+    static FileSystemWrapper *createContextInternal() {
+        return new FileSystemWrapper(std::shared_ptr<FileSystemInter>(new FileSystemImpl()));
     }
 
     FileSystem::~FileSystem() {
@@ -23,15 +22,10 @@ namespace Gopherwood {
 
     }
 
-    FileSystem::FileSystem(char *fileName) {
-        impl = createContextInternal(fileName);
-    }
-
     FileSystem::FileSystem() {
-
-//        this->conf = conf;
-
+        impl = createContextInternal();
     }
+
 
     FileStatus FileSystem::getFileStatus(char *fileName) {
         if (!impl) {
@@ -39,6 +33,11 @@ namespace Gopherwood {
         }
 
         std::shared_ptr<FileStatus> status = impl->filesystem->getFileStatus(fileName);
+    }
+
+    int FileSystem::destroyFileSystem() {
+        int res = impl->filesystem->destroyFileSystem();
+        return res;
     }
 
 
