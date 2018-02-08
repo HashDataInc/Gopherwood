@@ -132,6 +132,18 @@ namespace Gopherwood {
             FileStatus::accessFileType = accessFileType;
         }
 
+        int64_t getFileSize() {
+            int64_t realEOFOffset = 0;
+            for (int i = 0; i < blockIdVector.size(); i++) {
+                if (blockIdVector[i] == lastBucket) {
+                    break;
+                }
+                realEOFOffset += Gopherwood::Internal::SIZE_OF_BLOCK;
+            }
+            realEOFOffset += endOffsetOfBucket;
+            return realEOFOffset;
+        }
+
     private:
         vector<int32_t> blockIdVector;//the block id's list that the file contains;
         string fileName;//the file's name;

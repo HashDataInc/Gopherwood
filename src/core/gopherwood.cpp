@@ -6,6 +6,7 @@
 #include "FileSystem.h"
 #include "InputStream.h"
 #include "OutputStream.h"
+#include "FileStatus.h"
 #include "Exception.h"
 #include "Logger.h"
 #include "XmlConfig.h"
@@ -46,6 +47,7 @@ using Gopherwood::FileSystem;
 using Gopherwood::exception_ptr;
 using Gopherwood::Config;
 using Gopherwood::Internal::Logger;
+using Gopherwood::FileStatus;
 using std::shared_ptr;
 
 
@@ -241,7 +243,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
             file->setOutput(true);
             os = new OutputStream(fs->getFilesystem(), (char *) fileName, internalFlags);
             file->setOutputStream(os);
-        } else if ((flags & O_RDONLY)) {
+        } else if ((flags == O_RDONLY)) {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is read only");
             file->setInput(true);
             is = new InputStream(fs->getFilesystem(), fileName, true);
@@ -383,6 +385,49 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
 
     return -1;
 }
+
+
+static void ConstructGWFileInfo(GWFileInfo *retval, std::shared_ptr<FileStatus> status) {
+    retval->fileSize = status->getFileSize();
+    LOG(Gopherwood::Internal::INFO, "ConstructGWFileInfo. file size = %d", retval->fileSize);
+}
+
+
+//TODO.
+GWFileInfo *getFileInfo(gopherwoodFS fs, gwFile file) {
+    GWFileInfo *retval = NULL;
+    try {
+        if (file->isInput()) {
+            LOG(Gopherwood::Internal::INFO, "getFileInfo. this is the input");
+            std::shared_ptr<FileStatus> status = file->getInputStream().getFileStatus();
+            retval = new GWFileInfo();
+            ConstructGWFileInfo(retval, status);
+
+        } else if (file->isOutput()) {
+            LOG(Gopherwood::Internal::INFO, "getFileInfo. this is the output");
+            std::shared_ptr<FileStatus> status = file->getOutputStream().getFileStatus();
+            retval = new GWFileInfo();
+            ConstructGWFileInfo(retval, status);
+        } else {
+            LOG(Gopherwood::Internal::INFO, "getFileInfo. this is the input and output");
+            std::shared_ptr<FileStatus> status = file->getInputStream().getFileStatus();
+            retval = new GWFileInfo();
+            ConstructGWFileInfo(retval, status);
+        }
+    } catch (const std::bad_alloc &e) {
+        SetErrorMessage("Out of memory");
+        errno = ENOMEM;
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+    }
+
+    return retval;
+
+}
+
+
+
+
 
 
 

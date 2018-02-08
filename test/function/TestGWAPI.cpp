@@ -108,6 +108,19 @@ void testGWDelete(string fileName) {
 }
 
 
+void testGWGetFileInfo(string fileName) {
+    AccessFileType type = AccessFileType::randomType;
+    gopherwoodFS gwFS = gwCreateContext((char *) fileName.c_str());
+    gwFile file = gwOpenFile(gwFS, (char *) fileName.c_str(), O_RDONLY);
+
+    FileInfo *fileInfo = getFileInfo(gwFS, file);
+
+    std::cout << "*****************FILE INFO SIZE =" << fileInfo->fileSize << "*******************" << std::endl;
+    gwCloseFile(gwFS, file);
+    std::cout << "***********END OF CLOSE FILE OF the testGWGetFileInfo method **************" << std::endl;
+
+}
+
 int main(int agrInt, char **agrStr) {
 
     int count = 3;
@@ -135,22 +148,24 @@ int main(int agrInt, char **agrStr) {
         for (int i = 0; i < timeCount; i++) {
             testGWWrite(fileNameArr[2]);
         }
-    }
-
-    else if (strcmp(agrStr[1], "read-1") == 0) {
+    } else if (strcmp(agrStr[1], "read-1") == 0) {
         testGWRead(fileNameArr[0]);
     } else if (strcmp(agrStr[1], "read-2") == 0) {
         testGWRead(fileNameArr[1]);
     } else if (strcmp(agrStr[1], "read-3") == 0) {
         testGWRead(fileNameArr[2]);
-    }
-
-    else if (strcmp(agrStr[1], "delete-1") == 0) {
+    } else if (strcmp(agrStr[1], "delete-1") == 0) {
         testGWDelete(fileNameArr[0]);
     } else if (strcmp(agrStr[1], "delete-2") == 0) {
         testGWDelete(fileNameArr[1]);
     } else if (strcmp(agrStr[1], "delete-3") == 0) {
         testGWDelete(fileNameArr[2]);
+    } else if (strcmp(agrStr[1], "fileInfo-1") == 0) {
+        testGWGetFileInfo(fileNameArr[0]);
+    } else if (strcmp(agrStr[1], "fileInfo-2") == 0) {
+        testGWGetFileInfo(fileNameArr[1]);
+    } else if (strcmp(agrStr[1], "fileInfo-3") == 0) {
+        testGWGetFileInfo(fileNameArr[2]);
     }
 
 

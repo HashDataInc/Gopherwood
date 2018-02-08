@@ -554,9 +554,6 @@ TEST_F(TestReadWriteSeek, ThirdThread) {
 
 
 
-
-
-
 //read test no cache
 TEST_F(TestReadWriteSeek, CloseReadBlockWithoutCache) {
     int count = 3;

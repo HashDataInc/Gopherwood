@@ -99,6 +99,8 @@ namespace Gopherwood {
             virtual string toString() = 0;
 
             virtual void deleteFile()=0;
+
+            virtual std::shared_ptr<FileStatus> getFileStatus()=0;
         };
 
     }

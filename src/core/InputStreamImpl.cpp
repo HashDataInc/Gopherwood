@@ -317,6 +317,12 @@ namespace Gopherwood {
         }
 
 
+        std::shared_ptr<FileStatus> InputStreamImpl::getFileStatus() {
+            this->status = filesystem->getFileStatus(fileName.data());
+            LOG(INFO, "InputStreamImpl::getFileStatus, status->getFileSize()=%d", status->getFileSize());
+            return status;
+        }
+
         void InputStreamImpl::deleteFile() {
             //1. first catch up the file status
             filesystem->catchUpFileStatusFromLog((char *) fileName.c_str());
