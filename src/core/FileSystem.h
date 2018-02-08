@@ -19,8 +19,6 @@ namespace Gopherwood {
     class FileSystem {
     public:
 
-        FileSystem(char *fileName);
-
         /**
          * Construct a FileSystem
          * @param conf gopherwood configuration
@@ -66,6 +64,8 @@ namespace Gopherwood {
         void acquireBlock();
 
         FileStatus getFileStatus(char *fileName);
+
+        int destroyFileSystem();
 
 //TODO , THIS IS private, for test convenient, set it to public
     public:

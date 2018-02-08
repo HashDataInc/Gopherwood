@@ -153,6 +153,8 @@ namespace Gopherwood {
             virtual void deleteBlockFromOSS(int64_t ossindex, string fileName) = 0;
 
             virtual std::shared_ptr<FileStatus> getFileStatus(const char *fileName)=0;
+
+            virtual int destroyFileSystem()=0;
         };
 
     }

@@ -52,7 +52,10 @@ typedef struct FileInfo {
  * gwCreateContext - Connect to a gopherwood file system.
  * @param fileName   the file name
  */
-gopherwoodFS gwCreateContext(char *fileName);
+gopherwoodFS gwCreateContext();
+
+
+int destroyContext(gopherwoodFS fs);
 
 
 /**
