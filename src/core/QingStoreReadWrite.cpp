@@ -65,7 +65,7 @@ namespace Gopherwood {
 
 
         void QingStoreReadWrite::getPutObject(char *filename) {
-            putObject = ossPutObject(qsContext, bucket_name, filename);
+            putObject = ossPutObject(qsContext, bucket_name, filename, false);
         }
 
         void QingStoreReadWrite::getGetObject(char *filename) {
