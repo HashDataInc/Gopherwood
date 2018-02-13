@@ -29,11 +29,26 @@
 #include <cassert>
 #include <sstream>
 
+THREAD_LOCAL char ErrorMessage[ERROR_MESSAGE_BUFFER_SIZE] = "Success";
+
 namespace Gopherwood {
 
 function<bool(void)> ChecnOperationCanceledCallback;
 
 namespace Internal {
+
+void SetErrorMessage(const char *msg) {
+    assert(NULL != msg);
+    strncpy(ErrorMessage, msg, sizeof(ErrorMessage) - 1);
+    ErrorMessage[sizeof(ErrorMessage) - 1] = 0;
+}
+
+void SetLastException(Gopherwood::exception_ptr e) {
+    std::string buffer;
+    const char *p;
+    p = Gopherwood::Internal::GetExceptionMessage(e, buffer);
+    SetErrorMessage(p);
+}
 
 bool CheckOperationCanceled() {
     if (ChecnOperationCanceledCallback && ChecnOperationCanceledCallback()) {

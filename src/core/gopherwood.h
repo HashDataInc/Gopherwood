@@ -22,6 +22,10 @@
 #ifndef _GOPHERWOOD_CORE_GOPHERWOOD_H_
 #define _GOPHERWOOD_CORE_GOPHERWOOD_H_
 
+#include <fcntl.h> /* for O_RDONLY, O_WRONLY */
+#include <errno.h> /* for EINTERNAL, etc. */
+#include <stdint.h> /* for uint64_t, etc. */
+
 #ifdef __cplusplus
 extern "C" {
 #endif

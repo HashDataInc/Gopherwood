@@ -19,54 +19,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <cstdio>
-#include <cstdint>
+#include "platform.h"
 
 #include "gopherwood.h"
+#include "Exception.h"
+#include "ExceptionInternal.h"
 #include "FileSystem.h"
 #include "InputStream.h"
 #include "OutputStream.h"
-#include "Exception.h"
 #include "Logger.h"
+#include "Memory.h"
 #include "XmlConfig.h"
-#include "fcntl.h"
-#include "Logger.h"
-#include "../common/Logger.h"
 
-#ifndef ERROR_MESSAGE_BUFFER_SIZE
-#define ERROR_MESSAGE_BUFFER_SIZE 4096
+#include <cstdio>
+#include <cstdint>
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-static THREAD_LOCAL char ErrorMessage[ERROR_MESSAGE_BUFFER_SIZE] = "Success";
-
-static void SetLastException(Gopherwood::exception_ptr e) {
-    std::string buffer;
-    const char *p;
-    p = Gopherwood::Internal::GetExceptionMessage(e, buffer);
-    strncpy(ErrorMessage, p, sizeof(ErrorMessage) - 1);
-    ErrorMessage[sizeof(ErrorMessage) - 1] = 0;
-}
-
-static void SetErrorMessage(const char *msg) {
-    assert(NULL != msg);
-    strncpy(ErrorMessage, msg, sizeof(ErrorMessage) - 1);
-    ErrorMessage[sizeof(ErrorMessage) - 1] = 0;
-}
-
-#define PARAMETER_ASSERT(para, retval, eno) \
-    if (!(para)) { \
-        SetErrorMessage(Gopherwood::Internal::GetSystemErrorInfo(eno)); \
-        errno = eno; \
-        return retval; \
-    }
-
+using Gopherwood::exception_ptr;
+using Gopherwood::Internal::shared_ptr;
 using Gopherwood::InputStream;
 using Gopherwood::OutputStream;
 using Gopherwood::FileSystem;
-using Gopherwood::exception_ptr;
 using Gopherwood::Config;
 using Gopherwood::Internal::Logger;
-using std::shared_ptr;
+using Gopherwood::Internal::SetErrorMessage;
+using Gopherwood::Internal::SetLastException;
 
 struct GWFileSystemInternalWrapper {
 public:
@@ -394,4 +374,8 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
 
     return -1;
 }
+
+#ifdef __cplusplus
+}
+#endif
 

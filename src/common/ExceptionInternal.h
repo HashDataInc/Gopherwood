@@ -52,6 +52,19 @@ inline static const char * SkipPathPrefix(const char * path) {
     return path + i + 1;
 }
 
+#ifndef ERROR_MESSAGE_BUFFER_SIZE
+#define ERROR_MESSAGE_BUFFER_SIZE 4096
+#endif
+
+extern THREAD_LOCAL char ErrorMessage[ERROR_MESSAGE_BUFFER_SIZE];
+
+#define PARAMETER_ASSERT(para, retval, eno) \
+    if (!(para)) { \
+        SetErrorMessage(Gopherwood::Internal::GetSystemErrorInfo(eno)); \
+        errno = eno; \
+        return retval; \
+    }
+
 #ifdef NEED_BOOST  //  include headers
 #include <boost/exception/all.hpp>
 
@@ -259,6 +272,9 @@ class GopherwoodException;
 
 namespace Gopherwood {
 namespace Internal {
+
+void SetErrorMessage(const char *msg);
+void SetLastException(Gopherwood::exception_ptr e);
 
 /**
  * Check if a slow operation has been canceled by the user.
