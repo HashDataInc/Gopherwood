@@ -81,7 +81,7 @@ namespace Gopherwood {
                 cursorOffset += readLength;
                 LOG(INFO, "InputStreamImpl::readInternal. 1.&&&&&&&&&&&&&&&&&&&&&&&&&&&& buf=%s", buf);
                 LOG(INFO,
-                    "InputStreamImpl::readInternal. 1.readLength = %d,remainOffsetInBlock=%d,endOffsetOfBucket=%d, cursorOffset=%d",
+                    "InputStreamImpl::readInternal. 1.readLength = %ld,remainOffsetInBlock=%ld,endOffsetOfBucket=%ld, cursorOffset=%ld",
                     readLength, remainOffsetInBlock, status->getEndOffsetOfBucket(), cursorOffset);
 
                 if (cursorOffset >= SIZE_OF_BLOCK) {
@@ -89,7 +89,7 @@ namespace Gopherwood {
                 }
                 return readLength;
             } else {
-                LOG(INFO, "InputStreamImpl::readInternal. cursorBucketID=%d, cursorOffset=%d", cursorBucketID,
+                LOG(INFO, "InputStreamImpl::readInternal. cursorBucketID=%d, cursorOffset=%ld", cursorBucketID,
                     cursorOffset);
                 int64_t remainOffsetInBlock = SIZE_OF_BLOCK - cursorOffset;
                 if (size <= remainOffsetInBlock) {
@@ -103,7 +103,7 @@ namespace Gopherwood {
 //                LOG(INFO, "1. InputStreamImpl::readInternal. readLength=%d", readLength);
                     cursorOffset += readLength;
                     LOG(INFO, "InputStreamImpl::readInternal. 2.&&&&&&&&&&&&&&&&&&&&&&&&&&&& buf=%s", buf);
-                    LOG(INFO, "InputStreamImpl::readInternal. 2.readLength = %d", readLength);
+                    LOG(INFO, "InputStreamImpl::readInternal. 2.readLength = %ld", readLength);
 
                     if (cursorOffset >= SIZE_OF_BLOCK) {
                         seekToNextBlock();
@@ -166,10 +166,10 @@ namespace Gopherwood {
             //check the pos is in the oss or not
             checkStatus(cursorIndex * SIZE_OF_BLOCK);
 
-            LOG(INFO, "InputStreamImpl::seekToNextBlock, status->getBlockIdVector().size()=%d, cursorIndex=%d",
+            LOG(INFO, "InputStreamImpl::seekToNextBlock, status->getBlockIdVector().size()=%lu, cursorIndex=%d",
                 status->getBlockIdVector().size(), cursorIndex);
 
-            if (cursorIndex >= status->getBlockIdVector().size()) {
+            if ((uint64_t)cursorIndex >= status->getBlockIdVector().size()) {
                 return;
             }
             this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
@@ -183,7 +183,7 @@ namespace Gopherwood {
         //cursorOffset<------------>endOfFile
         int64_t InputStreamImpl::getRemainLength() {
             int64_t remainLength = 0;
-            int i = cursorIndex;
+            uint64_t i = cursorIndex;
             remainLength += SIZE_OF_BLOCK - cursorOffset;
             i++;
             for (; i < status->getBlockIdVector().size(); i++) {
@@ -199,7 +199,7 @@ namespace Gopherwood {
 
 
         int64_t InputStreamImpl::available() {
-
+            return 0;
         }
 
 
@@ -221,7 +221,7 @@ namespace Gopherwood {
             this->status = filesystem->getFileStatus(fileName.data());
             this->cursorIndex = bucketIDIndex;
             LOG(INFO, "InputStreamImpl::seekInternal cursorIndex = %d", cursorIndex);
-            if (status->getBlockIdVector().size() <= cursorIndex) {
+            if (status->getBlockIdVector().size() <= (uint64_t)cursorIndex) {
                 LOG(LOG_ERROR, "InputStreamImpl::seekInternal, cursorIndex smaller than the block id's size");
                 return;
             }
@@ -236,7 +236,7 @@ namespace Gopherwood {
 
 
         int64_t InputStreamImpl::tell() {
-
+            return 0;
         }
 
 
@@ -247,17 +247,17 @@ namespace Gopherwood {
 
 
         string InputStreamImpl::toString() {
-
+            return NULL;
         }
 
         void InputStreamImpl::checkStatus(int64_t pos) {
-            LOG(INFO, "InputStreamImpl::checkStatus pos = %d", pos);
+            LOG(INFO, "InputStreamImpl::checkStatus pos = %ld", pos);
             if (pos < 0) {
                 LOG(LOG_ERROR, "InputStreamImpl::checkStatus pos can not be smaller than zero");
             }
             //1. check the size of the file
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
-            LOG(INFO, "InputStreamImpl::checkStatus. theEOFOffset=%d", theEOFOffset);
+            LOG(INFO, "InputStreamImpl::checkStatus. theEOFOffset=%ld", theEOFOffset);
 
             if (theEOFOffset == 0) {
                 LOG(INFO, "the file do not contain any one bucket");
@@ -338,13 +338,13 @@ namespace Gopherwood {
 
 
         void InputStreamImpl::deleteFileBucket(int64_t pos) {
-            LOG(INFO, "InputStreamImpl::deleteFileBucket pos = %d", pos);
+            LOG(INFO, "InputStreamImpl::deleteFileBucket pos = %ld", pos);
             if (pos < 0) {
                 LOG(LOG_ERROR, "InputStreamImpl::deleteFileBucket pos can not be smaller than zero");
             }
             //1. check the size of the file
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
-            LOG(INFO, "InputStreamImpl::deleteFileBucket. theEOFOffset=%d", theEOFOffset);
+            LOG(INFO, "InputStreamImpl::deleteFileBucket. theEOFOffset=%ld", theEOFOffset);
 
             if (theEOFOffset == 0) {
                 LOG(INFO, "the file do not contain any one bucket");

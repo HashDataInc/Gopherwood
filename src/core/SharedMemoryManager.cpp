@@ -21,7 +21,7 @@ namespace Gopherwood {
             //TODO 1. check the shared memory in memory exist or not?
             //2. check the file exist or not?
             checkSharedMemoryInFile();
-
+            return 0;
         }
 
         bool SharedMemoryManager::checkSharedMemoryInFile() {
@@ -33,6 +33,7 @@ namespace Gopherwood {
             } else {
                 LOG(INFO, "the shared memory file exist");
             }
+            return true;
         }
 
 
@@ -60,7 +61,7 @@ namespace Gopherwood {
 
 
         int32_t SharedMemoryManager::deleteSharedMemory() {
-
+            return 0;
         }
 
 
@@ -84,7 +85,7 @@ namespace Gopherwood {
 
 
         void SharedMemoryManager::printSMStatus() {
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             int length = 0;
             char sempType = *((char *) (mem + length));
             LOG(INFO, "semaphore flag = %c", sempType);
@@ -137,7 +138,7 @@ namespace Gopherwood {
 
             getLock();
 
-            void *mem = regionPtr->get_address();
+            char *mem = (char *)regionPtr->get_address();
             smBucketStruct *smb;
             int length = 1 + sizeof(smBucketStruct) * blockID;
             smb = (smBucketStruct *) (mem + length);
@@ -168,7 +169,7 @@ namespace Gopherwood {
 
             int i = 0;
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             smBucketStruct *smb;
 
 
@@ -220,7 +221,7 @@ namespace Gopherwood {
 
             int i = 0;
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             smBucketStruct *smb;
 
             // 1. get the  new block lists which type = '2'
@@ -247,7 +248,7 @@ namespace Gopherwood {
                         "SharedMemoryManager::getBlocksWhichTypeEqual2. the bloclIO =%d, and the block status =%s", i,
                         ss.str().c_str());
 
-                    if (blockStatusMap.size() >= count) {
+                    if (blockStatusMap.size() >= (unsigned int)count) {
                         break;
                     }
                 }
@@ -271,7 +272,7 @@ namespace Gopherwood {
 
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length += sizeof(smBucketStruct) * blockID;
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
@@ -292,7 +293,7 @@ namespace Gopherwood {
             getLock();
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length += sizeof(smBucketStruct) * blockID;
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
@@ -307,7 +308,7 @@ namespace Gopherwood {
 
 
             if (length >= TOTAL_SHARED_MEMORY_LENGTH) {
-                LOG(LOG_ERROR, "SharedMemoryManager::inactiveBlock. given block id = %d exceed the max size which is ");
+                LOG(LOG_ERROR, "SharedMemoryManager::inactiveBlock. given block id = %d exceed the max size which is ", blockID);
             }
 
             releaseLock();
@@ -325,7 +326,7 @@ namespace Gopherwood {
             getLock();
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length += sizeof(smBucketStruct) * blockID;
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
@@ -343,7 +344,7 @@ namespace Gopherwood {
             getLock();
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length += sizeof(smBucketStruct) * blockID;
 
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
@@ -369,7 +370,7 @@ namespace Gopherwood {
             }
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length += sizeof(smBucketStruct) * blockID;
 
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
@@ -420,7 +421,7 @@ namespace Gopherwood {
             }
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length = length + sizeof(smBucketStruct) * blockID;
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
@@ -450,14 +451,10 @@ namespace Gopherwood {
         }
 
         char SharedMemoryManager::getBlockType(int blockID) {
-            if (!checkBlockIDIsLegal(blockID)) {
-                return NULL;
-            }
-
             getLock();
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length = length + sizeof(smBucketStruct) * blockID;
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
@@ -476,7 +473,7 @@ namespace Gopherwood {
             getLock();
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length = length + sizeof(smBucketStruct) * blockID;
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
@@ -508,7 +505,7 @@ namespace Gopherwood {
             getLock();
 
             int length = 1;
-            void *mem = regionPtr->get_address();
+            char *mem = (char*)regionPtr->get_address();
             length = length + sizeof(smBucketStruct) * blockID;
             smBucketStruct *smb = (smBucketStruct *) (mem + length);
 
@@ -516,7 +513,7 @@ namespace Gopherwood {
             char type = smb->type;
 
             // 2. get kick type;
-            char isKick = smb->isKick;
+            //char isKick = smb->isKick;
 
             //3. get fileName
             char tmpName[256];

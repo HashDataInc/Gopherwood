@@ -22,7 +22,7 @@ typedef enum AccessFileType {
     hintRandomType = 2,
 
     hintSequenceType = 3,
-};
+} AccessFileType;
 
 /** All APIs set errno to meaningful values */
 

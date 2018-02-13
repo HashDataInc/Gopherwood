@@ -30,7 +30,7 @@ namespace Gopherwood {
             PutFixed32(&res, blockIdVector.size());
 
 //            LOG(INFO, "1, LogFormat res size = %d", res.size());
-            for (int i = 0; i < blockIdVector.size(); i++) {
+            for (uint64_t i = 0; i < blockIdVector.size(); i++) {
                 PutFixed32(&res, blockIdVector[i]);
 //                LOG(INFO, "2, LogFormat res size = %d", res.size());
             }
@@ -96,7 +96,7 @@ namespace Gopherwood {
         }
 
         std::string LogFormat::serializeLog(const std::vector<int32_t> &blockIdVector, RecordType type) {
-            LOG(INFO, "LogFormat::serializeLog, and the RecordType =  %d, blockIdVector size = %d", type,
+            LOG(INFO, "LogFormat::serializeLog, and the RecordType =  %d, blockIdVector size = %lu", type,
                 blockIdVector.size());
             switch (type) {
                 case acquireNewBlock:
@@ -111,14 +111,17 @@ namespace Gopherwood {
                     return serializeRemoteBlock(blockIdVector, type);
                 case deleteBlock:
                     return serializeDeleteBlock(blockIdVector, type);
-
+                case closeFile:
+                default:
+                    return NULL;
             }
+            return NULL;
         }
 
 
         std::string LogFormat::serializeFileStatusForClose(shared_ptr<FileStatus> fileStatus) {
             LOG(INFO,
-                "LogFormat::serializeFileStatusForClose, fileStatus->getEndOffsetOfBucket()=%d, block size = %d,fileStatus->getLastBucket()=%d",
+                "LogFormat::serializeFileStatusForClose, fileStatus->getEndOffsetOfBucket()=%ld, block size = %lu,fileStatus->getLastBucket()=%d",
                 fileStatus->getEndOffsetOfBucket(),
                 fileStatus->getBlockIdVector().size(), fileStatus->getLastBucket());
 
@@ -127,7 +130,7 @@ namespace Gopherwood {
             PutFixed32(&res, size);
             res.append(1, static_cast<char>(RecordType::closeFile));
             PutFixed32(&res, fileStatus->getBlockIdVector().size());
-            for (int i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
+            for (uint64_t i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
                 LOG(INFO, "LogFormat::serializeFileStatusForClose. block id = %d", fileStatus->getBlockIdVector()[i]);
 
                 PutFixed32(&res, fileStatus->getBlockIdVector()[i]);
@@ -196,12 +199,12 @@ namespace Gopherwood {
                 fileStatus->setBlockIdVector(beforeVector);
             } else if (iType == 2) { // releaseBlock or deleteBlock
                 vector<int32_t> vecBefore = fileStatus->getBlockIdVector();
-                for (int i = 0; i < tmpVector.size(); i++) {
+                for (uint64_t i = 0; i < tmpVector.size(); i++) {
                     int blockID2Release = tmpVector[i];
                     std::vector<int32_t>::iterator it;
 
                     for (it = vecBefore.begin(); it != vecBefore.end();) {
-                        LOG(INFO, "deserializeHeaderAndBlockIds iterator vector size = %d", vecBefore.size());
+                        LOG(INFO, "deserializeHeaderAndBlockIds iterator vector size = %lu", vecBefore.size());
                         if (*it == blockID2Release) {
                             it = vecBefore.erase(it);
                             break;
@@ -213,33 +216,33 @@ namespace Gopherwood {
                 fileStatus->setBlockIdVector(vecBefore);
             } else if (iType == 3) { // evict block, this means the block now belong to the new file,
                 vector<int32_t> beforeVector = fileStatus->getBlockIdVector();
-                for (int i = 0; i < tmpVector.size(); i++) {
+                for (uint64_t i = 0; i < tmpVector.size(); i++) {
                     int blockID2Add = tmpVector[i];
                     beforeVector.push_back(blockID2Add);
                 }
                 fileStatus->setBlockIdVector(beforeVector);
             } else if (iType == 4) { //remoteBlock
                 vector<int32_t> previousVector = fileStatus->getBlockIdVector();
-                for (int i = 0; i < tmpVector.size(); i++) {
+                for (uint64_t i = 0; i < tmpVector.size(); i++) {
                     int blockIDRemote = tmpVector[i];
-                    if (-blockIDRemote > fileStatus->getBlockIdVector().size()) {
+                    if ((uint64_t)-blockIDRemote > fileStatus->getBlockIdVector().size()) {
                         LOG(LOG_ERROR, "error occur, the remote block index can not larger than the block vector");
-                        return NULL;
+                        return -1;
                     }
                     int index = -blockIDRemote - 1;
                     previousVector[index] = blockIDRemote;
                 }
                 fileStatus->setBlockIdVector(previousVector);
             } else if (iType == 5) { //closeFile = 5
-                LOG(INFO, "deserializeHeaderAndBlockIds, fileStatus->getBlockIdVector().size()=%d",
+                LOG(INFO, "deserializeHeaderAndBlockIds, fileStatus->getBlockIdVector().size()=%ld",
                     fileStatus->getBlockIdVector().size());
                 fileStatus->setBlockIdVector(tmpVector);
             } else if (iType == 6) { // delete and replace block
                 if (tmpVector.size() != 2) {
                     LOG(LOG_ERROR,
-                        "LogFormat::deserializeHeaderAndBlockIds. tmpVector size should be equal 2, however it size=%d",
+                        "LogFormat::deserializeHeaderAndBlockIds. tmpVector size should be equal 2, however it size=%ld",
                         tmpVector.size());
-                    return NULL;
+                    return -1;
                 }
                 int blockID = tmpVector[0];
                 int toReplaceblockID = tmpVector[1];
@@ -255,7 +258,7 @@ namespace Gopherwood {
                     }
                 }
 
-                for (int i = 0; i < vecBefore.size(); i++) {
+                for (uint64_t i = 0; i < vecBefore.size(); i++) {
                     if (vecBefore[i] == toReplaceblockID) {
                         vecBefore[i] = blockID;
                     }
@@ -264,9 +267,9 @@ namespace Gopherwood {
             }
 
 
-            LOG(INFO, "deserializeHeaderAndBlockIds, in the end, fileStatus->getBlockIdVector().size()=%d",
+            LOG(INFO, "deserializeHeaderAndBlockIds, in the end, fileStatus->getBlockIdVector().size()=%ld",
                 fileStatus->getBlockIdVector().size());
-            for (int i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
+            for (uint64_t i = 0; i < fileStatus->getBlockIdVector().size(); i++) {
                 LOG(INFO, "deserializeHeaderAndBlockIds, in the end, block id =%d", fileStatus->getBlockIdVector()[i]);
             }
 
@@ -286,31 +289,31 @@ namespace Gopherwood {
 
         void LogFormat::deserializeInactiveBlock(std::string val, shared_ptr<FileStatus> fileStatus) {
             LOG(INFO, "*******deserializeInactiveBlock*******");
-            int offset = deserializeHeaderAndBlockIds(val, fileStatus);
+            deserializeHeaderAndBlockIds(val, fileStatus);
             LOG(INFO, "*******deserializeInactiveBlock*******");
         }
 
         void LogFormat::deserializeDeleteBlock(std::string val, shared_ptr<FileStatus> fileStatus) {
             LOG(INFO, "*******deserializeDeleteBlock*******");
-            int offset = deserializeHeaderAndBlockIds(val, fileStatus);
+            deserializeHeaderAndBlockIds(val, fileStatus);
             LOG(INFO, "*******deserializeDeleteBlock*******");
         }
 
         void LogFormat::deserializeReleaseBlock(std::string val, shared_ptr<FileStatus> fileStatus) {
             LOG(INFO, "*******deserializeReleaseBlock*******");
-            int offset = deserializeHeaderAndBlockIds(val, fileStatus);
+            deserializeHeaderAndBlockIds(val, fileStatus);
             LOG(INFO, "*******deserializeReleaseBlock*******");
         }
 
         void LogFormat::deserializeEvictBlock(std::string val, shared_ptr<FileStatus> fileStatus) {
             LOG(INFO, "*******deserializeEvictBlock*******");
-            int offset = deserializeHeaderAndBlockIds(val, fileStatus);
+            deserializeHeaderAndBlockIds(val, fileStatus);
             LOG(INFO, "*******deserializeEvictBlock*******");
         }
 
         void LogFormat::deserializeRemoteBlock(std::string val, shared_ptr<FileStatus> fileStatus) {
             LOG(INFO, "*******deserializeRemoteBlock*******");
-            int offset = deserializeHeaderAndBlockIds(val, fileStatus);
+            deserializeHeaderAndBlockIds(val, fileStatus);
             LOG(INFO, "*******deserializeRemoteBlock*******");
         }
 
@@ -322,7 +325,7 @@ namespace Gopherwood {
             int64_t endOffsetOfBucket = DecodeFixed64(res + offset);
 
             fileStatus->setEndOffsetOfBucket(endOffsetOfBucket);
-            LOG(INFO, "deserializeCloseFile endOffsetOfBucket   = %d", endOffsetOfBucket);
+            LOG(INFO, "deserializeCloseFile endOffsetOfBucket   = %ld", endOffsetOfBucket);
 
             LOG(INFO, "*******deserializeCloseFile*******");
         }

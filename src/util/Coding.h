@@ -1,17 +1,3 @@
-//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
-//  This source code is licensed under both the GPLv2 (found in the
-//  COPYING file in the root directory) and Apache 2.0 License
-//  (found in the LICENSE.Apache file in the root directory).
-//
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
-//
-// Endian-neutral encoding:
-// * Fixed-length numbers are encoded with least-significant byte first
-// * In addition we support variable length "varint" encoding
-// * Strings are encoded prefixed by their length in varint format
-
 #ifndef _GOPHERWOOD_UTIL_CODING_H_
 #define _GOPHERWOOD_UTIL_CODING_H_
 
@@ -344,7 +330,7 @@ namespace Gopherwood {
 
     inline bool GetLengthPrefixedSlice(Slice *input, Slice *result) {
         int32_t len = 0;
-        if (GetVarint32(input, &len) && input->size() >= len) {
+        if (GetVarint32(input, &len) && input->size() >= (size_t)len) {
             *result = Slice(input->data(), len);
             input->remove_prefix(len);
             return true;
@@ -363,12 +349,12 @@ namespace Gopherwood {
 
     inline Slice GetSliceUntil(Slice *slice, char delimiter) {
         int32_t len = 0;
-        for (len = 0; len < slice->size() && slice->data()[len] != delimiter; ++len) {
+        for (len = 0; (size_t)len < slice->size() && slice->data()[len] != delimiter; ++len) {
             // nothing
         }
 
         Slice ret(slice->data(), len);
-        slice->remove_prefix(len + ((len < slice->size()) ? 1 : 0));
+        slice->remove_prefix(len + (((size_t)len < slice->size()) ? 1 : 0));
         return ret;
     }
 

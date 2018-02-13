@@ -38,7 +38,7 @@ namespace Gopherwood {
             hintRandomType = 2,
 
             hintSequenceType = 3,
-        };
+        } AccessFileType;
 
 
         FileStatus() {

@@ -19,13 +19,13 @@ namespace Gopherwood {
         extern int64_t SIZE_OF_BLOCK;
         extern int32_t BIT_MAP_SIZE;
 
-        extern char *BUCKET_PATH_FILE_NAME;
+        extern const char *BUCKET_PATH_FILE_NAME;
 
-        extern char *SHARED_MEMORY_PATH_FILE_NAME;
+        extern const char *SHARED_MEMORY_PATH_FILE_NAME;
         extern int NUMBER_OF_BLOCKS;
-        extern char *FILE_LOG_PERSISTENCE_PATH;
-        extern int FILENAME_MAX_LENGTH;
-        extern int MIN_QUOTA_SIZE;
+        extern const char *FILE_LOG_PERSISTENCE_PATH;
+        extern unsigned int FILENAME_MAX_LENGTH;
+        extern unsigned int MIN_QUOTA_SIZE;
 
         extern int QINGSTOR_BUFFER_SIZE;
         extern int32_t READ_BUFFER_SIZE;

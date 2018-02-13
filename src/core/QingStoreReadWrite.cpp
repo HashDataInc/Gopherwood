@@ -27,17 +27,13 @@ namespace Gopherwood {
             return tv.tv_sec * 1000 + tv.tv_usec / 1000;
         }
 
-        static double calculateThroughput(int64_t elapsed, int64_t size) {
-            return size / 1024.0 * 1000.0 / 1024.0 / elapsed;
-        }
-
         int64_t QingStoreReadWrite::qsWrite(char *filename, char *buffer, int32_t size) {
             LOG(INFO, "QingStoreReadWrite::qsWrite,  file name = %s", filename);
             int64_t writeLegnth = 0;
             if (putObject) {
                 writeLegnth = ossWrite(qsContext, putObject, buffer, size);
                 if (writeLegnth != size) {
-                    LOG(LOG_ERROR, "qingstor IN write failed with error message: %s, writeLegnth = %d",
+                    LOG(LOG_ERROR, "qingstor IN write failed with error message: %s, writeLegnth = %ld",
                         ossGetLastError(), writeLegnth);
                 }
             } else {
@@ -52,9 +48,9 @@ namespace Gopherwood {
             int64_t readLegnth = 0;
             if (getObject) {
                 readLegnth = ossRead(qsContext, getObject, buffer, size);
-                LOG(INFO, "QingStoreReadWrite::qsRead,readLegnth = %d", readLegnth);
+                LOG(INFO, "QingStoreReadWrite::qsRead,readLegnth = %ld", readLegnth);
                 if (readLegnth != size) {
-                    LOG(LOG_ERROR, "qingstor IN  read failed with error message: %s,readLegnth = %d",
+                    LOG(LOG_ERROR, "qingstor IN  read failed with error message: %s,readLegnth = %ld",
                         ossGetLastError(), readLegnth);
                 }
             } else {
@@ -96,11 +92,13 @@ namespace Gopherwood {
             int ret = ossMoveObject(qsContext, bucket_name, beforeFilename, bucket_name, afterFilename);
             LOG(INFO, "QingStoreReadWrite::renameObject, beforeFilename=%s, afterFilename=%s. the ret = %d",
                 beforeFilename, afterFilename, ret);
+            return 0;
         }
 
         int64_t QingStoreReadWrite::qsDeleteObject(char *filename) {
             int res = ossDeleteObject(qsContext, bucket_name, filename);
             LOG(INFO, "QingStoreReadWrite::qsDeleteObject, filename=%s, the res = %d", filename, res);
+            return 0;
         }
 
 
