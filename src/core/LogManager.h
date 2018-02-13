@@ -9,16 +9,15 @@
 
 namespace Gopherwood {
 
+namespace Internal {
+class LogManager {
+public:
+    LogManager() {
 
-    namespace Internal {
-        class LogManager {
-        public:
-            LogManager(){
-
-            }
-            ~ LogManager(){
-
-            }
-        };
     }
+    ~ LogManager() {
+
+    }
+};
+}
 }

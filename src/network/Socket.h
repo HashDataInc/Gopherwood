@@ -109,8 +109,8 @@ public:
      * @throw GopherwoodNetworkException
      * @throw GopherwoodTimeout
      */
-    virtual void connect(struct addrinfo * paddr, const char * host,
-                         const char * port, int timeout) = 0;
+    virtual void connect(struct addrinfo * paddr, const char * host, const char * port,
+            int timeout) = 0;
 
     /**
      * Test if the socket can be read or written without blocking.

@@ -44,15 +44,15 @@ using namespace boost::chrono;
 #include <chrono>
 
 namespace Gopherwood {
-namespace Internal {
+    namespace Internal {
 
-using namespace std::chrono;
+        using namespace std::chrono;
 
 #ifndef HAVE_STEADY_CLOCK
-typedef std::chrono::monotonic_clock steady_clock;
+        typedef std::chrono::monotonic_clock steady_clock;
 #endif
 
-}
+    }
 }
 #else
 #error "no chrono library is available"

@@ -2,32 +2,29 @@
 // Created by root on 11/19/17.
 //
 
-
 #include "InputStream.h"
-
 
 using namespace Gopherwood::Internal;
 
 namespace Gopherwood {
 
+InputStream::InputStream(FileSystem &fs, const char *fileName, bool verifyChecksum) {
 
-    InputStream::InputStream(FileSystem &fs, const char *fileName, bool verifyChecksum) {
-
-        if (!fs.impl) {
-            THROW(GopherwoodIOException, "FileSystem: not connected.");
-        }
-
-        impl = new Internal::InputStreamImpl(fs.impl->filesystem, fileName, verifyChecksum);
-
+    if (!fs.impl) {
+        THROW(GopherwoodIOException, "FileSystem: not connected.");
     }
 
-    InputStream::~InputStream() {
-        delete impl;
-    }
+    impl = new Internal::InputStreamImpl(fs.impl->filesystem, fileName, verifyChecksum);
 
-    int32_t InputStream::read(char *buf, int32_t size) {
-        return impl->read(buf, size);
-    }
+}
+
+InputStream::~InputStream() {
+    delete impl;
+}
+
+int32_t InputStream::read(char *buf, int32_t size) {
+    return impl->read(buf, size);
+}
 
 //    void InputStream::open(FileSystem &fs, const char *fileName, bool verifyChecksum = true){
 //        if (!fs.impl) {
@@ -38,18 +35,16 @@ namespace Gopherwood {
 //
 //    }
 
-    void InputStream::seek(int64_t pos){
-        impl->seek(pos);
-    }
-
-    void InputStream::close() {
-        impl->close();
-    }
-
-    void InputStream::deleteFile(){
-        impl->deleteFile();
-    }
+void InputStream::seek(int64_t pos) {
+    impl->seek(pos);
 }
 
+void InputStream::close() {
+    impl->close();
+}
 
+void InputStream::deleteFile() {
+    impl->deleteFile();
+}
+}
 

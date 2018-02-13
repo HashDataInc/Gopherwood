@@ -34,135 +34,126 @@
 #include "LogFormat.h"
 
 namespace Gopherwood {
-    namespace Internal {
-        using namespace std;
-        using namespace boost::interprocess;
+namespace Internal {
+using namespace std;
+using namespace boost::interprocess;
 
-        class SharedMemoryManager {
+class SharedMemoryManager {
 
-        public:
+public:
 
-            struct smBucketStruct {
-                char type;
-                char isKick;
-                int32_t blockIndex;
-                char fileName[256];
-            };
+    struct smBucketStruct {
+        char type;
+        char isKick;
+        int32_t blockIndex;
+        char fileName[256];
+    };
 
-            SharedMemoryManager();
+    SharedMemoryManager();
 
-            ~SharedMemoryManager();
+    ~SharedMemoryManager();
 
+    /**
+     * check whether the shared memory exist or not
+     * @return 1 if exist, -1 otherwise
+     */
+    int32_t checkSharedMemory();
 
-            /**
-           * check whether the shared memory exist or not
-           * @return 1 if exist, -1 otherwise
-           */
-            int32_t checkSharedMemory();
+    void getSharedMemoryID();
 
-            void getSharedMemoryID();
+    /**
+     *  create the shared memory
+     * @return the key of the shared memory
+     */
+    void createSharedMemory();
 
-            /**
-             *  create the shared memory
-             * @return the key of the shared memory
-             */
-            void createSharedMemory();
+    /**
+     * delete the shared memory
+     * @return
+     */
+    int32_t deleteSharedMemory();
 
+    void openSMBucket();
 
-            /**
-             * delete the shared memory
-             * @return
-             */
-            int32_t deleteSharedMemory();
+    void closeSMBucket();
 
+    std::vector<int> acquireNewBlock(char *fileName);
 
-            void openSMBucket();
+    void inactiveBlock(int blockID, int blockIndex);
 
-            void closeSMBucket();
+    void activeBlock(int blockID);
 
-            std::vector<int> acquireNewBlock(char *fileName);
+    void releaseBlock(int blockID);
 
-            void inactiveBlock(int blockID, int blockIndex);
+    void evictBlock(int blockID, char *fileName);
 
-            void activeBlock(int blockID);
+    void closeSMFile();
 
-            void releaseBlock(int blockID);
+    std::string getFileNameAccordingBlockID(int blockID);
 
-            void evictBlock(int blockID, char *fileName);
+    int getBlockIDIndex(int blockID);
 
+    std::unordered_map<int, std::string> getBlocksWhichTypeEqual2(int count);
 
-            void closeSMFile();
+    void printSMStatus();
 
-            std::string getFileNameAccordingBlockID(int blockID);
+    char getBlockType(int blockID);
 
-            int getBlockIDIndex(int blockID);
+    bool checkFileNameAndType(int blockID, string fileName);
 
-            std::unordered_map<int, std::string> getBlocksWhichTypeEqual2(int count);
+    bool checkFileNameAndTypeAndSetKick(int blockID, string fileName);
 
+    std::string getBlockStatus(int blockID);
 
-            void printSMStatus();
+    void getLock();
 
-            char getBlockType(int blockID);
+    void releaseLock();
 
-            bool checkFileNameAndType(int blockID, string fileName);
-
-            bool checkFileNameAndTypeAndSetKick(int blockID, string fileName);
-
-            std::string getBlockStatus(int blockID);
-
-
-            void getLock();
-
-            void releaseLock();
-
-        private:
-            int32_t sharedMemoryFd = -1;// the shared memory file descriptor
-            int32_t sharedMemoryID;// the shared memory id, when create a new shared memory, it will return a sharedMemoryID
+private:
+    int32_t sharedMemoryFd = -1; // the shared memory file descriptor
+    int32_t sharedMemoryID; // the shared memory id, when create a new shared memory, it will return a sharedMemoryID
 //            char *smBucketInfo;
-            std::shared_ptr<shared_memory_object> shmPtr;
-            std::shared_ptr<mapped_region> regionPtr;
+    std::shared_ptr<shared_memory_object> shmPtr;
+    std::shared_ptr<mapped_region> regionPtr;
 
-            union semun {
-                int val;
-                struct semid_ds *buf;
-                unsigned short *arry;
-            };
+    union semun {
+        int val;
+        struct semid_ds *buf;
+        unsigned short *arry;
+    };
 
-            int semaphoreID = 0;
-            int TOTAL_SHARED_MEMORY_LENGTH = 1 + NUMBER_OF_BLOCKS * sizeof(smBucketStruct);
+    int semaphoreID = 0;
+    int TOTAL_SHARED_MEMORY_LENGTH = 1 + NUMBER_OF_BLOCKS * sizeof(smBucketStruct);
 
-        private:
-            void bitSet(char *p_data, int position, int flag);
+private:
+    void bitSet(char *p_data, int position, int flag);
 
-            bool checkSharedMemoryInFile();
+    bool checkSharedMemoryInFile();
 
-            int createSemaphore();
+    int createSemaphore();
 
-            int setSemaphoreValue();
+    int setSemaphoreValue();
 
-            void delSemaphoreValue();
+    void delSemaphoreValue();
 
-            int semaphoreP();
+    int semaphoreP();
 
-            int semaphoreV();
+    int semaphoreV();
 
-            int checkSemaphore();
+    int checkSemaphore();
 
-            bool checkAndSetSMOne();
+    bool checkAndSetSMOne();
 
-            void checkAndSetSMZero();
+    void checkAndSetSMZero();
 
-            char *generateStr(int length);
+    char *generateStr(int length);
 
-            bool checkBlockIDIsLegal(int blockID);
+    bool checkBlockIDIsLegal(int blockID);
 
-
-        };
-
-    }
-
+};
 
 }
 
+}
 
 #endif //_GOPHERWOOD_CORE_SHAREDMEMORYMANAGER_H_

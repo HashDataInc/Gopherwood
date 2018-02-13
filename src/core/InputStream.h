@@ -23,7 +23,6 @@
 #ifndef _GOPHERWOOD_CORE_INPUTSTREAM_H_
 #define _GOPHERWOOD_CORE_INPUTSTREAM_H_
 
-
 #include "FileSystem.h"
 #include "FileSystemImpl.h"
 #include "FileSystemInter.h"
@@ -31,73 +30,70 @@
 #include "../common/ExceptionInternal.h"
 
 namespace Gopherwood {
-    namespace Internal {
-        class InputStreamInter;
-    }
+namespace Internal {
+class InputStreamInter;
+}
 
 /**
  * A input stream used read data from gopherwood.
  */
-    class InputStream {
-    public:
-        InputStream(FileSystem &fs, const char *fileName, bool verifyChecksum = true);
+class InputStream {
+public:
+    InputStream(FileSystem &fs, const char *fileName, bool verifyChecksum = true);
 
-        ~InputStream();
+    ~InputStream();
 
-        /**
-         * Open a file to read
-         * @param fs gopherwood file system.
-         * @param fileName the name of the file to be read.
-         * @param verifyChecksum verify the checksum.
-         */
+    /**
+     * Open a file to read
+     * @param fs gopherwood file system.
+     * @param fileName the name of the file to be read.
+     * @param verifyChecksum verify the checksum.
+     */
 //        void open(FileSystem &fs, const char *fileName, bool verifyChecksum = true);
+    /**
+     * To read data from gopherwood.
+     * @param buf the buffer used to filled.
+     * @param size buffer size.
+     * @return return the number of bytes filled in the buffer, it may less than size.
+     */
+    int32_t read(char *buf, int32_t size);
 
-        /**
-         * To read data from gopherwood.
-         * @param buf the buffer used to filled.
-         * @param size buffer size.
-         * @return return the number of bytes filled in the buffer, it may less than size.
-         */
-        int32_t read(char *buf, int32_t size);
+    /**
+     * To read data from gopherwood, block until get the given size of bytes.
+     * @param buf the buffer used to filled.
+     * @param size the number of bytes to be read.
+     */
+    void readFully(char *buf, int64_t size);
 
-        /**
-         * To read data from gopherwood, block until get the given size of bytes.
-         * @param buf the buffer used to filled.
-         * @param size the number of bytes to be read.
-         */
-        void readFully(char *buf, int64_t size);
+    /**
+     * Get how many bytes can be read without blocking.
+     * @return The number of bytes can be read without blocking.
+     */
+    int64_t available();
 
-        /**
-         * Get how many bytes can be read without blocking.
-         * @return The number of bytes can be read without blocking.
-         */
-        int64_t available();
+    /**
+     * To move the file point to the given position.
+     * @param pos the given position.
+     */
+    void seek(int64_t pos);
 
-        /**
-         * To move the file point to the given position.
-         * @param pos the given position.
-         */
-        void seek(int64_t pos);
+    /**
+     * To get the current file point position.
+     * @return the position of current file point.
+     */
+    int64_t tell();
 
-        /**
-         * To get the current file point position.
-         * @return the position of current file point.
-         */
-        int64_t tell();
+    /**
+     * Close the stream.
+     */
+    void close();
 
-        /**
-         * Close the stream.
-         */
-        void close();
+    void deleteFile();
 
-        void deleteFile();
-
-    private:
-        Internal::InputStreamInter *impl;
-    };
-
+private:
+    Internal::InputStreamInter *impl;
+};
 
 }
-
 
 #endif /* _GOPHERWOOD_CORE_INPUTSTREAM_H_ */

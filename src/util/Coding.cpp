@@ -9,11 +9,9 @@
 #ifndef _GOPHERWOOD_UTIL_CODING_CPP_
 #define _GOPHERWOOD_UTIL_CODING_CPP_
 
-
 #include "Coding.h"
 
 #include <algorithm>
-
 
 namespace Gopherwood {
 
@@ -23,72 +21,71 @@ namespace Gopherwood {
 #pragma warning(disable : 4244)
 #endif
 
-    char *EncodeVarint32(char *dst, int32_t v) {
-        // Operate on characters as unsigneds
-        unsigned char *ptr = reinterpret_cast<unsigned char *>(dst);
-        static const int B = 128;
-        if (v < (1 << 7)) {
-            *(ptr++) = v;
-        } else if (v < (1 << 14)) {
-            *(ptr++) = v | B;
-            *(ptr++) = v >> 7;
-        } else if (v < (1 << 21)) {
-            *(ptr++) = v | B;
-            *(ptr++) = (v >> 7) | B;
-            *(ptr++) = v >> 14;
-        } else if (v < (1 << 28)) {
-            *(ptr++) = v | B;
-            *(ptr++) = (v >> 7) | B;
-            *(ptr++) = (v >> 14) | B;
-            *(ptr++) = v >> 21;
-        } else {
-            *(ptr++) = v | B;
-            *(ptr++) = (v >> 7) | B;
-            *(ptr++) = (v >> 14) | B;
-            *(ptr++) = (v >> 21) | B;
-            *(ptr++) = v >> 28;
-        }
-        return reinterpret_cast<char *>(ptr);
+char *EncodeVarint32(char *dst, int32_t v) {
+    // Operate on characters as unsigneds
+    unsigned char *ptr = reinterpret_cast<unsigned char *>(dst);
+    static const int B = 128;
+    if (v < (1 << 7)) {
+        *(ptr++) = v;
+    } else if (v < (1 << 14)) {
+        *(ptr++) = v | B;
+        *(ptr++) = v >> 7;
+    } else if (v < (1 << 21)) {
+        *(ptr++) = v | B;
+        *(ptr++) = (v >> 7) | B;
+        *(ptr++) = v >> 14;
+    } else if (v < (1 << 28)) {
+        *(ptr++) = v | B;
+        *(ptr++) = (v >> 7) | B;
+        *(ptr++) = (v >> 14) | B;
+        *(ptr++) = v >> 21;
+    } else {
+        *(ptr++) = v | B;
+        *(ptr++) = (v >> 7) | B;
+        *(ptr++) = (v >> 14) | B;
+        *(ptr++) = (v >> 21) | B;
+        *(ptr++) = v >> 28;
     }
+    return reinterpret_cast<char *>(ptr);
+}
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
-    const char *GetVarint32PtrFallback(const char *p, const char *limit,
-                                       int32_t *value) {
-        int32_t result = 0;
-        for (int32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
-            int32_t byte = *(reinterpret_cast<const unsigned char *>(p));
-            p++;
-            if (byte & 128) {
-                // More bytes are present
-                result |= ((byte & 127) << shift);
-            } else {
-                result |= (byte << shift);
-                *value = result;
-                return reinterpret_cast<const char *>(p);
-            }
+const char *GetVarint32PtrFallback(const char *p, const char *limit, int32_t *value) {
+    int32_t result = 0;
+    for (int32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
+        int32_t byte = *(reinterpret_cast<const unsigned char *>(p));
+        p++;
+        if (byte & 128) {
+            // More bytes are present
+            result |= ((byte & 127) << shift);
+        } else {
+            result |= (byte << shift);
+            *value = result;
+            return reinterpret_cast<const char *>(p);
         }
-        return nullptr;
     }
+    return nullptr;
+}
 
-    const char *GetVarint64Ptr(const char *p, const char *limit, int64_t *value) {
-        int64_t result = 0;
-        for (int32_t shift = 0; shift <= 63 && p < limit; shift += 7) {
-            int64_t byte = *(reinterpret_cast<const unsigned char *>(p));
-            p++;
-            if (byte & 128) {
-                // More bytes are present
-                result |= ((byte & 127) << shift);
-            } else {
-                result |= (byte << shift);
-                *value = result;
-                return reinterpret_cast<const char *>(p);
-            }
+const char *GetVarint64Ptr(const char *p, const char *limit, int64_t *value) {
+    int64_t result = 0;
+    for (int32_t shift = 0; shift <= 63 && p < limit; shift += 7) {
+        int64_t byte = *(reinterpret_cast<const unsigned char *>(p));
+        p++;
+        if (byte & 128) {
+            // More bytes are present
+            result |= ((byte & 127) << shift);
+        } else {
+            result |= (byte << shift);
+            *value = result;
+            return reinterpret_cast<const char *>(p);
         }
-        return nullptr;
     }
+    return nullptr;
+}
 
 }
 

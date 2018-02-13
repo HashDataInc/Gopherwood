@@ -171,7 +171,7 @@ int64_t OutputStreamImpl::getRemainLength() {
             status->getBlockIdVector().size());
     remainLength += SIZE_OF_BLOCK - cursorOffset;
     i++;
-    for (; (uint64_t)i < status->getBlockIdVector().size(); i++) {
+    for (; (uint64_t) i < status->getBlockIdVector().size(); i++) {
         remainLength += SIZE_OF_BLOCK;
         LOG(INFO, "OutputStreamImpl::getRemainLength************** come in here");
     }
@@ -320,7 +320,7 @@ void OutputStreamImpl::seekToNextBlock() {
             status->getLastBucket());
 
     this->cursorIndex++;
-    if ((uint64_t)cursorIndex < status->getBlockIdVector().size()) {
+    if ((uint64_t) cursorIndex < status->getBlockIdVector().size()) {
         this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
     }
     //1. set the last bucket

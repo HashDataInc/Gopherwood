@@ -44,12 +44,12 @@ using boost::unordered_set;
 #include <unordered_set>
 
 namespace Gopherwood {
-namespace Internal {
+    namespace Internal {
 
-using std::unordered_map;
-using std::unordered_set;
+        using std::unordered_map;
+        using std::unordered_set;
 
-}
+    }
 }
 #endif
 

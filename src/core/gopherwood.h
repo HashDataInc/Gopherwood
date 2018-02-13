@@ -1,8 +1,5 @@
-
 #ifndef _GOPHERWOOD_CORE_GOPHERWOOD_H_
 #define _GOPHERWOOD_CORE_GOPHERWOOD_H_
-
-
 
 //#include "FileSystem.h"
 //#include "InputStream.h"
@@ -26,11 +23,8 @@ typedef enum AccessFileType {
 
 /** All APIs set errno to meaningful values */
 
-
-
 typedef int32_t tSize; /// size of data for read/write io ops
 typedef int64_t tOffset; /// offset within the file
-
 
 struct GWFileSystemInternalWrapper;
 typedef struct GWFileSystemInternalWrapper *gopherwoodFS;
@@ -38,13 +32,11 @@ typedef struct GWFileSystemInternalWrapper *gopherwoodFS;
 struct GWFileInternalWrapper;
 typedef struct GWFileInternalWrapper *gwFile;
 
-
 /**
  * gwCreateContext - Connect to a gopherwood file system.
  * @param fileName   the file name
  */
-gopherwoodFS gwCreateContext( char *fileName);
-
+gopherwoodFS gwCreateContext(char *fileName);
 
 /**
  * gwRead - Read data from an open file.
@@ -62,7 +54,6 @@ gopherwoodFS gwCreateContext( char *fileName);
  */
 tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length);
 
-
 /**
  * gwWrite - Write data into an open file.
  * @param fs The configured filesystem handle.
@@ -73,7 +64,6 @@ tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length);
  */
 tSize gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length);
 
-
 ///**
 // * gwFlush - Flush the data.
 // * @param fs The configured filesystem handle.
@@ -81,7 +71,6 @@ tSize gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length);
 // * @return Returns 0 on success, -1 on error.
 // */
 //int gwFlush(gopherwoodFS fs, gwFile file);
-
 
 /**
  * gwOpenFile - Open a gopherwood file in given mode.
@@ -95,8 +84,6 @@ tSize gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length);
  */
 gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
 
-
-
 /**
  * gwSeek - Seek to given offset in file.
  * This works only for files opened in read-only mode.
@@ -108,11 +95,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
 //TODO write mode are not allowed.
 int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos);
 
-
-
 int gwCloseFile(gopherwoodFS fs, gwFile file);
-
-
 
 int deleteFile(gopherwoodFS fs, gwFile file);
 

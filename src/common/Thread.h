@@ -53,19 +53,19 @@ using namespace boost::this_thread;
 #include <condition_variable>
 
 namespace Gopherwood {
-namespace Internal {
+    namespace Internal {
 
-using std::thread;
-using std::mutex;
-using std::lock_guard;
-using std::unique_lock;
-using std::condition_variable;
-using std::defer_lock_t;
-using std::once_flag;
-using std::call_once;
-using namespace std::this_thread;
+        using std::thread;
+        using std::mutex;
+        using std::lock_guard;
+        using std::unique_lock;
+        using std::condition_variable;
+        using std::defer_lock_t;
+        using std::once_flag;
+        using std::call_once;
+        using namespace std::this_thread;
 
-}
+    }
 }
 #endif
 

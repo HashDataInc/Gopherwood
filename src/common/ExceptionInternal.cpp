@@ -31,155 +31,153 @@
 
 namespace Gopherwood {
 
-    function<bool(void)> ChecnOperationCanceledCallback;
+function<bool(void)> ChecnOperationCanceledCallback;
 
-    namespace Internal {
+namespace Internal {
 
-        bool CheckOperationCanceled() {
-            if (ChecnOperationCanceledCallback && ChecnOperationCanceledCallback()) {
-                THROW(GopherwoodCanceled, "Operation has been canceled by the user.");
-            }
-
-            return false;
-        }
-
-        const char *GetSystemErrorInfo(int eno) {
-            static THREAD_LOCAL char message[64];
-            char buffer[64], *pbuffer;
-            pbuffer = buffer;
-#ifdef STRERROR_R_RETURN_INT
-            strerror_r(eno, buffer, sizeof(buffer));
-#else
-            pbuffer = strerror_r(eno, buffer, sizeof(buffer));
-#endif
-            snprintf(message, sizeof(message), "(errno: %d) %s", eno, pbuffer);
-            return message;
-        }
-
-        static void GetExceptionDetailInternal(const Gopherwood::GopherwoodException &e,
-                                               std::stringstream &ss, bool topLevel);
-
-        static void GetExceptionDetailInternal(const std::exception &e,
-                                               std::stringstream &ss, bool topLevel) {
-            try {
-                if (!topLevel) {
-                    ss << "Caused by\n";
-                }
-
-                ss << e.what();
-            } catch (const std::bad_alloc &e) {
-                return;
-            }
-
-            try {
-                Gopherwood::rethrow_if_nested(e);
-            } catch (const Gopherwood::GopherwoodException &nested) {
-                GetExceptionDetailInternal(nested, ss, false);
-            } catch (const std::exception &nested) {
-                GetExceptionDetailInternal(nested, ss, false);
-            }
-        }
-
-        static void GetExceptionDetailInternal(const Gopherwood::GopherwoodException &e,
-                                               std::stringstream &ss, bool topLevel) {
-            try {
-                if (!topLevel) {
-                    ss << "Caused by\n";
-                }
-
-                ss << e.msg();
-            } catch (const std::bad_alloc &e) {
-                return;
-            }
-
-            try {
-                Gopherwood::rethrow_if_nested(e);
-            } catch (const Gopherwood::GopherwoodException &nested) {
-                GetExceptionDetailInternal(nested, ss, false);
-            } catch (const std::exception &nested) {
-                GetExceptionDetailInternal(nested, ss, false);
-            }
-        }
-
-        const char *GetExceptionDetail(const Gopherwood::GopherwoodException &e,
-                                       std::string &buffer) {
-            try {
-                std::stringstream ss;
-                ss.imbue(std::locale::classic());
-                GetExceptionDetailInternal(e, ss, true);
-                buffer = ss.str();
-            } catch (const std::bad_alloc &e) {
-                return "Out of memory";
-            }
-
-            return buffer.c_str();
-        }
-
-        const char *GetExceptionDetail(const exception_ptr e, std::string &buffer) {
-            std::stringstream ss;
-            ss.imbue(std::locale::classic());
-
-            try {
-                Gopherwood::rethrow_exception(e);
-            } catch (const Gopherwood::GopherwoodException &nested) {
-                GetExceptionDetailInternal(nested, ss, true);
-            } catch (const std::exception &nested) {
-                GetExceptionDetailInternal(nested, ss, true);
-            }
-
-            try {
-                buffer = ss.str();
-            } catch (const std::bad_alloc &e) {
-                return "Out of memory";
-            }
-
-            return buffer.c_str();
-        }
-
-        static void GetExceptionMessage(const std::exception &e,
-                                        std::stringstream &ss, int recursive) {
-            try {
-                for (int i = 0; i < recursive; ++i) {
-                    ss << '\t';
-                }
-
-                if (recursive > 0) {
-                    ss << "Caused by: ";
-                }
-
-                ss << e.what();
-            } catch (const std::bad_alloc &e) {
-                return;
-            }
-
-            try {
-                Gopherwood::rethrow_if_nested(e);
-            } catch (const std::exception &nested) {
-                GetExceptionMessage(nested, ss, recursive + 1);
-            }
-        }
-
-        const char *GetExceptionMessage(const exception_ptr e, std::string &buffer) {
-            std::stringstream ss;
-            ss.imbue(std::locale::classic());
-
-            try {
-                Gopherwood::rethrow_exception(e);
-            } catch (const std::bad_alloc &e) {
-                return "Out of memory";
-            } catch (const std::exception &e) {
-                GetExceptionMessage(e, ss, 0);
-            }
-
-            try {
-                buffer = ss.str();
-            } catch (const std::bad_alloc &e) {
-                return "Out of memory";
-            }
-
-            return buffer.c_str();
-        }
-
+bool CheckOperationCanceled() {
+    if (ChecnOperationCanceledCallback && ChecnOperationCanceledCallback()) {
+        THROW(GopherwoodCanceled, "Operation has been canceled by the user.");
     }
+
+    return false;
+}
+
+const char *GetSystemErrorInfo(int eno) {
+    static THREAD_LOCAL char message[64];
+    char buffer[64], *pbuffer;
+    pbuffer = buffer;
+#ifdef STRERROR_R_RETURN_INT
+    strerror_r(eno, buffer, sizeof(buffer));
+#else
+    pbuffer = strerror_r(eno, buffer, sizeof(buffer));
+#endif
+    snprintf(message, sizeof(message), "(errno: %d) %s", eno, pbuffer);
+    return message;
+}
+
+static void GetExceptionDetailInternal(const Gopherwood::GopherwoodException &e,
+        std::stringstream &ss, bool topLevel);
+
+static void GetExceptionDetailInternal(const std::exception &e, std::stringstream &ss,
+        bool topLevel) {
+    try {
+        if (!topLevel) {
+            ss << "Caused by\n";
+        }
+
+        ss << e.what();
+    } catch (const std::bad_alloc &e) {
+        return;
+    }
+
+    try {
+        Gopherwood::rethrow_if_nested(e);
+    } catch (const Gopherwood::GopherwoodException &nested) {
+        GetExceptionDetailInternal(nested, ss, false);
+    } catch (const std::exception &nested) {
+        GetExceptionDetailInternal(nested, ss, false);
+    }
+}
+
+static void GetExceptionDetailInternal(const Gopherwood::GopherwoodException &e,
+        std::stringstream &ss, bool topLevel) {
+    try {
+        if (!topLevel) {
+            ss << "Caused by\n";
+        }
+
+        ss << e.msg();
+    } catch (const std::bad_alloc &e) {
+        return;
+    }
+
+    try {
+        Gopherwood::rethrow_if_nested(e);
+    } catch (const Gopherwood::GopherwoodException &nested) {
+        GetExceptionDetailInternal(nested, ss, false);
+    } catch (const std::exception &nested) {
+        GetExceptionDetailInternal(nested, ss, false);
+    }
+}
+
+const char *GetExceptionDetail(const Gopherwood::GopherwoodException &e, std::string &buffer) {
+    try {
+        std::stringstream ss;
+        ss.imbue(std::locale::classic());
+        GetExceptionDetailInternal(e, ss, true);
+        buffer = ss.str();
+    } catch (const std::bad_alloc &e) {
+        return "Out of memory";
+    }
+
+    return buffer.c_str();
+}
+
+const char *GetExceptionDetail(const exception_ptr e, std::string &buffer) {
+    std::stringstream ss;
+    ss.imbue(std::locale::classic());
+
+    try {
+        Gopherwood::rethrow_exception(e);
+    } catch (const Gopherwood::GopherwoodException &nested) {
+        GetExceptionDetailInternal(nested, ss, true);
+    } catch (const std::exception &nested) {
+        GetExceptionDetailInternal(nested, ss, true);
+    }
+
+    try {
+        buffer = ss.str();
+    } catch (const std::bad_alloc &e) {
+        return "Out of memory";
+    }
+
+    return buffer.c_str();
+}
+
+static void GetExceptionMessage(const std::exception &e, std::stringstream &ss, int recursive) {
+    try {
+        for (int i = 0; i < recursive; ++i) {
+            ss << '\t';
+        }
+
+        if (recursive > 0) {
+            ss << "Caused by: ";
+        }
+
+        ss << e.what();
+    } catch (const std::bad_alloc &e) {
+        return;
+    }
+
+    try {
+        Gopherwood::rethrow_if_nested(e);
+    } catch (const std::exception &nested) {
+        GetExceptionMessage(nested, ss, recursive + 1);
+    }
+}
+
+const char *GetExceptionMessage(const exception_ptr e, std::string &buffer) {
+    std::stringstream ss;
+    ss.imbue(std::locale::classic());
+
+    try {
+        Gopherwood::rethrow_exception(e);
+    } catch (const std::bad_alloc &e) {
+        return "Out of memory";
+    } catch (const std::exception &e) {
+        GetExceptionMessage(e, ss, 0);
+    }
+
+    try {
+        buffer = ss.str();
+    } catch (const std::bad_alloc &e) {
+        return "Out of memory";
+    }
+
+    return buffer.c_str();
+}
+
+}
 }
 

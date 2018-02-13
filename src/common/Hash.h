@@ -77,34 +77,34 @@ extern boost::hash<std::string> StringHasher;
 #include <functional>
 
 namespace Gopherwood {
-namespace Internal {
+    namespace Internal {
 
-/**
- * A hash function object used to hash a boolean value.
- */
-extern std::hash<bool> BoolHasher;
+        /**
+         * A hash function object used to hash a boolean value.
+         */
+        extern std::hash<bool> BoolHasher;
 
-/**
- * A hash function object used to hash an int value.
- */
-extern std::hash<int> Int32Hasher;
+        /**
+         * A hash function object used to hash an int value.
+         */
+        extern std::hash<int> Int32Hasher;
 
-/**
- * A hash function object used to hash an 64 bit int value.
- */
-extern std::hash<int64_t> Int64Hasher;
+        /**
+         * A hash function object used to hash an 64 bit int value.
+         */
+        extern std::hash<int64_t> Int64Hasher;
 
-/**
- * A hash function object used to hash a size_t value.
- */
-extern std::hash<size_t> SizeHasher;
+        /**
+         * A hash function object used to hash a size_t value.
+         */
+        extern std::hash<size_t> SizeHasher;
 
-/**
- * A hash function object used to hash a std::string object.
- */
-extern std::hash<std::string> StringHasher;
+        /**
+         * A hash function object used to hash a std::string object.
+         */
+        extern std::hash<std::string> StringHasher;
 
-}
+    }
 }
 
 #define GOPHERWOOD_HASH_DEFINE(TYPE) \

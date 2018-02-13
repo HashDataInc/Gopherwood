@@ -117,8 +117,7 @@ public:
      * @throw GopherwoodNetworkException
      * @throw GopherwoodTimeout
      */
-    void connect(struct addrinfo * paddr, const char * host, const char * port,
-                 int timeout);
+    void connect(struct addrinfo * paddr, const char * host, const char * port, int timeout);
 
     /**
      * Test if the socket can be read or written without blocking.

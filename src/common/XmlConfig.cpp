@@ -20,9 +20,6 @@
  * limitations under the License.
  */
 
-
-
-
 #include "Exception.h"
 #include "ExceptionInternal.h"
 #include "XmlConfig.h"
@@ -40,76 +37,76 @@ using namespace Gopherwood::Internal;
 
 namespace Gopherwood {
 
-    typedef std::map<std::string, std::string>::const_iterator Iterator;
-    typedef std::map<std::string, std::string> Map;
+typedef std::map<std::string, std::string>::const_iterator Iterator;
+typedef std::map<std::string, std::string> Map;
 
-    static int32_t StrToInt32(const char *str) {
-        long retval;
-        char *end = NULL;
-        errno = 0;
-        retval = strtol(str, &end, 0);
+static int32_t StrToInt32(const char *str) {
+    long retval;
+    char *end = NULL;
+    errno = 0;
+    retval = strtol(str, &end, 0);
 
-        if (EINVAL == errno || 0 != *end) {
-            THROW(GopherwoodBadNumFoumat, "Invalid int32_t type: %s", str);
-        }
-
-        if (ERANGE == errno || retval > std::numeric_limits<int32_t>::max()
-            || retval < std::numeric_limits<int32_t>::min()) {
-            THROW(GopherwoodBadNumFoumat, "Underflow/Overflow int32_t type: %s", str);
-        }
-
-        return retval;
+    if (EINVAL == errno || 0 != *end) {
+        THROW(GopherwoodBadNumFoumat, "Invalid int32_t type: %s", str);
     }
 
-    static int64_t StrToInt64(const char *str) {
-        long long retval;
-        char *end = NULL;
-        errno = 0;
-        retval = strtoll(str, &end, 0);
-
-        if (EINVAL == errno || 0 != *end) {
-            THROW(GopherwoodBadNumFoumat, "Invalid int64_t type: %s", str);
-        }
-
-        if (ERANGE == errno || retval > std::numeric_limits<int64_t>::max()
-            || retval < std::numeric_limits<int64_t>::min()) {
-            THROW(GopherwoodBadNumFoumat, "Underflow/Overflow int64_t type: %s", str);
-        }
-
-        return retval;
+    if (ERANGE == errno || retval > std::numeric_limits < int32_t > ::max()
+            || retval < std::numeric_limits < int32_t > ::min()) {
+        THROW(GopherwoodBadNumFoumat, "Underflow/Overflow int32_t type: %s", str);
     }
 
-    static bool StrToBool(const char *str) {
-        bool retval = false;
+    return retval;
+}
 
-        if (!strcasecmp(str, "true") || !strcmp(str, "1")) {
-            retval = true;
-        } else if (!strcasecmp(str, "false") || !strcmp(str, "0")) {
-            retval = false;
-        } else {
-            THROW(GopherwoodBadBoolFoumat, "Invalid bool type: %s", str);
-        }
+static int64_t StrToInt64(const char *str) {
+    long long retval;
+    char *end = NULL;
+    errno = 0;
+    retval = strtoll(str, &end, 0);
 
-        return retval;
+    if (EINVAL == errno || 0 != *end) {
+        THROW(GopherwoodBadNumFoumat, "Invalid int64_t type: %s", str);
     }
 
-    static double StrToDouble(const char *str) {
-        double retval;
-        char *end = NULL;
-        errno = 0;
-        retval = strtod(str, &end);
+    if (ERANGE == errno || retval > std::numeric_limits < int64_t > ::max()
+            || retval < std::numeric_limits < int64_t > ::min()) {
+        THROW(GopherwoodBadNumFoumat, "Underflow/Overflow int64_t type: %s", str);
+    }
 
-        if (EINVAL == errno || 0 != *end) {
-            THROW(GopherwoodBadNumFoumat, "Invalid double type: %s", str);
-        }
+    return retval;
+}
 
-        if (ERANGE == errno || retval > std::numeric_limits<double>::max()
+static bool StrToBool(const char *str) {
+    bool retval = false;
+
+    if (!strcasecmp(str, "true") || !strcmp(str, "1")) {
+        retval = true;
+    } else if (!strcasecmp(str, "false") || !strcmp(str, "0")) {
+        retval = false;
+    } else {
+        THROW(GopherwoodBadBoolFoumat, "Invalid bool type: %s", str);
+    }
+
+    return retval;
+}
+
+static double StrToDouble(const char *str) {
+    double retval;
+    char *end = NULL;
+    errno = 0;
+    retval = strtod(str, &end);
+
+    if (EINVAL == errno || 0 != *end) {
+        THROW(GopherwoodBadNumFoumat, "Invalid double type: %s", str);
+    }
+
+    if (ERANGE == errno || retval > std::numeric_limits<double>::max()
             || retval < std::numeric_limits<double>::min()) {
-            THROW(GopherwoodBadNumFoumat, "Underflow/Overflow int64_t type: %s", str);
-        }
-
-        return retval;
+        THROW(GopherwoodBadNumFoumat, "Underflow/Overflow int64_t type: %s", str);
     }
+
+    return retval;
+}
 
 //    static void readConfigItem(xmlNodePtr root, Map &kv, const char *path) {
 //        std::string key, value;
@@ -177,12 +174,12 @@ namespace Gopherwood {
 //        }
 //    }
 
-    Config::Config(const char *p) :
-            path(p) {
-        update(p);
-    }
+Config::Config(const char *p) :
+        path(p) {
+    update(p);
+}
 
-    void Config::update(const char *p) {
+void Config::update(const char *p) {
 //        xmlDocPtr doc; /* the resulting document tree */
 //        LIBXML_TEST_VERSION
 //        kv.clear();
@@ -210,185 +207,184 @@ namespace Gopherwood {
 ////            xmlFreeDoc(doc);
 //            throw;
 //        }
+}
+
+const char *Config::getString(const char *key) const {
+    Iterator it = kv.find(key);
+
+    if (kv.end() == it) {
+        THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    const char *Config::getString(const char *key) const {
-        Iterator it = kv.find(key);
+    return it->second.c_str();
+}
 
-        if (kv.end() == it) {
-            THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
+const char *Config::getString(const char *key, const char *def) const {
+    Iterator it = kv.find(key);
 
+    if (kv.end() == it) {
+        return def;
+    } else {
         return it->second.c_str();
     }
+}
 
-    const char *Config::getString(const char *key, const char *def) const {
-        Iterator it = kv.find(key);
+const char *Config::getString(const std::string &key) const {
+    return getString(key.c_str());
+}
 
-        if (kv.end() == it) {
-            return def;
-        } else {
-            return it->second.c_str();
-        }
+const char *Config::getString(const std::string &key, const std::string &def) const {
+    return getString(key.c_str(), def.c_str());
+}
+
+int64_t Config::getInt64(const char *key) const {
+    int64_t retval;
+    Iterator it = kv.find(key);
+
+    if (kv.end() == it) {
+        THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    const char *Config::getString(const std::string &key) const {
-        return getString(key.c_str());
+    try {
+        retval = StrToInt64(it->second.c_str());
+    } catch (const GopherwoodBadNumFoumat &e) {
+        NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    const char *Config::getString(const std::string &key,
-                                  const std::string &def) const {
-        return getString(key.c_str(), def.c_str());
+    return retval;
+}
+
+int64_t Config::getInt64(const char *key, int64_t def) const {
+    int64_t retval;
+    Iterator it = kv.find(key);
+
+    if (kv.end() == it) {
+        return def;
     }
 
-    int64_t Config::getInt64(const char *key) const {
-        int64_t retval;
-        Iterator it = kv.find(key);
-
-        if (kv.end() == it) {
-            THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        try {
-            retval = StrToInt64(it->second.c_str());
-        } catch (const GopherwoodBadNumFoumat &e) {
-            NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        return retval;
+    try {
+        retval = StrToInt64(it->second.c_str());
+    } catch (const GopherwoodBadNumFoumat &e) {
+        NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    int64_t Config::getInt64(const char *key, int64_t def) const {
-        int64_t retval;
-        Iterator it = kv.find(key);
+    return retval;
+}
 
-        if (kv.end() == it) {
-            return def;
-        }
+int32_t Config::getInt32(const char *key) const {
+    int32_t retval;
+    Iterator it = kv.find(key);
 
-        try {
-            retval = StrToInt64(it->second.c_str());
-        } catch (const GopherwoodBadNumFoumat &e) {
-            NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        return retval;
+    if (kv.end() == it) {
+        THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    int32_t Config::getInt32(const char *key) const {
-        int32_t retval;
-        Iterator it = kv.find(key);
-
-        if (kv.end() == it) {
-            THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        try {
-            retval = StrToInt32(it->second.c_str());
-        } catch (const GopherwoodBadNumFoumat &e) {
-            NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        return retval;
+    try {
+        retval = StrToInt32(it->second.c_str());
+    } catch (const GopherwoodBadNumFoumat &e) {
+        NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    int32_t Config::getInt32(const char *key, int32_t def) const {
-        int32_t retval;
-        Iterator it = kv.find(key);
+    return retval;
+}
 
-        if (kv.end() == it) {
-            return def;
-        }
+int32_t Config::getInt32(const char *key, int32_t def) const {
+    int32_t retval;
+    Iterator it = kv.find(key);
 
-        try {
-            retval = StrToInt32(it->second.c_str());
-        } catch (const GopherwoodBadNumFoumat &e) {
-            NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        return retval;
+    if (kv.end() == it) {
+        return def;
     }
 
-    double Config::getDouble(const char *key) const {
-        double retval;
-        Iterator it = kv.find(key);
-
-        if (kv.end() == it) {
-            THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        try {
-            retval = StrToDouble(it->second.c_str());
-        } catch (const GopherwoodBadNumFoumat &e) {
-            NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        return retval;
+    try {
+        retval = StrToInt32(it->second.c_str());
+    } catch (const GopherwoodBadNumFoumat &e) {
+        NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    double Config::getDouble(const char *key, double def) const {
-        double retval;
-        Iterator it = kv.find(key);
+    return retval;
+}
 
-        if (kv.end() == it) {
-            return def;
-        }
+double Config::getDouble(const char *key) const {
+    double retval;
+    Iterator it = kv.find(key);
 
-        try {
-            retval = StrToDouble(it->second.c_str());
-        } catch (const GopherwoodBadNumFoumat &e) {
-            NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        return retval;
+    if (kv.end() == it) {
+        THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    bool Config::getBool(const char *key) const {
-        bool retval;
-        Iterator it = kv.find(key);
-
-        if (kv.end() == it) {
-            THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        try {
-            retval = StrToBool(it->second.c_str());
-        } catch (const GopherwoodBadBoolFoumat &e) {
-            NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        return retval;
+    try {
+        retval = StrToDouble(it->second.c_str());
+    } catch (const GopherwoodBadNumFoumat &e) {
+        NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
 
-    bool Config::getBool(const char *key, bool def) const {
-        bool retval;
-        Iterator it = kv.find(key);
+    return retval;
+}
 
-        if (kv.end() == it) {
-            return def;
-        }
+double Config::getDouble(const char *key, double def) const {
+    double retval;
+    Iterator it = kv.find(key);
 
-        try {
-            retval = StrToBool(it->second.c_str());
-        } catch (const GopherwoodBadNumFoumat &e) {
-            NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
-        }
-
-        return retval;
+    if (kv.end() == it) {
+        return def;
     }
 
-    size_t Config::hash_value() const {
-        std::vector<size_t> values;
-        std::map<std::string, std::string>::const_iterator s, e;
-        e = kv.end();
-
-        for (s = kv.begin(); s != e; ++s) {
-            values.push_back(StringHasher(s->first));
-            values.push_back(StringHasher(s->second));
-        }
-
-        return CombineHasher(&values[0], values.size());
+    try {
+        retval = StrToDouble(it->second.c_str());
+    } catch (const GopherwoodBadNumFoumat &e) {
+        NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
     }
+
+    return retval;
+}
+
+bool Config::getBool(const char *key) const {
+    bool retval;
+    Iterator it = kv.find(key);
+
+    if (kv.end() == it) {
+        THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
+    }
+
+    try {
+        retval = StrToBool(it->second.c_str());
+    } catch (const GopherwoodBadBoolFoumat &e) {
+        NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
+    }
+
+    return retval;
+}
+
+bool Config::getBool(const char *key, bool def) const {
+    bool retval;
+    Iterator it = kv.find(key);
+
+    if (kv.end() == it) {
+        return def;
+    }
+
+    try {
+        retval = StrToBool(it->second.c_str());
+    } catch (const GopherwoodBadNumFoumat &e) {
+        NESTED_THROW(GopherwoodConfigNotFound, "Config key: %s not found", key);
+    }
+
+    return retval;
+}
+
+size_t Config::hash_value() const {
+    std::vector < size_t > values;
+    std::map<std::string, std::string>::const_iterator s, e;
+    e = kv.end();
+
+    for (s = kv.begin(); s != e; ++s) {
+        values.push_back(StringHasher(s->first));
+        values.push_back(StringHasher(s->second));
+    }
+
+    return CombineHasher(&values[0], values.size());
+}
 
 }
 

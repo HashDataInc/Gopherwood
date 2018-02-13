@@ -56,76 +56,72 @@ namespace Gopherwood {
 //    enum CreateFlag {
 //        Create = 0x01, Overwrite = 0x02, Append = 0x04, SyncBlock = 0x08
 //    };
+enum CreateFlag {
+    ReadOnly = 0x01, WriteOnly = 0x02, ReadWrite = 0x04
+};
 
-    enum CreateFlag {
-        ReadOnly = 0x01, WriteOnly = 0x02, ReadWrite = 0x04
-    };
-
-
-    namespace Internal {
-        class OutputStreamInter;
-    }
+namespace Internal {
+class OutputStreamInter;
+}
 
 /**
  * A output stream used to write data to hdfs.
  */
-    class OutputStream {
-    public:
-        /**
-         * Construct a new OutputStream.
-         */
-        OutputStream(FileSystem &fs, char *fileName, int flag = ReadWrite);
+class OutputStream {
+public:
+    /**
+     * Construct a new OutputStream.
+     */
+    OutputStream(FileSystem &fs, char *fileName, int flag = ReadWrite);
 
-        /**
-         * Destroy a OutputStream instance.
-         */
-        ~OutputStream();
+    /**
+     * Destroy a OutputStream instance.
+     */
+    ~OutputStream();
 
-        /**
-         * To create or append a file.
-         * @param fs gopherwood file system.
-         * @param fileName the file name.
-         * @param flag creation flag, can be Create, Append or Create|Overwrite.
-         */
+    /**
+     * To create or append a file.
+     * @param fs gopherwood file system.
+     * @param fileName the file name.
+     * @param flag creation flag, can be Create, Append or Create|Overwrite.
+     */
 //        void open(FileSystem &fs, const char *fileName, int flag = Create);
+    /**
+     * To write data to file.
+     * @param buf the data used to write.
+     * @param size the data size.
+     */
+    void write(const char *buf, int64_t size);
 
-        /**
-         * To write data to file.
-         * @param buf the data used to write.
-         * @param size the data size.
-         */
-        void write(const char *buf, int64_t size);
+    /**
+     * Flush all data in buffer and waiting for ack.
+     * Will block until get all acks.
+     */
+    void flush();
 
-        /**
-         * Flush all data in buffer and waiting for ack.
-         * Will block until get all acks.
-         */
-        void flush();
+    /**
+     * return the current file length.
+     * @return current file length.
+     */
+    int64_t tell();
 
-        /**
-         * return the current file length.
-         * @return current file length.
-         */
-        int64_t tell();
+    /**
+     * the same as flush right now.
+     */
+    void sync();
 
-        /**
-         * the same as flush right now.
-         */
-        void sync();
+    /**
+     * close the stream.
+     */
+    void close();
 
-        /**
-         * close the stream.
-         */
-        void close();
+    void seek(int64_t pos);
 
-        void seek(int64_t pos);
+    void deleteFile();
 
-
-        void deleteFile();
-
-    private:
-        Internal::OutputStreamInter *impl;
-    };
+private:
+    Internal::OutputStreamInter *impl;
+};
 
 }
 

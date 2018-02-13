@@ -44,9 +44,7 @@ static mutex LoggerMutex;
 static THREAD_LOCAL once_flag Once;
 static THREAD_LOCAL char ProcessId[64];
 
-const char * SeverityName[] = { "FATAL", "ERROR", "WARNING", "INFO", "DEBUG1",
-                                "DEBUG2", "DEBUG3"
-                              };
+const char * SeverityName[] = { "FATAL", "ERROR", "WARNING", "INFO", "DEBUG1", "DEBUG2", "DEBUG3" };
 
 static void InitProcessId() {
     std::stringstream ss;
@@ -56,7 +54,7 @@ static void InitProcessId() {
 }
 
 Logger::Logger() :
-    fd(STDERR_FILENO), severity(DEFAULT_LOG_LEVEL) {
+        fd(STDERR_FILENO), severity(DEFAULT_LOG_LEVEL) {
 }
 
 Logger::~Logger() {
@@ -91,18 +89,33 @@ void Logger::printf(LogSeverity s, const char * fmt, ...) {
         va_end(ap);
         //100 is enough for prefix
         buffer.resize(size + 100);
-        size = snprintf(&buffer[0], buffer.size(), "%04d-%02d-%02d %02d:%02d:%02d.%06ld, %s, %s ", tm_time.tm_year + 1900,
-                        1 + tm_time.tm_mon, tm_time.tm_mday, tm_time.tm_hour,
-                        tm_time.tm_min, tm_time.tm_sec, static_cast<long>(tval.tv_usec), ProcessId, SeverityName[s]);
+        size = snprintf(
+                &buffer[0],
+                buffer.size(),
+                "%04d-%02d-%02d %02d:%02d:%02d.%06ld, %s, %s ",
+                tm_time.tm_year + 1900,
+                1 + tm_time.tm_mon,
+                tm_time.tm_mday,
+                tm_time.tm_hour,
+                tm_time.tm_min,
+                tm_time.tm_sec,
+                static_cast<long>(tval.tv_usec),
+                ProcessId,
+                SeverityName[s]);
         va_start(ap, fmt);
         size += vsnprintf(&buffer[size], buffer.size() - size, fmt, ap);
         va_end(ap);
-        lock_guard<mutex> lock(LoggerMutex);
+        lock_guard < mutex > lock(LoggerMutex);
         dprintf(fd, "%s\n", &buffer[0]);
         return;
     } catch (const std::exception & e) {
-        dprintf(fd, "%s:%d %s %s", __FILE__, __LINE__,
-                "FATAL: get an unexpected exception:", e.what());
+        dprintf(
+                fd,
+                "%s:%d %s %s",
+                __FILE__,
+                __LINE__,
+                "FATAL: get an unexpected exception:",
+                e.what());
         throw;
     }
 }

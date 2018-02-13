@@ -22,147 +22,145 @@
 #include "QingStoreReadWrite.h"
 
 namespace Gopherwood {
-    namespace Internal {
+namespace Internal {
 
-        class InputStreamInter;
+class InputStreamInter;
 
-        class OutputStreamInter;
+class OutputStreamInter;
 
-        class FileSystemImpl : public FileSystemInter {
+class FileSystemImpl: public FileSystemInter {
 
-        public:
+public:
 
-            FileSystemImpl(char *fileName);
+    FileSystemImpl(char *fileName);
 
-            /**
-            * Destroy a FileSystemBase instance
-            */
-            ~FileSystemImpl();
+    /**
+     * Destroy a FileSystemBase instance
+     */
+    ~FileSystemImpl();
 
-
-            /**
-             * check whether the ssd file exist or not
-             * @return 1 if exist, -1 otherwise
-             */
-            int32_t checkSSDFile();
+    /**
+     * check whether the ssd file exist or not
+     * @return 1 if exist, -1 otherwise
+     */
+    int32_t checkSSDFile();
 
 //            int32_t checkSharedMemoryFile();
 
-            void changePingBlockActive(int blockID);
+    void changePingBlockActive(int blockID);
 
-            void rebuildFileStatusFromLog(char *fileName);
+    void rebuildFileStatusFromLog(char *fileName);
 
-            void catchUpFileStatusFromLog(char *fileName);
+    void catchUpFileStatusFromLog(char *fileName);
 
-            bool checkBlockIDWithFileName(int blockID, string fileName);
+    bool checkBlockIDWithFileName(int blockID, string fileName);
 
-            void writeDataFromOSS2Bucket(int64_t ossindex, string fileName);
+    void writeDataFromOSS2Bucket(int64_t ossindex, string fileName);
 
-            int getOneBlockForWrite(int ossindex, string fileName);
+    int getOneBlockForWrite(int ossindex, string fileName);
 
-            void deleteBlockFromOSS(int64_t ossindex, string fileName);
+    void deleteBlockFromOSS(int64_t ossindex, string fileName);
 
+    // TODO JUST FOT TEST
+    void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
-            // TODO JUST FOT TEST
-            void readTotalDataFromFile(std::shared_ptr<FileStatus> fileStatus);
+    void readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus);
 
-            void readTotalRandomDataFromFile(std::shared_ptr<FileStatus> fileStatus);
+    void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,
+            std::shared_ptr<FileStatus> fileStatus);
 
-            void readTotalRandomDataFromVerifyFile(vector<int32_t> randomIndexVector,
-                                                   std::shared_ptr<FileStatus> fileStatus);
+    void writeCharStrUtil(string fileName, char *buf, int64_t size);
 
-            void writeCharStrUtil(string fileName, char *buf, int64_t size);
+    void writeIntArrayUtil(string fileName, vector<int32_t> randomVector);
 
-            void writeIntArrayUtil(string fileName, vector<int32_t> randomVector);
+    void
+    readDataFromFileAccordingToBlockID(int blockID, std::shared_ptr<FileStatus> fileStatus,
+            string suffixName);
 
-            void
-            readDataFromFileAccordingToBlockID(int blockID, std::shared_ptr<FileStatus> fileStatus, string suffixName);
+    int getRandomIntValue(int start, int end);
+    // TODO JUST FOT TEST
 
-            int getRandomIntValue(int start, int end);
-            // TODO JUST FOT TEST
+    void getLock();
 
+    void releaseLock();
 
-            void getLock();
+    void deleteFile(char *fileName);
 
-            void releaseLock();
+private:
 
-            void deleteFile(char *fileName);
+    int32_t bucketFd = -1; // the bucket file descriptor
 
-        private:
+    unordered_map<string, std::shared_ptr<FileStatus>> fileStatusMap; // the file status' map
 
-            int32_t bucketFd = -1;// the bucket file descriptor
+    std::shared_ptr<SharedMemoryManager> sharedMemoryManager;
+    std::shared_ptr<LogFormat> logFormat;
+    std::shared_ptr<QingStoreReadWrite> qsReadWrite;
 
-            unordered_map<string, std::shared_ptr<FileStatus>> fileStatusMap; // the file status' map
+private:
 
-            std::shared_ptr<SharedMemoryManager> sharedMemoryManager;
-            std::shared_ptr<LogFormat> logFormat;
-            std::shared_ptr<QingStoreReadWrite> qsReadWrite;
+    void getSharedMemoryID();
 
-        private:
+    bool checkFileExist(char *fileName);
 
-            void getSharedMemoryID();
+    void createFile(char *fileName);
 
-            bool checkFileExist(char *fileName);
+    void acquireNewBlock(char *fileName);
 
-            void createFile(char *fileName);
+    void inactiveBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-            void acquireNewBlock(char *fileName);
+    void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-            void inactiveBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
+    void deleteBlockFromSSD(char *fileName, const std::vector<int32_t> &blockIdVector);
 
-            void releaseBlock(char *fileName, const std::vector<int32_t> &blockIdVector);
+    std::vector<int> evictBlock(char *fileName,
+            std::unordered_map<int, std::string> blockStatusMap);
 
-            void deleteBlockFromSSD(char *fileName, const std::vector<int32_t> &blockIdVector);
+    int64_t getTheEOFOffset(const char *fileName);
 
-            std::vector<int> evictBlock(char *fileName, std::unordered_map<int, std::string> blockStatusMap);
+    std::shared_ptr<FileStatus> getFileStatus(const char *fileName);
 
-            int64_t getTheEOFOffset(const char *fileName);
+    int64_t readDataFromBucket(char *buf, int32_t size);
 
-            std::shared_ptr<FileStatus> getFileStatus(const char *fileName);
+    void writeDataToBucket(char *buf, int64_t size);
 
-            int64_t readDataFromBucket(char *buf, int32_t size);
+    void checkBucketFileOpen();
 
-            void writeDataToBucket(char *buf, int64_t size);
+    int32_t fsSeek(int64_t offset, int whence);
 
-            void checkBucketFileOpen();
+    void closeBucketFile();
 
-            int32_t fsSeek(int64_t offset, int whence);
+    void closeFile(char *fileName);
 
-            void closeBucketFile();
+    void stopSystem();
 
-            void closeFile(char *fileName);
+    void releaseOrInactiveLRUCache(char *fileName);
 
-            void stopSystem();
+    std::shared_ptr<FileStatus> getFileStatus(char *fileName);
 
-            void releaseOrInactiveLRUCache(char *fileName);
+    void persistentFileLog(char *fileName);
 
-            std::shared_ptr<FileStatus> getFileStatus(char *fileName);
+    //TODO JUST FOR TEST
+    void readCloseFileStatus(char *fileName);
 
-            void persistentFileLog(char *fileName);
+    void writeFileStatusToLog(char *fileName, std::string data);
 
-            //TODO JUST FOR TEST
-            void readCloseFileStatus(char *fileName);
+    char *getFilePath(char *fileName);
 
+    void writeDate2OSS(char *fileNameInOSS, int blockID);
 
-            void writeFileStatusToLog(char *fileName, std::string data);
+    int getIndexAccordingBlockID(char *fileName, int blockID);
 
-            char *getFilePath(char *fileName);
+    std::string constructFileKey(std::string, int index);
 
-            void writeDate2OSS(char *fileNameInOSS, int blockID);
+    void checkAndAddBlockID(char *fileName, std::vector<int32_t> blockIDVector);
 
-            int getIndexAccordingBlockID(char *fileName, int blockID);
+    void checkAndAddPingBlockID(char *fileName, std::vector<int32_t> blockIDVector);
 
-            std::string constructFileKey(std::string, int index);
+    std::vector<int32_t> deleteVector(std::vector<int32_t> previousVector,
+            std::vector<int32_t> toDeleteVector);
+};
 
-            void checkAndAddBlockID(char *fileName, std::vector<int32_t> blockIDVector);
-
-            void checkAndAddPingBlockID(char *fileName, std::vector<int32_t> blockIDVector);
-
-            std::vector<int32_t> deleteVector(std::vector<int32_t> previousVector, std::vector<int32_t> toDeleteVector);
-        };
-
-
-    }
+}
 }
 
 #endif //_GOPHERWOOD_CORE_FILESYSTEMIMPL_H_

@@ -12,7 +12,6 @@
 #ifndef _GOPHERWOOD_UTIL_PORTPOSIX_H_
 #define _GOPHERWOOD_UTIL_PORTPOSIX_H_
 
-
 #include <thread>
 // size_t printf formatting named in the manner of C99 standard formatting
 // strings such as PRIu64
@@ -87,21 +86,21 @@
 #endif
 
 namespace Gopherwood {
-    namespace port {
+namespace port {
 
 // For use at db/file_indexer.h kLevelMaxIndex
-        const int kMaxInt32 = std::numeric_limits<int32_t>::max();
-        const uint64_t kMaxUint64 = std::numeric_limits<uint64_t>::max();
-        const int64_t kMaxInt64 = std::numeric_limits<int64_t>::max();
-        const size_t kMaxSizet = std::numeric_limits<size_t>::max();
+const int kMaxInt32 = std::numeric_limits < int32_t > ::max();
+const uint64_t kMaxUint64 = std::numeric_limits < uint64_t > ::max();
+const int64_t kMaxInt64 = std::numeric_limits < int64_t > ::max();
+const size_t kMaxSizet = std::numeric_limits < size_t > ::max();
 
-        static const bool kLittleEndian = PLATFORM_IS_LITTLE_ENDIAN;
+static const bool kLittleEndian = PLATFORM_IS_LITTLE_ENDIAN;
 #undef PLATFORM_IS_LITTLE_ENDIAN
 
-        class CondVar;
+class CondVar;
 
-        class Mutex {
-        public:
+class Mutex {
+public:
 // We want to give users opportunity to default all the mutexes to adaptive if
 // not specified otherwise. This enables a quick way to conduct various
 // performance related experiements.
@@ -111,102 +110,103 @@ namespace Gopherwood {
 // build environment then this happens automatically; otherwise it's up to the
 // consumer to define the identifier.
 #ifdef ROCKSDB_DEFAULT_TO_ADAPTIVE_MUTEX
-            explicit Mutex(bool adaptive = true);
+    explicit Mutex(bool adaptive = true);
 #else
 
-            explicit Mutex(bool adaptive = false);
+    explicit Mutex(bool adaptive = false);
 
 #endif
 
-            ~Mutex();
+    ~Mutex();
 
-            void Lock();
+    void Lock();
 
-            void Unlock();
+    void Unlock();
 
-            // this will assert if the mutex is not locked
-            // it does NOT verify that mutex is held by a calling thread
-            void AssertHeld();
+    // this will assert if the mutex is not locked
+    // it does NOT verify that mutex is held by a calling thread
+    void AssertHeld();
 
-        private:
-            friend class CondVar;
+private:
+    friend class CondVar;
 
-            pthread_mutex_t mu_;
+    pthread_mutex_t mu_;
 #ifndef NDEBUG
-            bool locked_;
+    bool locked_;
 #endif
 
-            // No copying
-            Mutex(const Mutex &);
+    // No copying
+    Mutex(const Mutex &);
 
-            void operator=(const Mutex &);
-        };
+    void operator=(const Mutex &);
+};
 
-        class RWMutex {
-        public:
-            RWMutex();
+class RWMutex {
+public:
+    RWMutex();
 
-            ~RWMutex();
+    ~RWMutex();
 
-            void ReadLock();
+    void ReadLock();
 
-            void WriteLock();
+    void WriteLock();
 
-            void ReadUnlock();
+    void ReadUnlock();
 
-            void WriteUnlock();
+    void WriteUnlock();
 
-            void AssertHeld() {}
+    void AssertHeld() {
+    }
 
-        private:
-            pthread_rwlock_t mu_; // the underlying platform mutex
+private:
+    pthread_rwlock_t mu_; // the underlying platform mutex
 
-            // No copying allowed
-            RWMutex(const RWMutex &);
+    // No copying allowed
+    RWMutex(const RWMutex &);
 
-            void operator=(const RWMutex &);
-        };
+    void operator=(const RWMutex &);
+};
 
-        class CondVar {
-        public:
-            explicit CondVar(Mutex *mu);
+class CondVar {
+public:
+    explicit CondVar(Mutex *mu);
 
-            ~CondVar();
+    ~CondVar();
 
-            void Wait();
+    void Wait();
 
-            // Timed condition wait.  Returns true if timeout occurred.
-            bool TimedWait(uint64_t abs_time_us);
+    // Timed condition wait.  Returns true if timeout occurred.
+    bool TimedWait(uint64_t abs_time_us);
 
-            void Signal();
+    void Signal();
 
-            void SignalAll();
+    void SignalAll();
 
-        private:
-            pthread_cond_t cv_;
-            Mutex *mu_;
-        };
+private:
+    pthread_cond_t cv_;
+    Mutex *mu_;
+};
 
-        using Thread = std::thread;
+using Thread = std::thread;
 
-        static inline void AsmVolatilePause() {
+static inline void AsmVolatilePause() {
 #if defined(__i386__) || defined(__x86_64__)
-            asm volatile("pause");
+    asm volatile("pause");
 #elif defined(__aarch64__)
-            asm volatile("wfe");
+    asm volatile("wfe");
 #elif defined(__powerpc64__)
-            asm volatile("or 27,27,27");
+    asm volatile("or 27,27,27");
 #endif
-            // it's okay for other platforms to be no-ops
-        }
+    // it's okay for other platforms to be no-ops
+}
 
 // Returns -1 if not available on this platform
-        extern int PhysicalCoreID();
+extern int PhysicalCoreID();
 
-        typedef pthread_once_t OnceType;
+typedef pthread_once_t OnceType;
 #define LEVELDB_ONCE_INIT PTHREAD_ONCE_INIT
 
-        extern void InitOnce(OnceType *once, void (*initializer)());
+extern void InitOnce(OnceType *once, void (*initializer)());
 
 #ifndef CACHE_LINE_SIZE
 #if defined(__s390__)
@@ -218,20 +218,19 @@ namespace Gopherwood {
 #endif
 #endif
 
+extern void *cacheline_aligned_alloc(size_t size);
 
-        extern void *cacheline_aligned_alloc(size_t size);
-
-        extern void cacheline_aligned_free(void *memblock);
+extern void cacheline_aligned_free(void *memblock);
 
 #define ALIGN_AS(n) alignas(n)
 
 #define PREFETCH(addr, rw, locality) __builtin_prefetch(addr, rw, locality)
 
-        extern void Crash(const std::string &srcfile, int srcline);
+extern void Crash(const std::string &srcfile, int srcline);
 
-        extern int GetMaxOpenFiles();
+extern int GetMaxOpenFiles();
 
-    }
+}
 }
 
 #endif

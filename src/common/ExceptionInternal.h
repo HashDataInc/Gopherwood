@@ -66,33 +66,36 @@ using boost::current_exception;
 #include <stdexcept>
 
 namespace Gopherwood {
-using std::rethrow_exception;
-using std::current_exception;
-using std::make_exception_ptr;
-using std::exception_ptr;
+    using std::rethrow_exception;
+    using std::current_exception;
+    using std::make_exception_ptr;
+    using std::exception_ptr;
 }
 #endif  //  include headers
 
 #if defined(NEED_BOOST) || !defined(HAVE_NESTED_EXCEPTION)  //  define nested exception
 namespace Gopherwood {
 #ifdef NEED_BOOST
-class nested_exception : virtual public boost::exception {
+class nested_exception: virtual public boost::exception {
 #else
-class nested_exception : virtual public std::exception {
+    class nested_exception : virtual public std::exception {
 #endif
 public:
-    nested_exception() : p(current_exception()) {
+    nested_exception() :
+            p(current_exception()) {
     }
 
-    nested_exception(const nested_exception & other) : p(other.p) {
+    nested_exception(const nested_exception & other) :
+            p(other.p) {
     }
 
-    nested_exception & operator = (const nested_exception & other) {
+    nested_exception & operator =(const nested_exception & other) {
         this->p = other.p;
         return *this;
     }
 
-    virtual ~nested_exception() throw() {}
+    virtual ~nested_exception() throw () {
+    }
 
     void rethrow_nested() const {
         rethrow_exception(p);
@@ -106,9 +109,12 @@ protected:
 };
 
 template<typename BaseType>
-struct ExceptionWrapper : public BaseType, public nested_exception {
-    explicit ExceptionWrapper(BaseType const & e) : BaseType(static_cast < BaseType const & >(e)) {}
-    ~ExceptionWrapper() throw() {}
+struct ExceptionWrapper: public BaseType, public nested_exception {
+    explicit ExceptionWrapper(BaseType const & e) :
+            BaseType(static_cast<BaseType const &>(e)) {
+    }
+    ~ExceptionWrapper() throw () {
+    }
 };
 
 template<typename T>
@@ -119,7 +125,7 @@ static inline void throw_with_nested(T const & e) {
     }
 
 #ifdef NEED_BOOST
-    boost::throw_exception(ExceptionWrapper<T>(static_cast < T const & >(e)));
+    boost::throw_exception(ExceptionWrapper<T>(static_cast<T const &>(e)));
 #else
     throw ExceptionWrapper<T>(static_cast < T const & >(e));
 #endif
@@ -142,8 +148,8 @@ static inline void rethrow_if_nested(const nested_exception & e) {
 }  // namespace Gopherwood
 #else  //  not boost and have nested exception
 namespace Gopherwood {
-using std::throw_with_nested;
-using std::rethrow_if_nested;
+    using std::throw_with_nested;
+    using std::rethrow_if_nested;
 }  //  namespace Gopherwood
 #endif  //  define nested exception
 
@@ -153,13 +159,13 @@ namespace Internal {
 
 template<typename THROWABLE>
 ATTRIBUTE_NORETURN ATTRIBUTE_NOINLINE
-void ThrowException(bool nested, const char * f, int l,
-                    const char * exceptionName, const char * fmt, ...) __attribute__((format(printf, 5, 6))) ;
+void ThrowException(bool nested, const char * f, int l, const char * exceptionName,
+        const char * fmt, ...) __attribute__((format(printf, 5, 6)));
 
 template<typename THROWABLE>
 ATTRIBUTE_NORETURN ATTRIBUTE_NOINLINE
-void ThrowException(bool nested, const char * f, int l,
-                    const char * exceptionName, const char * fmt, ...) {
+void ThrowException(bool nested, const char * f, int l, const char * exceptionName,
+        const char * fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     std::string buffer;
@@ -175,12 +181,18 @@ void ThrowException(bool nested, const char * f, int l,
 
     if (!nested) {
         boost::throw_exception(
-            THROWABLE(buffer.c_str(), SkipPathPrefix(f), l,
-                      Gopherwood::Internal::PrintStack(1, STACK_DEPTH).c_str()));
+                THROWABLE(
+                        buffer.c_str(),
+                        SkipPathPrefix(f),
+                        l,
+                        Gopherwood::Internal::PrintStack(1, STACK_DEPTH).c_str()));
     } else {
         Gopherwood::throw_with_nested(
-            THROWABLE(buffer.c_str(), SkipPathPrefix(f), l,
-                      Gopherwood::Internal::PrintStack(1, STACK_DEPTH).c_str()));
+                THROWABLE(
+                        buffer.c_str(),
+                        SkipPathPrefix(f),
+                        l,
+                        Gopherwood::Internal::PrintStack(1, STACK_DEPTH).c_str()));
     }
 
     throw std::logic_error("should not reach here.");
@@ -192,43 +204,43 @@ void ThrowException(bool nested, const char * f, int l,
 #else
 
 namespace Gopherwood {
-namespace Internal {
+    namespace Internal {
 
-template<typename THROWABLE>
-ATTRIBUTE_NORETURN ATTRIBUTE_NOINLINE
-void ThrowException(bool nested, const char * f, int l,
-                    const char * exceptionName, const char * fmt, ...) __attribute__((format(printf, 5, 6)));
+        template<typename THROWABLE>
+        ATTRIBUTE_NORETURN ATTRIBUTE_NOINLINE
+        void ThrowException(bool nested, const char * f, int l,
+                const char * exceptionName, const char * fmt, ...) __attribute__((format(printf, 5, 6)));
 
-template<typename THROWABLE>
-ATTRIBUTE_NORETURN ATTRIBUTE_NOINLINE
-void ThrowException(bool nested, const char * f, int l,
-                    const char * exceptionName, const char * fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    std::string buffer;
-    buffer = exceptionName;
-    buffer.append(": ");
-    int size = vsnprintf(NULL, 0, fmt, ap);
-    va_end(ap);
-    int offset = buffer.size();
-    buffer.resize(offset + size + 1);
-    va_start(ap, fmt);
-    vsnprintf(&buffer[offset], size + 1, fmt, ap);
-    va_end(ap);
+        template<typename THROWABLE>
+        ATTRIBUTE_NORETURN ATTRIBUTE_NOINLINE
+        void ThrowException(bool nested, const char * f, int l,
+                const char * exceptionName, const char * fmt, ...) {
+            va_list ap;
+            va_start(ap, fmt);
+            std::string buffer;
+            buffer = exceptionName;
+            buffer.append(": ");
+            int size = vsnprintf(NULL, 0, fmt, ap);
+            va_end(ap);
+            int offset = buffer.size();
+            buffer.resize(offset + size + 1);
+            va_start(ap, fmt);
+            vsnprintf(&buffer[offset], size + 1, fmt, ap);
+            va_end(ap);
 
-    if (!nested) {
-        throw THROWABLE(buffer.c_str(), SkipPathPrefix(f), l,
+            if (!nested) {
+                throw THROWABLE(buffer.c_str(), SkipPathPrefix(f), l,
                         Gopherwood::Internal::PrintStack(1, STACK_DEPTH).c_str());
-    } else {
-        Gopherwood::throw_with_nested(
-            THROWABLE(buffer.c_str(), SkipPathPrefix(f), l,
-                      Gopherwood::Internal::PrintStack(1, STACK_DEPTH).c_str()));
-    }
+            } else {
+                Gopherwood::throw_with_nested(
+                        THROWABLE(buffer.c_str(), SkipPathPrefix(f), l,
+                                Gopherwood::Internal::PrintStack(1, STACK_DEPTH).c_str()));
+            }
 
-    throw std::logic_error("should not reach here.");
-}
+            throw std::logic_error("should not reach here.");
+        }
 
-}  //  namespace Internal
+    }  //  namespace Internal
 }  //  namespace Gopherwood
 
 #endif
@@ -261,8 +273,7 @@ bool CheckOperationCanceled();
  * @param e The exception which detail message to be return.
  * @return The exception's detail message.
  */
-const char *GetExceptionDetail(const Gopherwood::GopherwoodException &e,
-                               std::string &buffer);
+const char *GetExceptionDetail(const Gopherwood::GopherwoodException &e, std::string &buffer);
 
 /**
  * Get a exception's detail message.

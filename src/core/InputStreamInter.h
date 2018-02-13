@@ -27,74 +27,73 @@
 #include <thread>
 
 namespace Gopherwood {
-    namespace Internal {
+namespace Internal {
 
-        using namespace ::std;
+using namespace ::std;
 
-        class FileSystemInter;
+class FileSystemInter;
 
 /**
  * A input stream used read data from hdfs.
  */
-        class InputStreamInter {
-        public:
-            virtual ~InputStreamInter() {
-            }
-
-            /**
-         * Open a file to read
-         * @param fs gopherwood file system.
-         * @param fileName the name of the file to be read.
-         * @param verifyChecksum verify the checksum.
-         */
-//            virtual void open(shared_ptr<FileSystemInter> fs, const char *fileName, bool verifyChecksum = true);
-
-            /**
-             * To read data from gopherwood.
-             * @param buf the buffer used to filled.
-             * @param size buffer size.
-             * @return return the number of bytes filled in the buffer, it may less than size.
-             */
-            virtual int32_t read(char *buf, int32_t size)=0;
-
-            /**
-             * To read data from gopherwood, block until get the given size of bytes.
-             * @param buf the buffer used to filled.
-             * @param size the number of bytes to be read.
-             */
-            virtual void readFully(char *buf, int64_t size)=0;
-
-            /**
-             * Get how many bytes can be read without blocking.
-             * @return The number of bytes can be read without blocking.
-             */
-            virtual int64_t available()=0;
-
-            /**
-             * To move the file point to the given position.
-             * @param pos the given position.
-             */
-            virtual void seek(int64_t pos)=0;
-
-            /**
-             * To get the current file point position.
-             * @return the position of current file point.
-             */
-            virtual int64_t tell()=0;
-
-            /**
-             * Close the stream.
-             */
-            virtual void close()=0;
-
-            /**
-             * Output a readable string of this input stream.
-             */
-            virtual string toString() = 0;
-
-            virtual void deleteFile()=0;
-        };
-
+class InputStreamInter {
+public:
+    virtual ~InputStreamInter() {
     }
+
+    /**
+     * Open a file to read
+     * @param fs gopherwood file system.
+     * @param fileName the name of the file to be read.
+     * @param verifyChecksum verify the checksum.
+     */
+//            virtual void open(shared_ptr<FileSystemInter> fs, const char *fileName, bool verifyChecksum = true);
+    /**
+     * To read data from gopherwood.
+     * @param buf the buffer used to filled.
+     * @param size buffer size.
+     * @return return the number of bytes filled in the buffer, it may less than size.
+     */
+    virtual int32_t read(char *buf, int32_t size)=0;
+
+    /**
+     * To read data from gopherwood, block until get the given size of bytes.
+     * @param buf the buffer used to filled.
+     * @param size the number of bytes to be read.
+     */
+    virtual void readFully(char *buf, int64_t size)=0;
+
+    /**
+     * Get how many bytes can be read without blocking.
+     * @return The number of bytes can be read without blocking.
+     */
+    virtual int64_t available()=0;
+
+    /**
+     * To move the file point to the given position.
+     * @param pos the given position.
+     */
+    virtual void seek(int64_t pos)=0;
+
+    /**
+     * To get the current file point position.
+     * @return the position of current file point.
+     */
+    virtual int64_t tell()=0;
+
+    /**
+     * Close the stream.
+     */
+    virtual void close()=0;
+
+    /**
+     * Output a readable string of this input stream.
+     */
+    virtual string toString() = 0;
+
+    virtual void deleteFile()=0;
+};
+
+}
 }
 #endif /* _GOPHERWOOD_CORE_INPUTSTREAMINTER_H_ */

@@ -34,8 +34,7 @@
 namespace Gopherwood {
 namespace Internal {
 
-static void ATTRIBUTE_NOINLINE GetStack(int skip, int maxDepth,
-                                        std::vector<void *> & stack) {
+static void ATTRIBUTE_NOINLINE GetStack(int skip, int maxDepth, std::vector<void *> & stack) {
     std::ostringstream ss;
     ++skip; //current frame.
     stack.resize(maxDepth + skip);
@@ -58,21 +57,21 @@ std::string DemangleSymbol(const char * symbol) {
     char * name = abi::__cxa_demangle(symbol, 0, 0, &status);
 
     switch (status) {
-    case 0:
-        retval = name;
-        break;
+        case 0:
+            retval = name;
+            break;
 
-    case -1:
-        throw std::bad_alloc();
-        break;
+        case -1:
+            throw std::bad_alloc();
+            break;
 
-    case -2:
-        retval = symbol;
-        break;
+        case -2:
+            retval = symbol;
+            break;
 
-    case -3:
-        retval = symbol;
-        break;
+        case -3:
+            retval = symbol;
+            break;
     }
 
     if (name) {
@@ -131,7 +130,7 @@ static ssize_t ReadPersistent(const int fd, void * buf, const size_t count) {
 // descriptor "fd" into the buffer starting at "buf".  On success,
 // return the number of bytes read.  Otherwise, return -1.
 static ssize_t ReadFromOffset(const int fd, void * buf,
-                              const size_t count, const off_t offset) {
+        const size_t count, const off_t offset) {
     off_t off = lseek(fd, offset, SEEK_SET);
 
     if (off == (off_t) - 1) {
@@ -146,7 +145,7 @@ static ssize_t ReadFromOffset(const int fd, void * buf,
 // short reads and EINTR.  On success, return true. Otherwise, return
 // false.
 static bool ReadFromOffsetExact(const int fd, void * buf,
-                                const size_t count, const off_t offset) {
+        const size_t count, const off_t offset) {
     ssize_t len = ReadFromOffset(fd, buf, count, offset);
     return len == static_cast<ssize_t>(count);
 }
@@ -173,16 +172,16 @@ static int FileGetElfType(const int fd) {
 // inlined.
 static bool
 GetSectionHeaderByType(const int fd, ElfW(Half) sh_num, const off_t sh_offset,
-                       ElfW(Word) type, ElfW(Shdr) *out) {
+        ElfW(Word) type, ElfW(Shdr) *out) {
     // Read at most 16 section headers at a time to save read calls.
     ElfW(Shdr) buf[16];
 
     for (int i = 0; i < sh_num;) {
         const ssize_t num_bytes_left = (sh_num - i) * sizeof(buf[0]);
         const ssize_t num_bytes_to_read =
-            (sizeof(buf) > static_cast<size_t>(num_bytes_left)) ? num_bytes_left : sizeof(buf);
+        (sizeof(buf) > static_cast<size_t>(num_bytes_left)) ? num_bytes_left : sizeof(buf);
         const ssize_t len = ReadFromOffset(fd, buf, num_bytes_to_read,
-                                           sh_offset + i * sizeof(buf[0]));
+                sh_offset + i * sizeof(buf[0]));
         assert(len % sizeof(buf[0]) == 0);
         const ssize_t num_headers_in_buf = len / sizeof(buf[0]);
 
@@ -205,7 +204,7 @@ const int kMaxSectionNameLen = 64;
 
 // name_len should include terminating '\0'.
 bool GetSectionHeaderByName(int fd, const char * name, size_t name_len,
-                            ElfW(Shdr) *out) {
+        ElfW(Shdr) *out) {
     ElfW(Ehdr) elf_header;
 
     if (!ReadFromOffsetExact(fd, &elf_header, sizeof(elf_header), 0)) {
@@ -214,7 +213,7 @@ bool GetSectionHeaderByName(int fd, const char * name, size_t name_len,
 
     ElfW(Shdr) shstrtab;
     off_t shstrtab_offset = (elf_header.e_shoff +
-                             elf_header.e_shentsize * elf_header.e_shstrndx);
+            elf_header.e_shentsize * elf_header.e_shstrndx);
 
     if (!ReadFromOffsetExact(fd, &shstrtab, sizeof(shstrtab), shstrtab_offset)) {
         return false;
@@ -222,7 +221,7 @@ bool GetSectionHeaderByName(int fd, const char * name, size_t name_len,
 
     for (int i = 0; i < elf_header.e_shnum; ++i) {
         off_t section_header_offset = (elf_header.e_shoff +
-                                       elf_header.e_shentsize * i);
+                elf_header.e_shentsize * i);
 
         if (!ReadFromOffsetExact(fd, out, sizeof(*out), section_header_offset)) {
             return false;
@@ -261,8 +260,8 @@ bool GetSectionHeaderByName(int fd, const char * name, size_t name_len,
 // inlined.
 static bool
 FindSymbol(uint64_t pc, const int fd, char * out, int out_size,
-           uint64_t symbol_offset, const ElfW(Shdr) *strtab,
-           const ElfW(Shdr) *symtab) {
+        uint64_t symbol_offset, const ElfW(Shdr) *strtab,
+        const ElfW(Shdr) *symtab) {
     if (symtab == NULL) {
         return false;
     }
@@ -295,7 +294,7 @@ FindSymbol(uint64_t pc, const int fd, char * out, int out_size,
                     symbol.st_shndx != 0 &&// Skip undefined symbols.
                     start_address <= pc && pc < end_address) {
                 ssize_t len1 = ReadFromOffset(fd, out, out_size,
-                                              strtab->sh_offset + symbol.st_name);
+                        strtab->sh_offset + symbol.st_name);
 
                 if (len1 <= 0 || memchr(out, '\0', out_size) == NULL) {
                     return false;
@@ -316,8 +315,8 @@ FindSymbol(uint64_t pc, const int fd, char * out, int out_size,
 // write the symbol name to "out" and return true.  Otherwise, return
 // false.
 static bool GetSymbolFromObjectFile(const int fd, uint64_t pc,
-                                    char * out, int out_size,
-                                    uint64_t map_start_address) {
+        char * out, int out_size,
+        uint64_t map_start_address) {
     // Read the ELF header.
     ElfW(Ehdr) elf_header;
 
@@ -335,33 +334,33 @@ static bool GetSymbolFromObjectFile(const int fd, uint64_t pc,
 
     // Consult a regular symbol table first.
     if (!GetSectionHeaderByType(fd, elf_header.e_shnum, elf_header.e_shoff,
-                                SHT_SYMTAB, &symtab)) {
+                    SHT_SYMTAB, &symtab)) {
         return false;
     }
 
     if (!ReadFromOffsetExact(fd, &strtab, sizeof(strtab), elf_header.e_shoff +
-                             symtab.sh_link * sizeof(symtab))) {
+                    symtab.sh_link * sizeof(symtab))) {
         return false;
     }
 
     if (FindSymbol(pc, fd, out, out_size, symbol_offset,
-                   &strtab, &symtab)) {
+                    &strtab, &symtab)) {
         return true;  // Found the symbol in a regular symbol table.
     }
 
     // If the symbol is not found, then consult a dynamic symbol table.
     if (!GetSectionHeaderByType(fd, elf_header.e_shnum, elf_header.e_shoff,
-                                SHT_DYNSYM, &symtab)) {
+                    SHT_DYNSYM, &symtab)) {
         return false;
     }
 
     if (!ReadFromOffsetExact(fd, &strtab, sizeof(strtab), elf_header.e_shoff +
-                             symtab.sh_link * sizeof(symtab))) {
+                    symtab.sh_link * sizeof(symtab))) {
         return false;
     }
 
     if (FindSymbol(pc, fd, out, out_size, symbol_offset,
-                   &strtab, &symtab)) {
+                    &strtab, &symtab)) {
         return true;  // Found the symbol in a dynamic symbol table.
     }
 
@@ -371,117 +370,117 @@ static bool GetSymbolFromObjectFile(const int fd, uint64_t pc,
 namespace {
 // Thin wrapper around a file descriptor so that the file descriptor
 // gets closed for sure.
-struct FileDescriptor {
-    const int fd_;
-    explicit FileDescriptor(int fd) : fd_(fd) {}
-    ~FileDescriptor() {
-        if (fd_ >= 0) {
-            NO_INTR(close(fd_));
+    struct FileDescriptor {
+        const int fd_;
+        explicit FileDescriptor(int fd) : fd_(fd) {}
+        ~FileDescriptor() {
+            if (fd_ >= 0) {
+                NO_INTR(close(fd_));
+            }
         }
-    }
-    int get() {
-        return fd_;
-    }
+        int get() {
+            return fd_;
+        }
 
-private:
-    explicit FileDescriptor(const FileDescriptor &);
-    void operator=(const FileDescriptor &);
-};
+    private:
+        explicit FileDescriptor(const FileDescriptor &);
+        void operator=(const FileDescriptor &);
+    };
 
 // Helper class for reading lines from file.
 //
 // Note: we don't use ProcMapsIterator since the object is big (it has
 // a 5k array member) and uses async-unsafe functions such as sscanf()
 // and snprintf().
-class LineReader {
-public:
-    explicit LineReader(int fd, char * buf, int buf_len) : fd_(fd),
+    class LineReader {
+    public:
+        explicit LineReader(int fd, char * buf, int buf_len) : fd_(fd),
         buf_(buf), buf_len_(buf_len), bol_(buf), eol_(buf), eod_(buf) {
-    }
+        }
 
-    // Read '\n'-terminated line from file.  On success, modify "bol"
-    // and "eol", then return true.  Otherwise, return false.
-    //
-    // Note: if the last line doesn't end with '\n', the line will be
-    // dropped.  It's an intentional behavior to make the code simple.
-    bool ReadLine(const char ** bol, const char ** eol) {
-        if (BufferIsEmpty()) {  // First time.
-            const ssize_t num_bytes = ReadPersistent(fd_, buf_, buf_len_);
-
-            if (num_bytes <= 0) {  // EOF or error.
-                return false;
-            }
-
-            eod_ = buf_ + num_bytes;
-            bol_ = buf_;
-        } else {
-            bol_ = eol_ + 1;  // Advance to the next line in the buffer.
-            assert(bol_ <= eod_);// "bol_" can point to "eod_".
-
-            if (!HasCompleteLine()) {
-                const int incomplete_line_length = eod_ - bol_;
-                // Move the trailing incomplete line to the beginning.
-                memmove(buf_, bol_, incomplete_line_length);
-                // Read text from file and append it.
-                char * const append_pos = buf_ + incomplete_line_length;
-                const int capacity_left = buf_len_ - incomplete_line_length;
-                const ssize_t num_bytes = ReadPersistent(fd_, append_pos,
-                                          capacity_left);
+        // Read '\n'-terminated line from file.  On success, modify "bol"
+        // and "eol", then return true.  Otherwise, return false.
+        //
+        // Note: if the last line doesn't end with '\n', the line will be
+        // dropped.  It's an intentional behavior to make the code simple.
+        bool ReadLine(const char ** bol, const char ** eol) {
+            if (BufferIsEmpty()) {  // First time.
+                const ssize_t num_bytes = ReadPersistent(fd_, buf_, buf_len_);
 
                 if (num_bytes <= 0) {  // EOF or error.
                     return false;
                 }
 
-                eod_ = append_pos + num_bytes;
+                eod_ = buf_ + num_bytes;
                 bol_ = buf_;
+            } else {
+                bol_ = eol_ + 1;  // Advance to the next line in the buffer.
+                assert(bol_ <= eod_);// "bol_" can point to "eod_".
+
+                if (!HasCompleteLine()) {
+                    const int incomplete_line_length = eod_ - bol_;
+                    // Move the trailing incomplete line to the beginning.
+                    memmove(buf_, bol_, incomplete_line_length);
+                    // Read text from file and append it.
+                    char * const append_pos = buf_ + incomplete_line_length;
+                    const int capacity_left = buf_len_ - incomplete_line_length;
+                    const ssize_t num_bytes = ReadPersistent(fd_, append_pos,
+                            capacity_left);
+
+                    if (num_bytes <= 0) {  // EOF or error.
+                        return false;
+                    }
+
+                    eod_ = append_pos + num_bytes;
+                    bol_ = buf_;
+                }
             }
+
+            eol_ = FindLineFeed();
+
+            if (eol_ == NULL) {  // '\n' not found.  Malformed line.
+                return false;
+            }
+
+            *eol_ = '\0';  // Replace '\n' with '\0'.
+            *bol = bol_;
+            *eol = eol_;
+            return true;
         }
 
-        eol_ = FindLineFeed();
-
-        if (eol_ == NULL) {  // '\n' not found.  Malformed line.
-            return false;
+        // Beginning of line.
+        const char * bol() {
+            return bol_;
         }
 
-        *eol_ = '\0';  // Replace '\n' with '\0'.
-        *bol = bol_;
-        *eol = eol_;
-        return true;
-    }
+        // End of line.
+        const char * eol() {
+            return eol_;
+        }
 
-    // Beginning of line.
-    const char * bol() {
-        return bol_;
-    }
+    private:
+        explicit LineReader(const LineReader &);
+        void operator=(const LineReader &);
 
-    // End of line.
-    const char * eol() {
-        return eol_;
-    }
+        char * FindLineFeed() {
+            return reinterpret_cast<char *>(memchr(bol_, '\n', eod_ - bol_));
+        }
 
-private:
-    explicit LineReader(const LineReader &);
-    void operator=(const LineReader &);
+        bool BufferIsEmpty() {
+            return buf_ == eod_;
+        }
 
-    char * FindLineFeed() {
-        return reinterpret_cast<char *>(memchr(bol_, '\n', eod_ - bol_));
-    }
+        bool HasCompleteLine() {
+            return !BufferIsEmpty() && FindLineFeed() != NULL;
+        }
 
-    bool BufferIsEmpty() {
-        return buf_ == eod_;
-    }
-
-    bool HasCompleteLine() {
-        return !BufferIsEmpty() && FindLineFeed() != NULL;
-    }
-
-    const int fd_;
-    char * const buf_;
-    const int buf_len_;
-    char * bol_;
-    char * eol_;
-    const char * eod_; // End of data in "buf_".
-};
+        const int fd_;
+        char * const buf_;
+        const int buf_len_;
+        char * bol_;
+        char * eol_;
+        const char * eod_; // End of data in "buf_".
+    };
 }  // namespace
 
 // Place the hex number read from "start" into "*hex".  The pointer to
@@ -619,7 +618,7 @@ static const std::string SymbolizeAndDemangle(void * pc) {
     uint64_t pc0 = reinterpret_cast<uintptr_t>(pc);
     uint64_t start_address = 0;
     int object_fd = OpenObjectFileContainingPcAndGetStartAddress(pc0,
-                    start_address);
+            start_address);
 
     if (object_fd == -1) {
         return DEFAULT_STACK_PREFIX"Unknown";
@@ -633,7 +632,7 @@ static const std::string SymbolizeAndDemangle(void * pc) {
     }
 
     if (!GetSymbolFromObjectFile(wrapped_object_fd.get(), pc0,
-                                 &buffer[0], buffer.size(), start_address)) {
+                    &buffer[0], buffer.size(), start_address)) {
         return DEFAULT_STACK_PREFIX"Unknown";
     }
 

@@ -48,7 +48,7 @@ namespace Gopherwood {
 namespace Internal {
 
 TcpSocketImpl::TcpSocketImpl() :
-    sock(-1), lingerTimeout(-1) {
+        sock(-1), lingerTimeout(-1) {
 }
 
 TcpSocketImpl::~TcpSocketImpl() {
@@ -65,12 +65,20 @@ int32_t TcpSocketImpl::read(char * buffer, int32_t size) {
     } while (-1 == rc && EINTR == errno && !CheckOperationCanceled());
 
     if (-1 == rc) {
-        THROW(GopherwoodNetworkException, "Read %d bytes failed from %s: %s",
-              size, remoteAddr.c_str(), GetSystemErrorInfo(errno));
+        THROW(
+                GopherwoodNetworkException,
+                "Read %d bytes failed from %s: %s",
+                size,
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 
     if (0 == rc) {
-        THROW(GopherwoodEndOfStream, "Read %d bytes failed from %s: End of the stream", size, remoteAddr.c_str());
+        THROW(
+                GopherwoodEndOfStream,
+                "Read %d bytes failed from %s: End of the stream",
+                size,
+                remoteAddr.c_str());
     }
 
     return rc;
@@ -98,7 +106,11 @@ void TcpSocketImpl::readFully(char * buffer, int32_t size, int timeout) {
         }
 
         if (todo > 0 && timeout >= 0 && deadline <= 0) {
-            THROW(GopherwoodTimeoutException, "Read %d bytes timeout from %s", size, remoteAddr.c_str());
+            THROW(
+                    GopherwoodTimeoutException,
+                    "Read %d bytes timeout from %s",
+                    size,
+                    remoteAddr.c_str());
         }
     }
 }
@@ -117,8 +129,12 @@ int32_t TcpSocketImpl::write(const char * buffer, int32_t size) {
     } while (-1 == rc && EINTR == errno && !CheckOperationCanceled());
 
     if (-1 == rc) {
-        THROW(GopherwoodNetworkException, "Write %d bytes failed to %s: %s",
-              size, remoteAddr.c_str(), GetSystemErrorInfo(errno));
+        THROW(
+                GopherwoodNetworkException,
+                "Write %d bytes failed to %s: %s",
+                size,
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 
     return rc;
@@ -146,7 +162,11 @@ void TcpSocketImpl::writeFully(const char * buffer, int32_t size, int timeout) {
         }
 
         if (todo > 0 && timeout >= 0 && deadline <= 0) {
-            THROW(GopherwoodTimeoutException, "Write %d bytes timeout to %s", size, remoteAddr.c_str());
+            THROW(
+                    GopherwoodTimeoutException,
+                    "Write %d bytes timeout to %s",
+                    size,
+                    remoteAddr.c_str());
         }
     }
 }
@@ -167,8 +187,12 @@ void TcpSocketImpl::connect(const char * host, const char * port, int timeout) {
     int retval = GopherwoodSystem::getaddrinfo(host, port, &hints, &addrs);
 
     if (0 != retval) {
-        THROW(GopherwoodNetworkConnectException, "Failed to resolve address \"%s:%s\" %s",
-              host, port, gai_strerror(retval));
+        THROW(
+                GopherwoodNetworkConnectException,
+                "Failed to resolve address \"%s:%s\" %s",
+                host,
+                port,
+                gai_strerror(retval));
     }
 
     int deadline = timeout;
@@ -215,16 +239,17 @@ void TcpSocketImpl::connect(const char * host, const char * port, int timeout) {
     }
 }
 
-void TcpSocketImpl::connect(struct addrinfo * paddr, const char * host,
-                            const char * port, int timeout) {
+void TcpSocketImpl::connect(struct addrinfo * paddr, const char * host, const char * port,
+        int timeout) {
     assert(-1 == sock);
-    sock = GopherwoodSystem::socket(paddr->ai_family, paddr->ai_socktype,
-                              paddr->ai_protocol);
+    sock = GopherwoodSystem::socket(paddr->ai_family, paddr->ai_socktype, paddr->ai_protocol);
 
     if (-1 == sock) {
-        THROW(GopherwoodNetworkException,
-              "Create socket failed when connect to %s: %s",
-              remoteAddr.c_str(), GetSystemErrorInfo(errno));
+        THROW(
+                GopherwoodNetworkException,
+                "Create socket failed when connect to %s: %s",
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 
     if (lingerTimeout >= 0) {
@@ -251,12 +276,14 @@ void TcpSocketImpl::connect(struct addrinfo * paddr, const char * host,
         if (rc < 0) {
             if (EINPROGRESS != errno && EWOULDBLOCK != errno) {
                 if (ETIMEDOUT == errno) {
-                    THROW(GopherwoodTimeoutException, "Connect to \"%s:%s\" timeout",
-                          host, port);
+                    THROW(GopherwoodTimeoutException, "Connect to \"%s:%s\" timeout", host, port);
                 } else {
-                    THROW(GopherwoodNetworkConnectException,
-                          "Connect to \"%s:%s\" failed: %s",
-                          host, port, GetSystemErrorInfo(errno));
+                    THROW(
+                            GopherwoodNetworkConnectException,
+                            "Connect to \"%s:%s\" failed: %s",
+                            host,
+                            port,
+                            GetSystemErrorInfo(errno));
                 }
             }
 
@@ -279,12 +306,15 @@ void TcpSocketImpl::connect(struct addrinfo * paddr, const char * host,
                 assert(rc < 0);
 
                 if (ETIMEDOUT == errno) {
-                    THROW(GopherwoodTimeoutException, "Connect to \"%s:%s\" timeout",
-                          host, port);
+                    THROW(GopherwoodTimeoutException, "Connect to \"%s:%s\" timeout", host, port);
                 }
 
-                THROW(GopherwoodNetworkConnectException, "Connect to \"%s:%s\" failed: %s",
-                      host, port, GetSystemErrorInfo(errno));
+                THROW(
+                        GopherwoodNetworkConnectException,
+                        "Connect to \"%s:%s\" failed: %s",
+                        host,
+                        port,
+                        GetSystemErrorInfo(errno));
             }
         }
 
@@ -300,15 +330,21 @@ void TcpSocketImpl::setBlockMode(bool enable) {
     flag = GopherwoodSystem::fcntl(sock, F_GETFL, 0);
 
     if (-1 == flag) {
-        THROW(GopherwoodNetworkException, "Get socket flag failed for remote node %s: %s",
-              remoteAddr.c_str(), GetSystemErrorInfo(errno));
+        THROW(
+                GopherwoodNetworkException,
+                "Get socket flag failed for remote node %s: %s",
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 
     flag = enable ? (flag & ~O_NONBLOCK) : (flag | O_NONBLOCK);
 
     if (-1 == GopherwoodSystem::fcntl(sock, F_SETFL, flag)) {
-        THROW(GopherwoodNetworkException, "Set socket flag failed for remote node %s: %s",
-              remoteAddr.c_str(), GetSystemErrorInfo(errno));
+        THROW(
+                GopherwoodNetworkException,
+                "Set socket flag failed for remote node %s: %s",
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 }
 
@@ -317,9 +353,9 @@ void TcpSocketImpl::disableSigPipe() {
     int flag = 1;
 
     if (GopherwoodSystem::setsockopt(sock, SOL_SOCKET, SO_NOSIGPIPE, (char *) &flag,
-                               sizeof(flag))) {
+                    sizeof(flag))) {
         THROW(GopherwoodNetworkException, "Set socket flag failed for remote node %s: %s",
-              remoteAddr.c_str(), GetSystemErrorInfo(errno));
+                remoteAddr.c_str(), GetSystemErrorInfo(errno));
     }
 
 #endif
@@ -346,8 +382,11 @@ bool TcpSocketImpl::poll(bool read, bool write, int timeout) {
     } while (-1 == rc && EINTR == errno && !CheckOperationCanceled());
 
     if (-1 == rc) {
-        THROW(GopherwoodNetworkException, "Poll failed for remote node %s: %s",
-              remoteAddr.c_str(), GetSystemErrorInfo(errno));
+        THROW(
+                GopherwoodNetworkException,
+                "Poll failed for remote node %s: %s",
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 
     return 0 != rc;
@@ -357,10 +396,17 @@ void TcpSocketImpl::setNoDelay(bool enable) {
     assert(-1 != sock);
     int flag = enable ? 1 : 0;
 
-    if (GopherwoodSystem::setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *) &flag,
-                               sizeof(flag))) {
-        THROW(GopherwoodNetworkException, "Set socket flag failed for remote node %s: %s",
-              remoteAddr.c_str(), GetSystemErrorInfo(errno));
+    if (GopherwoodSystem::setsockopt(
+            sock,
+            IPPROTO_TCP,
+            TCP_NODELAY,
+            (char *) &flag,
+            sizeof(flag))) {
+        THROW(
+                GopherwoodNetworkException,
+                "Set socket flag failed for remote node %s: %s",
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 }
 
@@ -375,8 +421,11 @@ void TcpSocketImpl::setLingerTimeoutInternal(int timeout) {
     l.l_linger = timeout > 0 ? timeout : 0;
 
     if (GopherwoodSystem::setsockopt(sock, SOL_SOCKET, SO_LINGER, &l, sizeof(l))) {
-        THROW(GopherwoodNetworkException, "Set socket flag failed for remote node %s: %s",
-              remoteAddr.c_str(), GetSystemErrorInfo(errno));
+        THROW(
+                GopherwoodNetworkException,
+                "Set socket flag failed for remote node %s: %s",
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 }
 
@@ -387,8 +436,11 @@ void TcpSocketImpl::setSendTimeout(int timeout) {
     timeo.tv_usec = (timeout % 1000) * 1000;
 
     if (GopherwoodSystem::setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeo, sizeof(timeo))) {
-        THROW(GopherwoodNetworkException, "Set socket flag failed for remote node %s: %s",
-              remoteAddr.c_str(), GetSystemErrorInfo(errno));
+        THROW(
+                GopherwoodNetworkException,
+                "Set socket flag failed for remote node %s: %s",
+                remoteAddr.c_str(),
+                GetSystemErrorInfo(errno));
     }
 }
 

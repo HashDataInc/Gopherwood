@@ -13,90 +13,84 @@
 #include "Logger.h"
 
 namespace Gopherwood {
-    namespace Internal {
-        class OutputStreamImpl : public OutputStreamInter {
+namespace Internal {
+class OutputStreamImpl: public OutputStreamInter {
 
-        public:
+public:
 
-            OutputStreamImpl(std::shared_ptr<FileSystemInter> fs, char *fileName, int flag);
+    OutputStreamImpl(std::shared_ptr<FileSystemInter> fs, char *fileName, int flag);
 
-            ~OutputStreamImpl();
+    ~OutputStreamImpl();
 
-
-            /**
-           * To create or append a file.
-           * @param fs gopherwood file system.
-           * @param fileName the file name.
-           * @param flag creation flag, can be Create, Append or Create|Overwrite.
-           */
+    /**
+     * To create or append a file.
+     * @param fs gopherwood file system.
+     * @param fileName the file name.
+     * @param flag creation flag, can be Create, Append or Create|Overwrite.
+     */
 //            void open(std::shared_ptr<FileSystemInter> fs, char *fileName, int flag);
+    /**
+     * To write data to file.
+     * @param buf the data used to write.
+     * @param size the data size.
+     */
+    void write(const char *buf, int64_t size);
 
-            /**
-             * To write data to file.
-             * @param buf the data used to write.
-             * @param size the data size.
-             */
-            void write(const char *buf, int64_t size);
+    /**
+     * Flush all data in buffer and waiting for ack.
+     * Will block until get all acks.
+     */
+    void flush();
 
-            /**
-             * Flush all data in buffer and waiting for ack.
-             * Will block until get all acks.
-             */
-            void flush();
+    /**
+     * return the current file length.
+     * @return current file length.
+     */
+    int64_t tell();
 
-            /**
-             * return the current file length.
-             * @return current file length.
-             */
-            int64_t tell();
+    /**
+     * the same as flush right now.
+     */
+    void sync();
 
-            /**
-             * the same as flush right now.
-             */
-            void sync();
+    /**
+     * close the stream.
+     */
+    void close();
 
-            /**
-             * close the stream.
-             */
-            void close();
+    string toString();
 
+    void setError(const exception_ptr &error);
 
-            string toString();
+    void seek(int64_t pos);
 
-            void setError(const exception_ptr &error);
+    void deleteFileBucket(int64_t pos);
 
-            void seek(int64_t pos);
+    void deleteFile();
 
-            void deleteFileBucket(int64_t pos);
+private:
+    std::shared_ptr<FileSystemInter> filesystem;
+    int32_t cursorBucketID = 0; // the cursor bucket id of the output stream
+    int32_t cursorIndex = 0; //the index of the cursorBucketID. status->getBlockIdVector()[cursorIndex] = cursorBucketID
+    int64_t cursorOffset = 0; // the cursor offset of the output stream
+    string fileName;
+    std::shared_ptr<FileStatus> status;
 
-            void deleteFile();
-
-        private:
-            std::shared_ptr<FileSystemInter> filesystem;
-            int32_t cursorBucketID = 0; // the cursor bucket id of the output stream
-            int32_t cursorIndex = 0;//the index of the cursorBucketID. status->getBlockIdVector()[cursorIndex] = cursorBucketID
-            int64_t cursorOffset = 0;// the cursor offset of the output stream
-            string fileName;
-            std::shared_ptr<FileStatus> status;
-
-
-        private:
+private:
 //            void createFile(char *fileName);
 
-            void checkStatus(int64_t pos);
+    void checkStatus(int64_t pos);
 
-            void seekInternal(int64_t pos);
+    void seekInternal(int64_t pos);
 
-            void writeInternal(char *buf, int64_t size);
+    void writeInternal(char *buf, int64_t size);
 
-            int64_t getRemainLength();
+    int64_t getRemainLength();
 
-            void seekToNextBlock();
-        };
+    void seekToNextBlock();
+};
 
-
-    }
 }
-
+}
 
 #endif //_GOPHERWOOD_CORE_OUTPUTSTREAMIMPL_H_

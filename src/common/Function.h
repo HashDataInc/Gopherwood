@@ -42,10 +42,10 @@ using boost::reference_wrapper;
 
 namespace Gopherwood {
 
-using std::function;
-using std::bind;
-using std::reference_wrapper;
-using namespace std::placeholders;
+    using std::function;
+    using std::bind;
+    using std::reference_wrapper;
+    using namespace std::placeholders;
 
 }
 

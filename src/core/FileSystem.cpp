@@ -8,29 +8,26 @@ using namespace Gopherwood::Internal;
 
 namespace Gopherwood {
 
-    namespace Internal {
+namespace Internal {
 
+}
 
-    }
+static FileSystemWrapper *createContextInternal(char *fileName) {
+    return new FileSystemWrapper(std::shared_ptr < FileSystemInter > (new FileSystemImpl(fileName)));
+}
 
-    static FileSystemWrapper *createContextInternal(char *fileName) {
-        return new FileSystemWrapper(std::shared_ptr<FileSystemInter>(new FileSystemImpl(fileName)));
-    }
+FileSystem::~FileSystem() {
 
-    FileSystem::~FileSystem() {
+}
 
+FileSystem::FileSystem(char *fileName) {
+    impl = createContextInternal(fileName);
+}
 
-    }
-
-    FileSystem::FileSystem(char *fileName) {
-        impl = createContextInternal(fileName);
-    }
-
-    FileSystem::FileSystem() {
+FileSystem::FileSystem() {
 
 //        this->conf = conf;
 
-    }
-
+}
 
 }

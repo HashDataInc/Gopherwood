@@ -25,36 +25,36 @@
 #define DEFAULT_LOG_LEVEL INFO
 
 namespace Gopherwood {
-    namespace Internal {
+namespace Internal {
 
-        extern const char *SeverityName[7];
+extern const char *SeverityName[7];
 
-        enum LogSeverity {
-            FATAL, LOG_ERROR, WARNING, INFO, DEBUG1, DEBUG2, DEBUG3
-        };
+enum LogSeverity {
+    FATAL, LOG_ERROR, WARNING, INFO, DEBUG1, DEBUG2, DEBUG3
+};
 
-        class Logger;
+class Logger;
 
-        class Logger {
-        public:
-            Logger();
+class Logger {
+public:
+    Logger();
 
-            ~Logger();
+    ~Logger();
 
-            void setOutputFd(int f);
+    void setOutputFd(int f);
 
-            void setLogSeverity(LogSeverity l);
+    void setLogSeverity(LogSeverity l);
 
-            void printf(LogSeverity s, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
+    void printf(LogSeverity s, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 
-        private:
-            int fd;
-            LogSeverity severity;
-        };
+private:
+    int fd;
+    LogSeverity severity;
+};
 
-        extern Logger RootLogger;
+extern Logger RootLogger;
 
-    }
+}
 }
 
 #define LOG(s, fmt, ...) \

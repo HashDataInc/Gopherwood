@@ -1,4 +1,3 @@
-
 #include <cstdio>
 #include <cstdint>
 
@@ -48,7 +47,6 @@ using Gopherwood::Config;
 using Gopherwood::Internal::Logger;
 using std::shared_ptr;
 
-
 struct GWFileSystemInternalWrapper {
 public:
     GWFileSystemInternalWrapper(FileSystem *fs) :
@@ -66,7 +64,6 @@ public:
 private:
     FileSystem *filesystem;
 };
-
 
 struct GWFileInternalWrapper {
 public:
@@ -87,8 +84,7 @@ public:
 
     InputStream &getInputStream() {
         if (!input && !inputAndOutput) {
-            THROW(Gopherwood::GopherwoodException,
-                  "Internal error: file was not opened for read.");
+            THROW(Gopherwood::GopherwoodException, "Internal error: file was not opened for read.");
         }
 
         if (!inputStream) {
@@ -100,8 +96,7 @@ public:
 
     OutputStream &getOutputStream() {
         if (!output && !inputAndOutput) {
-            THROW(Gopherwood::GopherwoodException,
-                  "Internal error: file was not opened for write.");
+            THROW(Gopherwood::GopherwoodException, "Internal error: file was not opened for write.");
         }
 
         if (!outputStream) {
@@ -160,7 +155,8 @@ private:
 
 class DefaultConfig {
 public:
-    DefaultConfig() : conf(new Gopherwood::Config) {
+    DefaultConfig() :
+            conf(new Gopherwood::Config) {
         bool reportError = false;
         const char *env = getenv("LIBHDFS3_CONF");
         std::string confPath = env ? env : "";
@@ -180,7 +176,8 @@ public:
         init(confPath, reportError);
     }
 
-    DefaultConfig(const char *path) : conf(new Gopherwood::Config) {
+    DefaultConfig(const char *path) :
+            conf(new Gopherwood::Config) {
         assert(path != NULL && strlen(path) > 0);
         init(path, true);
     }
@@ -193,9 +190,10 @@ private:
     void init(const std::string &confPath, bool reportError) {
         if (access(confPath.c_str(), R_OK)) {
             if (reportError) {
-                LOG(Gopherwood::Internal::LOG_ERROR,
-                    "Environment variable GOPHERWOOD_CONF is set but %s cannot be read",
-                    confPath.c_str());
+                LOG(
+                        Gopherwood::Internal::LOG_ERROR,
+                        "Environment variable GOPHERWOOD_CONF is set but %s cannot be read",
+                        confPath.c_str());
             } else {
                 return;
             }
@@ -208,10 +206,8 @@ private:
     std::shared_ptr<Config> conf;
 };
 
-
 gopherwoodFS gwCreateContext(char *fileName) {
     gopherwoodFS retVal = NULL;
-
 
     FileSystem *fs = NULL;
 
@@ -226,7 +222,6 @@ gopherwoodFS gwCreateContext(char *fileName) {
 tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length) {
     return file->getInputStream().read(static_cast<char *>(buffer), length);
 }
-
 
 gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
     GWFileInternalWrapper *file = NULL;
@@ -275,7 +270,6 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
     return NULL;
 }
 
-
 int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos) {
     try {
         if (file->isInput()) {
@@ -298,7 +292,6 @@ int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos) {
 
 }
 
-
 int32_t gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length) {
 //    PARAMETER_ASSERT(fs && file && buffer && length > 0, -1, EINVAL);
 //    PARAMETER_ASSERT(!file->isInput(), -1, EINVAL);
@@ -316,7 +309,6 @@ int32_t gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length) 
 
     return -1;
 }
-
 
 int gwCloseFile(gopherwoodFS fs, gwFile file) {
     try {
@@ -348,7 +340,6 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
     return -1;
 }
 
-
 int deleteFile(gopherwoodFS fs, gwFile file) {
     try {
         if (file) {
@@ -366,7 +357,6 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
                 //BUG-FIX. just one close is enough, because they share the same FileSystem object
                 file->getInputStream().deleteFile();
 
-
             }
             delete file;
         }
@@ -383,12 +373,4 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
 
     return -1;
 }
-
-
-
-
-
-
-
-
 

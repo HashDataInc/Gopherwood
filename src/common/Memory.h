@@ -41,11 +41,11 @@ using boost::shared_ptr;
 #include <memory>
 
 namespace Gopherwood {
-namespace Internal {
+    namespace Internal {
 
-using std::shared_ptr;
+        using std::shared_ptr;
 
-}
+    }
 }
 #endif
 
