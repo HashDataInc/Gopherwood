@@ -19,7 +19,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef _GOPHERWOOD_CORE_INPUTSTREAM_H_
 #define _GOPHERWOOD_CORE_INPUTSTREAM_H_
 

@@ -6,9 +6,6 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
-//
-// See port_example.h for documentation for the following types/functions.
-
 #ifndef _GOPHERWOOD_UTIL_PORTPOSIX_H_
 #define _GOPHERWOOD_UTIL_PORTPOSIX_H_
 
