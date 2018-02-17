@@ -10,10 +10,10 @@
 #endif
 
 #include "gtest/gtest.h"
-#include "../../src/core/FileSystemInter.h"
-#include "../../src/core/FileSystem.h"
-#include "../../src/core/OutputStreamImpl.h"
-#include "../../src/core/InputStreamImpl.h"
+#include "../../src/client/FileSystemInter.h"
+#include "../../src/client/FileSystem.h"
+#include "../../src/client/OutputStreamImpl.h"
+#include "../../src/client/InputStreamImpl.h"
 
 using namespace Gopherwood;
 using namespace Gopherwood::Internal;

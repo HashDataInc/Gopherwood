@@ -19,7 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "FileStatus.h"
+#include "../client/FileStatus.h"
 
 namespace Gopherwood {
 namespace Internal {

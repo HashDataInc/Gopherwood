@@ -27,7 +27,8 @@
 #include <stdint.h>
 #include <string>
 #include <memory>
-#include "FileStatus.h"
+
+#include "../client/FileStatus.h"
 
 namespace Gopherwood {
 namespace Internal {

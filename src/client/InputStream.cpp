@@ -19,32 +19,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "FileSystem.h"
+#include "../client/InputStream.h"
 
 using namespace Gopherwood::Internal;
 
 namespace Gopherwood {
 
-namespace Internal {
+InputStream::InputStream(FileSystem &fs, const char *fileName, bool verifyChecksum) {
+
+    if (!fs.impl) {
+        THROW(GopherwoodIOException, "FileSystem: not connected.");
+    }
+
+    impl = new Internal::InputStreamImpl(fs.impl->filesystem, fileName, verifyChecksum);
 
 }
 
-static FileSystemWrapper *createContextInternal(char *fileName) {
-    return new FileSystemWrapper(std::shared_ptr < FileSystemInter > (new FileSystemImpl(fileName)));
+InputStream::~InputStream() {
+    delete impl;
 }
 
-FileSystem::~FileSystem() {
-
+int32_t InputStream::read(char *buf, int32_t size) {
+    return impl->read(buf, size);
 }
 
-FileSystem::FileSystem(char *fileName) {
-    impl = createContextInternal(fileName);
+//    void InputStream::open(FileSystem &fs, const char *fileName, bool verifyChecksum = true){
+//        if (!fs.impl) {
+//            THROW(GopherwoodException, "FileSystem: not connected.");
+//        }
+//
+//        impl->open(fs.impl->filesystem, fileName, verifyChecksum);
+//
+//    }
+
+void InputStream::seek(int64_t pos) {
+    impl->seek(pos);
 }
 
-FileSystem::FileSystem() {
-
-//        this->conf = conf;
-
+void InputStream::close() {
+    impl->close();
 }
 
+void InputStream::deleteFile() {
+    impl->deleteFile();
 }
+}
+

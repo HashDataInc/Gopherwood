@@ -30,9 +30,8 @@
 #include <iostream>
 #include <memory>
 
+#include "../client/FSConfig.h"
 #include "Logger.h"
-#include "FSConfig.h"
-
 #include "../common/LRUCache.cpp"
 #include "../common/Logger.h"
 

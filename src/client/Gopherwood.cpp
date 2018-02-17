@@ -21,18 +21,16 @@
  */
 #include "platform.h"
 
-#include "gopherwood.h"
 #include "Exception.h"
 #include "ExceptionInternal.h"
-#include "FileSystem.h"
-#include "InputStream.h"
-#include "OutputStream.h"
 #include "Logger.h"
 #include "Memory.h"
 #include "XmlConfig.h"
 
-#include <cstdio>
-#include <cstdint>
+#include "file/FileSystem1.h"
+#include "gopherwood.h"
+#include "../client/InputStream.h"
+#include "../client/OutputStream.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,15 +40,14 @@ using Gopherwood::exception_ptr;
 using Gopherwood::Internal::shared_ptr;
 using Gopherwood::InputStream;
 using Gopherwood::OutputStream;
-using Gopherwood::FileSystem;
 using Gopherwood::Config;
-using Gopherwood::Internal::Logger;
+using Gopherwood::Internal::FileSystem1;
 using Gopherwood::Internal::SetErrorMessage;
 using Gopherwood::Internal::SetLastException;
 
 struct GWFileSystemInternalWrapper {
 public:
-    GWFileSystemInternalWrapper(FileSystem *fs) :
+    GWFileSystemInternalWrapper(FileSystem1 *fs) :
             filesystem(fs) {
     }
 
@@ -58,12 +55,12 @@ public:
         delete filesystem;
     }
 
-    FileSystem &getFilesystem() {
+    FileSystem1 &getFilesystem() {
         return *filesystem;
     }
 
 private:
-    FileSystem *filesystem;
+    FileSystem1 *filesystem;
 };
 
 struct GWFileInternalWrapper {

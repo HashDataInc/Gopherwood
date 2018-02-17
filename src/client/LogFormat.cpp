@@ -19,8 +19,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "../client/LogFormat.h"
+
 #include <iostream>
-#include "LogFormat.h"
 #include "Logger.h"
 #include <unistd.h>
 #include <string.h>

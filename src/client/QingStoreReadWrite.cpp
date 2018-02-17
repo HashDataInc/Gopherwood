@@ -19,10 +19,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "QingStoreReadWrite.h"
+#include "../client/QingStoreReadWrite.h"
+
+#include "../client/FSConfig.h"
 #include "Logger.h"
 #include "../common/Logger.h"
-#include "FSConfig.h"
 
 using namespace std;
 namespace Gopherwood {

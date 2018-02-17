@@ -27,9 +27,9 @@
 #include <unordered_map>
 #include <cstdio>
 
-#include "FileStatus.h"
-#include "FileSystemInter.h"
-#include "FileSystemImpl.h"
+#include "../client/FileStatus.h"
+#include "../client/FileSystemImpl.h"
+#include "../client/FileSystemInter.h"
 
 namespace Gopherwood {
 namespace Internal {

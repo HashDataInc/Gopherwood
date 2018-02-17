@@ -19,25 +19,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_CORE_OUTPUTSTREAMIMPL_H_
-#define _GOPHERWOOD_CORE_OUTPUTSTREAMIMPL_H_
+#ifndef _GOPHERWOOD_CORE_OUTPUTSTREAMINTER_H_
+#define _GOPHERWOOD_CORE_OUTPUTSTREAMINTER_H_
 
-#include <iostream>
-#include <memory>
-#include "OutputStreamInter.h"
-#include "Exception.h"
-#include "OutputStream.h"
-#include "Logger.h"
+#include "../client/FileSystemInter.h"
+#include "../client/OutputStream.h"
 
 namespace Gopherwood {
 namespace Internal {
-class OutputStreamImpl: public OutputStreamInter {
 
+/**
+ * A output stream used to write data to hdfs.
+ */
+class OutputStreamInter {
 public:
-
-    OutputStreamImpl(std::shared_ptr<FileSystemInter> fs, char *fileName, int flag);
-
-    ~OutputStreamImpl();
+    virtual ~OutputStreamInter() {
+    }
 
     /**
      * To create or append a file.
@@ -45,69 +42,51 @@ public:
      * @param fileName the file name.
      * @param flag creation flag, can be Create, Append or Create|Overwrite.
      */
-//            void open(std::shared_ptr<FileSystemInter> fs, char *fileName, int flag);
+//            virtual void open(std::shared_ptr<FileSystemInter> fs,  char *fileName, int flag);
     /**
      * To write data to file.
      * @param buf the data used to write.
      * @param size the data size.
      */
-    void write(const char *buf, int64_t size);
+    virtual void write(const char *buf, int64_t size)=0;
 
     /**
      * Flush all data in buffer and waiting for ack.
      * Will block until get all acks.
      */
-    void flush();
+    virtual void flush()=0;
 
     /**
      * return the current file length.
      * @return current file length.
      */
-    int64_t tell();
+    virtual int64_t tell()=0;
 
     /**
      * the same as flush right now.
      */
-    void sync();
+    virtual void sync()=0;
 
     /**
      * close the stream.
      */
-    void close();
+    virtual void close()=0;
 
-    string toString();
+    /**
+     * To move the file point to the given position.
+     * @param pos the given position.
+     */
+    virtual void seek(int64_t pos)=0;
 
-    void setError(const exception_ptr &error);
+    virtual string toString()=0;
 
-    void seek(int64_t pos);
+    virtual void setError(const exception_ptr &error) = 0;
 
-    void deleteFileBucket(int64_t pos);
+    virtual void deleteFile()=0;
 
-    void deleteFile();
-
-private:
-    std::shared_ptr<FileSystemInter> filesystem;
-    int32_t cursorBucketID = 0; // the cursor bucket id of the output stream
-    int32_t cursorIndex = 0; //the index of the cursorBucketID. status->getBlockIdVector()[cursorIndex] = cursorBucketID
-    int64_t cursorOffset = 0; // the cursor offset of the output stream
-    string fileName;
-    std::shared_ptr<FileStatus> status;
-
-private:
-//            void createFile(char *fileName);
-
-    void checkStatus(int64_t pos);
-
-    void seekInternal(int64_t pos);
-
-    void writeInternal(char *buf, int64_t size);
-
-    int64_t getRemainLength();
-
-    void seekToNextBlock();
 };
 
 }
 }
 
-#endif //_GOPHERWOOD_CORE_OUTPUTSTREAMIMPL_H_
+#endif //_GOPHERWOOD_CORE_OUTPUTSTREAMINTER_H_

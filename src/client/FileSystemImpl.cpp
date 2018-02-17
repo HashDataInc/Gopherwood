@@ -19,10 +19,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "../client/FileSystemImpl.h"
+
 #include <sstream>
 #include <sys/file.h>
 
-#include "FileSystemImpl.h"
 #include "util/Coding.h"
 
 namespace Gopherwood {

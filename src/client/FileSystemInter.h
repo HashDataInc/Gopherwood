@@ -27,7 +27,8 @@
 #include <thread>
 #include <unordered_map>
 #include <memory>
-#include "FileStatus.h"
+
+#include "../client/FileStatus.h"
 
 namespace Gopherwood {
 

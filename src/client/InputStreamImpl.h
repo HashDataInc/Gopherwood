@@ -19,28 +19,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_CORE_INPUTSTREAM_H_
-#define _GOPHERWOOD_CORE_INPUTSTREAM_H_
+#ifndef _GOPHERWOOD_CORE_INPUTSTREAMIMPL_H_
+#define _GOPHERWOOD_CORE_INPUTSTREAMIMPL_H_
 
-#include "FileSystem.h"
-#include "FileSystemImpl.h"
-#include "FileSystemInter.h"
-#include "InputStreamImpl.h"
-#include "../common/ExceptionInternal.h"
+#include <iostream>
+#include <cstring>
+
+#include "../client/FileStatus.h"
+#include "../client/FileSystem.h"
+#include "../client/FileSystemInter.h"
+#include "../client/InputStreamInter.h"
+#include "Logger.h"
 
 namespace Gopherwood {
+
 namespace Internal {
-class InputStreamInter;
-}
 
-/**
- * A input stream used read data from gopherwood.
- */
-class InputStream {
+class InputStreamImpl: public InputStreamInter {
 public:
-    InputStream(FileSystem &fs, const char *fileName, bool verifyChecksum = true);
 
-    ~InputStream();
+    InputStreamImpl(std::shared_ptr<FileSystemInter> fs, const char *fileName, bool verifyChecksum);
+
+    ~InputStreamImpl();
 
     /**
      * Open a file to read
@@ -48,7 +48,7 @@ public:
      * @param fileName the name of the file to be read.
      * @param verifyChecksum verify the checksum.
      */
-//        void open(FileSystem &fs, const char *fileName, bool verifyChecksum = true);
+//            void open(std::shared_ptr<FileSystemInter> fs, const char *fileName, bool verifyChecksum);
     /**
      * To read data from gopherwood.
      * @param buf the buffer used to filled.
@@ -87,12 +87,40 @@ public:
      */
     void close();
 
+    /**
+     * Output a readable string of this input stream.
+     */
+    string toString();
+
+    void deleteFileBucket(int64_t pos);
+
     void deleteFile();
 
 private:
-    Internal::InputStreamInter *impl;
+    std::shared_ptr<FileSystemInter> filesystem;
+    int32_t cursorBucketID; // the cursor bucket id of the output stream
+    int32_t cursorIndex; //the index of the cursorBucketID. status->getBlockIdVector()[cursorIndex] = cursorBucketID
+
+    int64_t cursorOffset; // the cursor offset of the output stream
+    string fileName;
+
+    //TODO save the particular FileStatus for the fileName, is this right or not?
+    std::shared_ptr<FileStatus> status;
+
+private:
+    void checkStatus(int64_t pos);
+
+    void seekInternal(int64_t pos);
+
+    int32_t readInternal(char *buf, int32_t size);
+
+    int64_t getRemainLength();
+
+    void seekToNextBlock();
 };
 
 }
 
-#endif /* _GOPHERWOOD_CORE_INPUTSTREAM_H_ */
+}
+
+#endif //_GOPHERWOOD_CORE_INPUTSTREAMIMPL_H_

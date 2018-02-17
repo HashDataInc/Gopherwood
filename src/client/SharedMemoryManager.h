@@ -46,9 +46,9 @@
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
+#include "../client/FSConfig.h"
+#include "../client/LogFormat.h"
 #include "Logger.h"
-#include "FSConfig.h"
-#include "LogFormat.h"
 
 namespace Gopherwood {
 namespace Internal {

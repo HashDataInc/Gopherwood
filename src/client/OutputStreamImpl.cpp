@@ -19,7 +19,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "OutputStreamImpl.h"
+#include "../client/OutputStreamImpl.h"
+
 #include "../common/Logger.h"
 
 namespace Gopherwood {

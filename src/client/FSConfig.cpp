@@ -19,8 +19,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "FSConfig.h"
-#include "SharedMemoryManager.h"
+#include "../client/FSConfig.h"
+
+#include "../client/SharedMemoryManager.h"
 
 namespace Gopherwood {
 

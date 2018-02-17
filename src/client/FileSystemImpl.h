@@ -30,13 +30,13 @@
 #include <sys/shm.h>
 #include <iostream>
 
-#include "FileSystemInter.h"
-#include "FileStatus.h"
-#include "FSConfig.h"
+#include "../client/FileStatus.h"
+#include "../client/FileSystemInter.h"
+#include "../client/FSConfig.h"
+#include "../client/QingStoreReadWrite.h"
+#include "../client/SharedMemoryManager.h"
 #include "Exception.h"
 #include "Logger.h"
-#include "SharedMemoryManager.h"
-#include "QingStoreReadWrite.h"
 
 namespace Gopherwood {
 namespace Internal {

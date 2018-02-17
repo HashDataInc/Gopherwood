@@ -22,8 +22,8 @@
 #ifndef _GOPHERWOOD_CORE_OUTPUTSTREAM_H_
 #define _GOPHERWOOD_CORE_OUTPUTSTREAM_H_
 
-#include "FileSystem.h"
-#include "OutputStreamImpl.h"
+#include "../client/FileSystem.h"
+#include "../client/OutputStreamImpl.h"
 #include "Exception.h"
 #include "ExceptionInternal.h"
 namespace Gopherwood {
