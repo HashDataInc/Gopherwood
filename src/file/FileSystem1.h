@@ -24,6 +24,10 @@
 
 #include "platform.h"
 
+#include "Memory.h"
+#include "core/SharedMemoryManager1.h"
+#include "core/SharedMemoryContext.h"
+
 namespace Gopherwood {
 namespace Internal {
 
@@ -34,7 +38,8 @@ public:
     ~FileSystem1();
 
 private:
-    const char* mWorkDir;
+    const char* workDir;
+    shared_ptr<SharedMemoryContext> curSharedMemoryContext;
 };
 
 }

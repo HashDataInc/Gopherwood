@@ -19,18 +19,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "FileSystem1.h"
+#ifndef _GOPHERWOOD_CORE_SHAREDMEMORYCONTEXT_H_
+#define _GOPHERWOOD_CORE_SHAREDMEMORYCONTEXT_H_
+
+#include "platform.h"
+
+#include "Memory.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-FileSystem1::FileSystem1(const char *workDir) :
-        workDir(workDir) {
-    curSharedMemoryContext = SharedMemoryManager1::getInstance()->buildSharedMemoryContext(workDir);
+class SharedMemoryContext {
+public:
+
+private:
+
+};
+
+}
 }
 
-FileSystem1::~FileSystem1() {
-}
-
-}
-}
+#endif //_GOPHERWOOD_CORE_SHAREDMEMORYCONTEXT_H_
