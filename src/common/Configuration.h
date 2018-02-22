@@ -23,10 +23,18 @@
 #ifndef _GOPHERWOOD_COMMON_CONFIGURATION_H_
 #define _GOPHERWOOD_COMMON_CONFIGURATION_H_
 
+#include <string>
+
 namespace Gopherwood {
 namespace Internal {
+
 class Configuration {
+public:
+    static std::string SHARED_MEMORY_NAME;
+    static int NUMBER_OF_BLOCKS;
 };
+
+
 }
 }
 

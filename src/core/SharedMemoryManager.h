@@ -27,6 +27,12 @@
 #include "common/Memory.h"
 #include "SharedMemoryContext.h"
 
+#include <boost/interprocess/shared_memory_object.hpp>
+#include <boost/interprocess/exceptions.hpp>
+#include <boost/interprocess/mapped_region.hpp>
+
+using namespace boost::interprocess;
+
 namespace Gopherwood {
 namespace Internal {
 
@@ -41,6 +47,10 @@ public:
     shared_ptr<SharedMemoryContext> buildSharedMemoryContext(const char* workDir);
 
 private:
+    shared_ptr<shared_memory_object> createSharedMemory(const char* name);
+
+    void rebuildShmFromManifest(shared_ptr<SharedMemoryContext> ctx);
+
     static shared_ptr<SharedMemoryManager> instance;
 };
 

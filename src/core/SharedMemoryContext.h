@@ -23,19 +23,32 @@
 #define _GOPHERWOOD_CORE_SHAREDMEMORYCONTEXT_H_
 
 #include "platform.h"
+#include "common/Memory.h"
 
-#include "Memory.h"
+#include <boost/interprocess/mapped_region.hpp>
+
+using namespace boost::interprocess;
 
 namespace Gopherwood {
 namespace Internal {
 
+typedef struct shmBucket {
+    char type;
+    char isKick;
+    int32_t blockIndex;
+    char fileName[256];
+} shmBucket;
+
 class SharedMemoryContext {
 public:
-    SharedMemoryContext(const char *workDir);
+    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region);
+
+    void reset();
 
     ~SharedMemoryContext();
 private:
-    const char * workDir;
+    std::string workDir;
+    shared_ptr<mapped_region> mapped_shm;
 };
 
 }
