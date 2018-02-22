@@ -19,49 +19,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "../client/InputStream.h"
+#ifndef _GOPHERWOOD_FILE_OUTPUTSTREAM_H_
+#define _GOPHERWOOD_FILE_OUTPUTSTREAM_H_
 
-using namespace Gopherwood::Internal;
+#include "platform.h"
+
+#include "common/Memory.h"
 
 namespace Gopherwood {
+namespace Internal {
+class OutputStream {
+public:
+    OutputStream();
 
-InputStream::InputStream(FileSystem &fs, const char *fileName, bool verifyChecksum) {
+    ~OutputStream();
+private:
+};
 
-    if (!fs.impl) {
-        THROW(GopherwoodIOException, "FileSystem: not connected.");
-    }
-
-    impl = new Internal::InputStreamImpl(fs.impl->filesystem, fileName, verifyChecksum);
-
-}
-
-InputStream::~InputStream() {
-    delete impl;
-}
-
-int32_t InputStream::read(char *buf, int32_t size) {
-    return impl->read(buf, size);
-}
-
-//    void InputStream::open(FileSystem &fs, const char *fileName, bool verifyChecksum = true){
-//        if (!fs.impl) {
-//            THROW(GopherwoodException, "FileSystem: not connected.");
-//        }
-//
-//        impl->open(fs.impl->filesystem, fileName, verifyChecksum);
-//
-//    }
-
-void InputStream::seek(int64_t pos) {
-    impl->seek(pos);
-}
-
-void InputStream::close() {
-    impl->close();
-}
-
-void InputStream::deleteFile() {
-    impl->deleteFile();
 }
 }
 
+#endif //_GOPHERWOOD_FILE_OUTPUTSTREAM_H_

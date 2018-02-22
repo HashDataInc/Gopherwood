@@ -19,32 +19,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_CORE_SHAREDMEMORYMANAGER1_H_
-#define _GOPHERWOOD_CORE_SHAREDMEMORYMANAGER1_H_
+#ifndef _GOPHERWOOD_CORE_SHAREDMEMORYMANAGER_H_
+#define _GOPHERWOOD_CORE_SHAREDMEMORYMANAGER_H_
 
 #include "platform.h"
 
-#include "Memory.h"
+#include "common/Memory.h"
 #include "SharedMemoryContext.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-class SharedMemoryManager1 {
+class SharedMemoryManager {
 public:
-    static shared_ptr<SharedMemoryManager1> getInstance(){
+    static shared_ptr<SharedMemoryManager> getInstance() {
         if (!instance)
-            instance = shared_ptr<SharedMemoryManager1>(new SharedMemoryManager1());
+            instance = shared_ptr < SharedMemoryManager > (new SharedMemoryManager());
         return instance;
     }
 
     shared_ptr<SharedMemoryContext> buildSharedMemoryContext(const char* workDir);
 
 private:
-    static shared_ptr<SharedMemoryManager1> instance;
+    static shared_ptr<SharedMemoryManager> instance;
 };
 
 }
 }
 
-#endif //_GOPHERWOOD_CORE_SHAREDMEMORYMANAGER1_H_
+#endif //_GOPHERWOOD_CORE_SHAREDMEMORYMANAGER_H_

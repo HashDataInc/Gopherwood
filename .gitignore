@@ -10,3 +10,5 @@ obj-x86_64-linux-gnu/
 test/data/unittest.xml
 test/data/functiontest.xml
 test/data/securetest.xml
+/cmake-build-debug/
+/eric.sh

@@ -19,11 +19,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "../client/FileStatus.h"
+#ifndef _GOPHERWOOD_FILE_INPUTSTREAM_H_
+#define _GOPHERWOOD_FILE_INPUTSTREAM_H_
+
+#include "platform.h"
+
+#include "common/Memory.h"
 
 namespace Gopherwood {
 namespace Internal {
+class InputStream {
+public:
+    InputStream();
+
+    ~InputStream();
+private:
+};
 
 }
-
 }
+
+#endif //_GOPHERWOOD_FILE_INPUTSTREAM_H_

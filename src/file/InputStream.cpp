@@ -19,17 +19,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "FileSystem1.h"
+#include "file/InputStream.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-FileSystem1::FileSystem1(const char *workDir) :
-        workDir(workDir) {
-    curSharedMemoryContext = SharedMemoryManager1::getInstance()->buildSharedMemoryContext(workDir);
-}
+InputStream::InputStream() {
 
-FileSystem1::~FileSystem1() {
 }
 
 }

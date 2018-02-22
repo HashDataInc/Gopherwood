@@ -19,39 +19,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "../client/OutputStream.h"
-
-using namespace Gopherwood::Internal;
+#include "SharedMemoryManager.h"
 
 namespace Gopherwood {
+namespace Internal {
 
-OutputStream::OutputStream(FileSystem &fs, char *fileName, int flag) {
+shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(const char* workDir) {
+    shared_ptr<SharedMemoryContext> ctx = shared_ptr < SharedMemoryContext
+            > (new SharedMemoryContext(workDir));
 
-    if (!fs.impl) {
-        THROW(GopherwoodIOException, "FileSystem: not connected.");
-    }
-
-    this->impl = new Internal::OutputStreamImpl(fs.impl->filesystem, fileName, flag);
+    return ctx;
 }
 
-OutputStream::~OutputStream() {
-    delete impl;
 }
-
-void OutputStream::seek(int64_t pos) {
-    impl->seek(pos);
-}
-
-void OutputStream::write(const char *buf, int64_t size) {
-    impl->write(buf, size);
-}
-
-void OutputStream::close() {
-    impl->close();
-}
-
-void OutputStream::deleteFile() {
-    impl->deleteFile();
-}
-
 }

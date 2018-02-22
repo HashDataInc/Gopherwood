@@ -19,22 +19,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef GOPHERWOOD_LOGMANAGER_H
-#define GOPHERWOOD_LOGMANAGER_H
-
-#endif //GOPHERWOOD_LOGMANAGER_H
+#include "file/OutputStream.h"
 
 namespace Gopherwood {
-
 namespace Internal {
-class LogManager {
-public:
-    LogManager() {
 
-    }
-    ~ LogManager() {
+OutputStream::OutputStream() {
 
-    }
-};
+}
+
 }
 }
