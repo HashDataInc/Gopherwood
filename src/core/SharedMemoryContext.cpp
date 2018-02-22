@@ -19,26 +19,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_CORE_SHAREDMEMORYCONTEXT_H_
-#define _GOPHERWOOD_CORE_SHAREDMEMORYCONTEXT_H_
-
-#include "platform.h"
-
-#include "Memory.h"
+#include "SharedMemoryContext.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-class SharedMemoryContext {
-public:
-    SharedMemoryContext(const char *workDir);
+SharedMemoryContext::SharedMemoryContext(const char *workDir) :
+        workDir(workDir) {
 
-    ~SharedMemoryContext();
-private:
-    const char * workDir;
-};
+}
 
 }
 }
-
-#endif //_GOPHERWOOD_CORE_SHAREDMEMORYCONTEXT_H_

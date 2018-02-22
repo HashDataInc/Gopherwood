@@ -24,6 +24,13 @@
 namespace Gopherwood {
 namespace Internal {
 
+shared_ptr<SharedMemoryContext>
+SharedMemoryManager1::buildSharedMemoryContext(const char* workDir)
+{
+    shared_ptr<SharedMemoryContext> ctx = shared_ptr<SharedMemoryContext>(new SharedMemoryContext(workDir));
+
+    return ctx;
+}
 
 }
 }
