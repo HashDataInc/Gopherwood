@@ -24,7 +24,8 @@
 namespace Gopherwood {
 namespace Internal {
 
-File::File(std::string &fileName, int flags, shared_ptr<ActiveStatus> status){
+File::File(FileId id, std::string fileName, int flags, shared_ptr<ActiveStatus> status) :
+        id(id), name(fileName), flags(flags), status(status) {
 }
 
 File::~File() {

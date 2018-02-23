@@ -32,11 +32,15 @@ namespace Internal {
 
 class File {
 public:
-    File(std::string &fileName, int flags, shared_ptr<ActiveStatus> status);
+    File(FileId id, std::string fileName, int flags, shared_ptr<ActiveStatus> status);
 
     ~File();
 
 private:
+    FileId id;
+    std::string name;
+    int flags;
+    shared_ptr<ActiveStatus> status;
 };
 
 }

@@ -56,8 +56,8 @@ File* FileSystem::CreateFile(const char *fileName, int flags)
     fileId = makeFileId(std::string(fileName));
     status = activeStatusContext->initFileActiveStatus(fileId);
 
-    std::string str_fileName(fileName);
-    return new File(str_fileName, flags, status);
+    std::string name(fileName);
+    return new File(fileId, name, flags, status);
 }
 
 File* FileSystem::OpenFile(const char *fileName, int flags)

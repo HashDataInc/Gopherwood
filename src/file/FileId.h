@@ -25,14 +25,24 @@
 #include "platform.h"
 
 #include "common/Unordered.h"
+#include <sstream>
 
 namespace Gopherwood {
 namespace Internal {
 
-typedef struct {
+struct FileId {
+
     size_t hashcode;
     unsigned int collisionId;
-} FileId;
+
+    std::string toString()
+    {
+        std::stringstream ss;
+        ss << hashcode << collisionId;
+        std::string res = ss.str();
+        return res;
+    }
+};
 
 
 }

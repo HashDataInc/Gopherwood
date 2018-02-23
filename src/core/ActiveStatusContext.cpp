@@ -29,13 +29,19 @@ ActiveStatusContext::ActiveStatusContext() {
 
 shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId)
 {
-
+    unordered_map<std::string, shared_ptr<ActiveStatus>>::iterator item =
+            activeStatusMap.find(fileId.toString());
+    if (item != activeStatusMap.end())
+    {
+        return item->second;
+    }
     return NULL;
 }
 
 shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId)
 {
     shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId));
+    activeStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;
 }
 
