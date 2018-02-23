@@ -19,42 +19,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_CORE_FILESYSTEM_H_
-#define _GOPHERWOOD_CORE_FILESYSTEM_H_
-
-#include "platform.h"
-
-#include "common/Memory.h"
-#include "common/Unordered.h"
-#include "core/ActiveStatusContext.h"
-#include "core/SharedMemoryManager.h"
-#include "core/SharedMemoryContext.h"
-#include "file/File.h"
+#include "File.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-class FileSystem {
-public:
-    FileSystem(const char *workDir);
+File::File(std::string &fileName, int flags, shared_ptr<ActiveStatus> status){
+}
 
-    File* CreateFile(const char *fileName, int flags);
-
-    File* OpenFile(const char *fileName, int flags);
-
-    ~FileSystem();
-
-private:
-    FileId makeFileId(const std::string filePath);
-
-    const char* workDir;
-
-    shared_ptr<SharedMemoryContext> sharedMemoryContext;
-
-    shared_ptr<ActiveStatusContext> activeStatusContext;
-};
+File::~File() {
+}
 
 }
 }
-
-#endif //_GOPHERWOOD_CORE_FILESYSTEM_H_

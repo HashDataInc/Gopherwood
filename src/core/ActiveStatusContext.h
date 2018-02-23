@@ -19,42 +19,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_CORE_FILESYSTEM_H_
-#define _GOPHERWOOD_CORE_FILESYSTEM_H_
+#ifndef _GOPHERWOOD_CORE_ACTIVESTATUSCONTEXT_H_
+#define _GOPHERWOOD_CORE_ACTIVESTATUSCONTEXT_H_
 
 #include "platform.h"
 
+#include "file/FileId.h"
+#include "core/ActiveStatus.h"
 #include "common/Memory.h"
 #include "common/Unordered.h"
-#include "core/ActiveStatusContext.h"
-#include "core/SharedMemoryManager.h"
-#include "core/SharedMemoryContext.h"
-#include "file/File.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-class FileSystem {
+class ActiveStatusContext {
 public:
-    FileSystem(const char *workDir);
+    ActiveStatusContext();
 
-    File* CreateFile(const char *fileName, int flags);
+    shared_ptr<ActiveStatus> getFileActiveStatus(FileId fileId);
 
-    File* OpenFile(const char *fileName, int flags);
+    shared_ptr<ActiveStatus> initFileActiveStatus(FileId fileId);
 
-    ~FileSystem();
-
+    ~ActiveStatusContext();
 private:
-    FileId makeFileId(const std::string filePath);
-
-    const char* workDir;
-
-    shared_ptr<SharedMemoryContext> sharedMemoryContext;
-
-    shared_ptr<ActiveStatusContext> activeStatusContext;
+    unordered_map<std::string, shared_ptr<ActiveStatus>> activeStatusMap;
 };
 
+
 }
 }
 
-#endif //_GOPHERWOOD_CORE_FILESYSTEM_H_
+
+#endif //_GOPHERWOOD_CORE_ACTIVESTATUSCONTEXT_H_

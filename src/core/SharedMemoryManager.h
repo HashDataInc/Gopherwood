@@ -42,7 +42,7 @@ public:
         if (!instance)
             instance = shared_ptr < SharedMemoryManager > (new SharedMemoryManager());
         return instance;
-    }
+    };
 
     shared_ptr<SharedMemoryContext> buildSharedMemoryContext(const char* workDir);
 

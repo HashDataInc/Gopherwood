@@ -20,16 +20,53 @@
  * limitations under the License.
  */
 #include "FileSystem.h"
+#include "common/hash.h"
+#include "core/ActiveStatus.h"
 
 namespace Gopherwood {
 namespace Internal {
 
 FileSystem::FileSystem(const char *workDir) :
         workDir(workDir) {
-    curSharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir);
+
+    sharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir);
+    activeStatusContext = shared_ptr<ActiveStatusContext>(new ActiveStatusContext());
+}
+
+FileId FileSystem::makeFileId(const std::string filePath)
+{
+    FileId id;
+
+    /* hash the path to size_t */
+    id.hashcode = StringHasher(filePath);
+
+    /* if the hashcode collates with other files,
+     * assign an identical collision id
+     * TODO: Not implemented, need to check existing files */
+    id.collisionId = 0;
+
+    return id;
+}
+
+File* FileSystem::CreateFile(const char *fileName, int flags)
+{
+    FileId fileId;
+    shared_ptr<ActiveStatus> status;
+
+    fileId = makeFileId(std::string(fileName));
+    status = activeStatusContext->initFileActiveStatus(fileId);
+
+    std::string str_fileName(fileName);
+    return new File(str_fileName, flags, status);
+}
+
+File* FileSystem::OpenFile(const char *fileName, int flags)
+{
+    return NULL;
 }
 
 FileSystem::~FileSystem() {
+
 }
 
 }

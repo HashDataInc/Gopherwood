@@ -33,13 +33,23 @@ extern "C" {
 /*******************************************
  * All APIs set errno to meaningful values *
  *******************************************/
+#ifndef EINTERNAL
+#define EINTERNAL 255
+#endif
 
-/**
+/* error number mapping */
+#define EGOPHERWOOD     100     //GopherException
+#define ESYNC           101     //
+
+/*******************************************
  * AccessFileType - the access file's type
- */
-typedef enum AccessFileType {
-    sequenceType = 0, randomType = 1, hintRandomType = 2, hintSequenceType = 3,
-} AccessFileType;
+ *******************************************/
+#define	GW_RDONLY	0x0000		/* open for reading only */
+#define	GW_WRONLY	0x0001		/* open for writing only */
+#define	GW_RDWR		0x0002		/* open for reading and writing */
+#define	GW_CREAT	0x0004		/* create if nonexistant */
+
+#define GW_SEQ      0x0010      /* read or write in sequence mode */
 
 typedef int32_t tSize; /// size of data for read/write io ops
 typedef int64_t tOffset; /// offset within the file

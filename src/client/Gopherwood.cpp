@@ -39,6 +39,7 @@ using Gopherwood::exception_ptr;
 using Gopherwood::Internal::InputStream;
 using Gopherwood::Internal::OutputStream;
 using Gopherwood::Internal::shared_ptr;
+using Gopherwood::Internal::File;
 using Gopherwood::Internal::FileSystem;
 using Gopherwood::Internal::SetErrorMessage;
 using Gopherwood::Internal::SetLastException;
@@ -46,128 +47,108 @@ using Gopherwood::Internal::SetLastException;
 struct GWFileSystemInternalWrapper {
 public:
     GWFileSystemInternalWrapper(FileSystem *fs) :
-            filesystem(fs) {
+            __filesystem(fs) {
     }
 
     ~GWFileSystemInternalWrapper() {
-        delete filesystem;
+        delete __filesystem;
     }
 
     FileSystem &getFilesystem() {
-        return *filesystem;
+        return *__filesystem;
     }
 
 private:
-    FileSystem *filesystem;
+    FileSystem *__filesystem;
 };
 
 struct GWFileInternalWrapper {
 public:
-    GWFileInternalWrapper() :
-            input(true), inputAndOutput(false), inputStream(NULL), outputStream(NULL) {
+    GWFileInternalWrapper(File *file) :
+            __file(file) {
     }
 
     ~GWFileInternalWrapper() {
-        if (input) {
-            delete static_cast<InputStream *>(inputStream);
-        } else if (inputAndOutput) {
-            delete static_cast<OutputStream *>(outputStream);
-            delete static_cast<InputStream *>(inputStream);
-        } else {
-            delete static_cast<OutputStream *>(outputStream);
-        }
+        delete __file;
     }
 
-    InputStream &getInputStream() {
-        if (!input && !inputAndOutput) {
-            THROW(Gopherwood::GopherwoodException, "Internal error: file was not opened for read.");
-        }
-
-        if (!inputStream) {
-            THROW(Gopherwood::GopherwoodIOException, "Inputstream. File is not opened.");
-        }
-
-        return *static_cast<InputStream *>(inputStream);
-    }
-
-    OutputStream &getOutputStream() {
-        if (!output && !inputAndOutput) {
-            THROW(Gopherwood::GopherwoodException, "Internal error: file was not opened for write.");
-        }
-
-        if (!outputStream) {
-            THROW(Gopherwood::GopherwoodIOException, "OutputStream. File is not opened.");
-        }
-
-        return *static_cast<OutputStream *>(outputStream);
-    }
-
-    bool isInput() const {
-        return input;
-    }
-
-    bool isOutput() const {
-        return output;
-    }
-
-    bool isInputAndOutput() const {
-        return inputAndOutput;
-    }
-
-    void setInput(bool input) {
-        this->input = input;
-        this->output = !input;
-        this->inputAndOutput = !input;
-    }
-
-    void setOutput(bool output) {
-        this->output = output;
-        this->input = !output;
-        this->inputAndOutput = !output;
-    }
-
-    void setInputAndOutput(bool inputAndOutput) {
-        this->inputAndOutput = inputAndOutput;
-        this->input = !inputAndOutput;
-        this->output = !inputAndOutput;
-    }
-
-    void setInputStream(void *stream) {
-        this->inputStream = stream;
-    }
-
-    void setOutputStream(void *stream) {
-        this->outputStream = stream;
+    File &getFile() {
+        return *__file;
     }
 
 private:
-    bool input;
-    bool output;
-    bool inputAndOutput;
-    void *inputStream;
-    void *outputStream;
-
+    File *__file;
 };
+
+static void handleException(Gopherwood::exception_ptr error) {
+    try {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Handle Exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+
+        Gopherwood::rethrow_exception(error);
+    } catch (const Gopherwood::GopherwoodSyncException &) {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Handle Gopherwood Sync Exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+        errno = ESYNC;
+    } catch (const Gopherwood::GopherwoodException &) {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Handle Gopherwood exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+        errno = EGOPHERWOOD;
+    } catch (const std::exception &) {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Unexpected exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+        errno = EINTERNAL;
+    }
+}
 
 gopherwoodFS gwCreateContext(char *fileName) {
     gopherwoodFS retVal = NULL;
-
-    FileSystem *fs = NULL;
-
-    fs = new FileSystem(fileName);
-
-    retVal = new GWFileSystemInternalWrapper(fs);
-
+    try {
+        FileSystem *fs = new FileSystem(fileName);
+        retVal = new GWFileSystemInternalWrapper(fs);
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
     return retVal;
 }
 
-//TODO
-tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length) {
-    return 0;
+gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
+    gwFile retVal = NULL;
+    File* file;
+
+    try {
+        if (flags & GW_CREAT)
+        {
+            file = fs->getFilesystem().CreateFile(fileName, flags);
+        }
+        else
+        {
+            file = fs->getFilesystem().OpenFile(fileName, flags);
+        }
+
+        retVal = new GWFileInternalWrapper(file);
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+    return retVal;
 }
 
-gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
-    return NULL;
+tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length) {
+    return 0;
 }
 
 int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos) {
