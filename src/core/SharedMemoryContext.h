@@ -41,7 +41,8 @@ typedef struct shmBucket {
 
 class SharedMemoryContext {
 public:
-    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region);
+    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region,
+            shared_ptr<named_semaphore> semaphore);
 
     void reset();
 
@@ -49,6 +50,7 @@ public:
 private:
     std::string workDir;
     shared_ptr<mapped_region> mapped_shm;
+    shared_ptr<named_semaphore> semaphore;
 };
 
 }

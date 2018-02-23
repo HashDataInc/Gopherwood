@@ -25,13 +25,13 @@
 #include "platform.h"
 
 #include "common/Memory.h"
-#include "SharedMemoryContext.h"
+#include "core/SharedMemoryContext.h"
 
-#include <boost/interprocess/shared_memory_object.hpp>
+#include <boost/interprocess/creation_tags.hpp>
 #include <boost/interprocess/exceptions.hpp>
 #include <boost/interprocess/mapped_region.hpp>
-
-using namespace boost::interprocess;
+#include <boost/interprocess/shared_memory_object.hpp>
+#include <boost/interprocess/sync/named_semaphore.hpp>
 
 namespace Gopherwood {
 namespace Internal {
@@ -48,6 +48,10 @@ public:
 
 private:
     shared_ptr<shared_memory_object> createSharedMemory(const char* name);
+
+    shared_ptr<shared_memory_object> openSharedMemory(const char* name, bool* exist);
+
+    shared_ptr<named_semaphore> openSemaphore(const char* name);
 
     void rebuildShmFromManifest(shared_ptr<SharedMemoryContext> ctx);
 

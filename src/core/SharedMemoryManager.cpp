@@ -19,59 +19,108 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
 #include "common/Configuration.h"
 #include "common/Logger.h"
 #include "core/SharedMemoryManager.h"
 
+using namespace boost::interprocess;
+
 namespace Gopherwood {
 namespace Internal {
 
+/**
+ * buildSharedMemoryContext - build shared memory context
+ * This is a GopherWood instance for communication with other instances.
+ * @param   workDir The working directory of current instance.
+ */
 shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(const char* workDir) {
-    bool createNewShm = false;
-    shared_ptr<shared_memory_object> shm;
+    bool shmExist = true;
     shared_ptr<SharedMemoryContext> ctx;
+    shared_ptr < shared_memory_object > shm;
+    shared_ptr < named_semaphore > semaphore;
 
     /* try to open the shared memory */
-    try
-    {
-        shm = shared_ptr<shared_memory_object>(
-                new shared_memory_object(open_only, Configuration::SHARED_MEMORY_NAME.c_str(), read_only));
-    }
-    catch (const interprocess_exception & e){
-        LOG(WARNING, "Got exception when opening the Shared Memory, error message: %s", e.what());
-        createNewShm = true;
-    }
+    shm = openSharedMemory(Configuration::SHARED_MEMORY_NAME.c_str(), &shmExist);
 
     /* create the Shared Memory if not exists */
-    if (createNewShm)
-    {
+    if (!shmExist) {
         /* create Shared Memory */
         shm = createSharedMemory(Configuration::SHARED_MEMORY_NAME.c_str());
         /* set Shared Memory size */
         shm->truncate(1 + Configuration::NUMBER_OF_BLOCKS * sizeof(shmBucket));
     }
 
-    /* map the Shared Memory to this process */
-    shared_ptr<mapped_region> region(new mapped_region(*shm, read_write));
+    /* map the Shared Memory for this context */
+    shared_ptr < mapped_region > region(new mapped_region(*shm, read_write));
 
-    ctx = shared_ptr <SharedMemoryContext> (new SharedMemoryContext(workDir, region));
+    /* open/create semaphore for this context */
+    semaphore = openSemaphore("semaphore");
+
+    ctx = shared_ptr < SharedMemoryContext > (new SharedMemoryContext(workDir, region, semaphore));
 
     /* TODO: Rebuild Shared Memory status from existing manifest logs */
-    if (createNewShm)
-    {
+    if (!shmExist) {
         rebuildShmFromManifest(ctx);
     }
 
     return ctx;
 }
 
-shared_ptr<shared_memory_object> SharedMemoryManager::createSharedMemory(const char* name)
-{
-    return shared_ptr<shared_memory_object>(new shared_memory_object(create_only, name, read_write));
+shared_ptr<shared_memory_object> SharedMemoryManager::createSharedMemory(const char* name) {
+    shared_ptr < shared_memory_object > res;
+    try {
+        res = shared_ptr < shared_memory_object
+                > (new shared_memory_object(create_only, name, read_write));
+    } catch (const interprocess_exception & e) {
+        LOG(
+                WARNING,
+                "Got exception when open/create the Shared Memory, error message: %s",
+                e.what());
+        THROW(
+                GopherwoodSyncException,
+                "[SharedMemoryManager::createSharedMemory] Got error when create Shared Memory, error code %d"
+                        ", error message %s",
+                e.get_error_code(),
+                e.what());
+    }
+    return res;
 }
 
-void SharedMemoryManager::rebuildShmFromManifest(shared_ptr<SharedMemoryContext> ctx)
-{
+shared_ptr<shared_memory_object> SharedMemoryManager::openSharedMemory(const char* name,
+        bool* exist) {
+    shared_ptr < shared_memory_object > res;
+    try {
+        res = shared_ptr < shared_memory_object
+                > (new shared_memory_object(create_only, name, read_write));
+    } catch (const interprocess_exception & e) {
+        LOG(WARNING, "Got exception when opening the Shared Memory, error message: %s", e.what());
+        *exist = false;
+    }
+    return res;
+}
+
+shared_ptr<named_semaphore> SharedMemoryManager::openSemaphore(const char* name) {
+    shared_ptr < named_semaphore > res;
+    try {
+        res = shared_ptr < named_semaphore > (new named_semaphore(open_or_create, name, 1));
+    } catch (const interprocess_exception & e) {
+        LOG(
+                WARNING,
+                "Got exception when open/create the Shared Memory, error message: %s",
+                e.what());
+        THROW(
+                GopherwoodSyncException,
+                "[SharedMemoryManager::openSemaphore] Got error when open/create the semaphore, error code %d"
+                        ", error message %s",
+                e.get_error_code(),
+                e.what());
+    }
+    return res;
+}
+
+void SharedMemoryManager::rebuildShmFromManifest(shared_ptr<SharedMemoryContext> ctx) {
     ctx->reset();
 }
 

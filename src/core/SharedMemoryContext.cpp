@@ -24,13 +24,12 @@
 namespace Gopherwood {
 namespace Internal {
 
-SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region) :
-        workDir(dir),
-        mapped_shm(region){
+SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region,
+        shared_ptr<named_semaphore> semaphore) :
+        workDir(dir), mapped_shm(region), semaphore(semaphore) {
 }
 
-void SharedMemoryContext::reset()
-{
+void SharedMemoryContext::reset() {
     std::memset(mapped_shm->get_address(), 0, mapped_shm->get_size());
 }
 

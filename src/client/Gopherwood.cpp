@@ -25,7 +25,6 @@
 #include "common/ExceptionInternal.h"
 #include "common/Logger.h"
 #include "common/Memory.h"
-#include "common/XmlConfig.h"
 
 #include "gopherwood.h"
 #include "file/FileSystem.h"
