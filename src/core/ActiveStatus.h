@@ -33,9 +33,14 @@ class ActiveStatus {
 public:
     ActiveStatus(FileId fileId);
 
+    int64_t getCurPosition() {
+        return pos;
+    };
+
     ~ActiveStatus();
 private:
     FileId fileId;
+    int64_t pos;
 };
 
 

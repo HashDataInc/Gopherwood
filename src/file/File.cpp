@@ -19,13 +19,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "File.h"
+#include "file/File.h"
+#include "client/gopherwood.h"
 
 namespace Gopherwood {
 namespace Internal {
 
 File::File(FileId id, std::string fileName, int flags, shared_ptr<ActiveStatus> status) :
         id(id), name(fileName), flags(flags), status(status) {
+    if ((flags & GW_WRONLY) || (flags & GW_RDWR)){
+        out = shared_ptr<BlockOutputStream>(new BlockOutputStream());
+    }
+
+    if ((flags & GW_RDONLY) || (flags & GW_RDWR)) {
+        in = shared_ptr<InputStream>(new InputStream());
+    }
+}
+
+void File::write(const char *buffer, int64_t length)
+{
+    out->write(buffer, length);
 }
 
 File::~File() {

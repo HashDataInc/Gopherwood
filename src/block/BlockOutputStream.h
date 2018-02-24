@@ -19,33 +19,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_FILE_OUTPUTSTREAM_H_
-#define _GOPHERWOOD_FILE_OUTPUTSTREAM_H_
+#ifndef _GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_
+#define _GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_
 
 #include "platform.h"
 
-#include "block/BlockOutputStream.h"
 #include "common/Memory.h"
-#include "core/ActiveStatus.h"
 
 namespace Gopherwood {
 namespace Internal {
-class OutputStream {
+class BlockOutputStream {
 public:
-    OutputStream(shared_ptr<ActiveStatus> status);
+    BlockOutputStream();
 
-    void write(const char *buffer, int64_t length);
+    int64_t remaining();
 
-    ~OutputStream();
+    int64_t write(const char *buffer, int64_t length);
+
+    ~BlockOutputStream();
 private:
-    void updateBlockStream(int64_t curPos);
-
-    shared_ptr<BlockOutputStream> blockOutputStream;
-    shared_ptr<ActiveStatus> status;
-    int64_t pos;
+    int32_t blockId;
+    int64_t blockSize;
+    int64_t offset;
 };
 
 }
 }
 
-#endif //_GOPHERWOOD_FILE_OUTPUTSTREAM_H_
+#endif //_GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_

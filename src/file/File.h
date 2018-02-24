@@ -26,6 +26,8 @@
 
 #include "core/ActiveStatus.h"
 #include "common/Memory.h"
+#include "file/OutputStream.h"
+#include "file/InputStream.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -34,6 +36,8 @@ class File {
 public:
     File(FileId id, std::string fileName, int flags, shared_ptr<ActiveStatus> status);
 
+    void write(const char *buffer, int64_t length);
+
     ~File();
 
 private:
@@ -41,6 +45,8 @@ private:
     std::string name;
     int flags;
     shared_ptr<ActiveStatus> status;
+    shared_ptr<BlockOutputStream> out;
+    shared_ptr<InputStream> in;
 };
 
 }

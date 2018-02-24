@@ -37,7 +37,7 @@ extern "C" {
 
 using Gopherwood::exception_ptr;
 using Gopherwood::Internal::InputStream;
-using Gopherwood::Internal::OutputStream;
+using Gopherwood::Internal::BlockOutputStream;
 using Gopherwood::Internal::shared_ptr;
 using Gopherwood::Internal::File;
 using Gopherwood::Internal::FileSystem;
@@ -46,7 +46,7 @@ using Gopherwood::Internal::SetLastException;
 
 struct GWFileSystemInternalWrapper {
 public:
-    GWFileSystemInternalWrapper(FileSystem *fs) :
+    explicit GWFileSystemInternalWrapper(FileSystem *fs) :
             __filesystem(fs) {
     }
 
@@ -64,7 +64,7 @@ private:
 
 struct GWFileInternalWrapper {
 public:
-    GWFileInternalWrapper(File *file) :
+    explicit GWFileInternalWrapper(File *file) :
             __file(file) {
     }
 
@@ -80,7 +80,7 @@ private:
     File *__file;
 };
 
-static void handleException(Gopherwood::exception_ptr error) {
+static void handleException(const Gopherwood::exception_ptr &error) {
     try {
         std::string buffer;
         LOG(
@@ -103,6 +103,10 @@ static void handleException(Gopherwood::exception_ptr error) {
                 "Handle Gopherwood exception: %s",
                 Gopherwood::Internal::GetExceptionDetail(error, buffer));
         errno = EGOPHERWOOD;
+    } catch (const std::bad_alloc &) {
+        LOG(Gopherwood::Internal::LOG_ERROR, "Out of memory");
+        SetErrorMessage("Out of memory");
+        errno = ENOMEM;
     } catch (const std::exception &) {
         std::string buffer;
         LOG(
@@ -156,6 +160,14 @@ int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos) {
 }
 
 int32_t gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length) {
+    try {
+        file->getFile().write(static_cast<const char *>(buffer), length);
+        return length;
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+
     return -1;
 }
 
