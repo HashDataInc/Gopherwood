@@ -33,5 +33,10 @@ void SharedMemoryContext::reset() {
     std::memset(mapped_shm->get_address(), 0, mapped_shm->get_size());
 }
 
+int32_t SharedMemoryContext::acquireBlock()
+{
+    return 0;
+}
+
 }
 }

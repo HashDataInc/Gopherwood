@@ -26,6 +26,7 @@
 
 #include "file/FileId.h"
 #include "core/ActiveStatus.h"
+#include "core/SharedMemoryContext.h"
 #include "common/Memory.h"
 #include "common/Unordered.h"
 
@@ -34,7 +35,7 @@ namespace Internal {
 
 class ActiveStatusContext {
 public:
-    ActiveStatusContext();
+    ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
     shared_ptr<ActiveStatus> getFileActiveStatus(FileId fileId);
 
@@ -42,7 +43,8 @@ public:
 
     ~ActiveStatusContext();
 private:
-    unordered_map<std::string, shared_ptr<ActiveStatus>> activeStatusMap;
+    unordered_map<std::string, shared_ptr<ActiveStatus>> mActiveStatusMap;
+    shared_ptr<SharedMemoryContext> mSharedMemoryContext;
 };
 
 

@@ -30,7 +30,7 @@ FileSystem::FileSystem(const char *workDir) :
         workDir(workDir) {
 
     sharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir);
-    activeStatusContext = shared_ptr<ActiveStatusContext>(new ActiveStatusContext());
+    activeStatusContext = shared_ptr<ActiveStatusContext>(new ActiveStatusContext(sharedMemoryContext));
 }
 
 FileId FileSystem::makeFileId(const std::string filePath)

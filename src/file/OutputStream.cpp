@@ -52,10 +52,15 @@ void OutputStream::write(const char *buffer, int64_t length) {
             bytesToWrite -= written;
         }
     }
-
 }
 
 void OutputStream::updateBlockStream(int64_t curPos){
+    blockOutputStream->flush();
+
+    /* get current block info */
+    BlockInfo info = status->getCurBlockInfo();
+    blockOutputStream->setPosition(info.id, info.offset);
+
 
 }
 

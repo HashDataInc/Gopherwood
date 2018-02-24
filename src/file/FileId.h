@@ -35,6 +35,8 @@ struct FileId {
     size_t hashcode;
     unsigned int collisionId;
 
+    FileId() : hashcode(0), collisionId(0) {};
+
     std::string toString()
     {
         std::stringstream ss;

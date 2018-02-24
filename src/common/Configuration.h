@@ -32,6 +32,7 @@ class Configuration {
 public:
     static std::string SHARED_MEMORY_NAME;
     static int NUMBER_OF_BLOCKS;
+    static int64_t LOCAL_BLOCK_SIZE;
 };
 
 

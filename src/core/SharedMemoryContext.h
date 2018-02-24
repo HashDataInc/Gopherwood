@@ -44,6 +44,8 @@ public:
     SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region,
             shared_ptr<named_semaphore> semaphore);
 
+    int32_t acquireBlock();
+
     void reset();
 
     ~SharedMemoryContext();

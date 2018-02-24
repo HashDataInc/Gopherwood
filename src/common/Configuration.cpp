@@ -28,6 +28,9 @@ namespace Internal {
 std::string Configuration::SHARED_MEMORY_NAME("GopherwoodSharedMem");
 
 int Configuration::NUMBER_OF_BLOCKS = 20;
+
+int64_t Configuration::LOCAL_BLOCK_SIZE = 64 * 1024 * 1024;
+
 }
 }
 

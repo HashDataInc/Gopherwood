@@ -25,22 +25,47 @@
 #include "platform.h"
 
 #include "file/FileId.h"
+#include "core/SharedMemoryContext.h"
 
 namespace Gopherwood {
 namespace Internal {
 
+typedef struct Block {
+    int32_t id;
+
+    Block(int32_t theId) : id(theId){};
+} Block;
+
+typedef struct BlockInfo {
+    int32_t id;
+    int64_t offset;
+} BlockInfo;
+
 class ActiveStatus {
 public:
-    ActiveStatus(FileId fileId);
+    ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
     int64_t getCurPosition() {
-        return pos;
+        return mPos;
     };
+
+    BlockInfo getCurBlockInfo();
 
     ~ActiveStatus();
 private:
-    FileId fileId;
-    int64_t pos;
+    int32_t getCurBlockId();
+
+    int64_t getCurBlockOffset();
+
+    bool needNewBlock();
+
+    void acquireNewBlock();
+
+    shared_ptr<SharedMemoryContext> mSharedMemoryContext;
+    FileId mfileId;
+    int64_t mPos;
+    int32_t mNumBlocks;
+    std::vector<Block> mBlockArray;
 };
 
 

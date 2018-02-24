@@ -19,14 +19,52 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "ActiveStatus.h"
+#include "common/Configuration.h"
+#include "core/ActiveStatus.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-ActiveStatus::ActiveStatus(FileId fileId) :
-    fileId(fileId){
+ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
+        mSharedMemoryContext(sharedMemoryContext){
+    mNumBlocks = 0;
+    mfileId.hashcode = fileId.hashcode;
+    mfileId.collisionId = fileId.collisionId;
+}
 
+BlockInfo ActiveStatus::getCurBlockInfo()
+{
+    if (needNewBlock())
+    {
+        acquireNewBlock();
+    }
+
+    BlockInfo info;
+    info.id = getCurBlockId();
+    info.offset = getCurBlockOffset();
+    return info;
+}
+int32_t ActiveStatus::getCurBlockId()
+{
+
+    return mBlockArray[mPos/Configuration::LOCAL_BLOCK_SIZE].id;
+}
+
+int64_t ActiveStatus::getCurBlockOffset()
+{
+    return mPos % Configuration::LOCAL_BLOCK_SIZE;
+}
+
+bool ActiveStatus::needNewBlock()
+{
+    return (mNumBlocks <= 0 || mPos/Configuration::LOCAL_BLOCK_SIZE >= mNumBlocks);
+}
+
+void ActiveStatus::acquireNewBlock()
+{
+    int32_t newBlockId = mSharedMemoryContext->acquireBlock();
+    Block newBlock(newBlockId);
+    mBlockArray.push_back(newBlock);
 }
 
 }

@@ -32,15 +32,19 @@ class BlockOutputStream {
 public:
     BlockOutputStream();
 
+    void setPosition(int32_t blockId, int64_t blockOffset);
+
     int64_t remaining();
 
     int64_t write(const char *buffer, int64_t length);
+
+    void flush();
 
     ~BlockOutputStream();
 private:
     int32_t blockId;
     int64_t blockSize;
-    int64_t offset;
+    int64_t blockOffset;
 };
 
 }
