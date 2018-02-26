@@ -30,7 +30,9 @@ namespace Gopherwood {
         int WRITE_BUFFER_SIZE = 8 * 1024 * 1024;
 
         int MAX_PROCESS = 3;//maximum number of processes running at the same time.
-        int MAX_QUOTA_SIZE =NUMBER_OF_BLOCKS/MAX_PROCESS;
+        int MAX_QUOTA_SIZE = NUMBER_OF_BLOCKS / MAX_PROCESS;
+
+        char *LOG_FILE_PATH = "/ssdfile/ssdkv/logs/gopherwood.log";
     }
 
 
