@@ -32,7 +32,7 @@ namespace Gopherwood {
 namespace Internal {
 class OutputStream {
 public:
-    OutputStream(shared_ptr<ActiveStatus> status);
+    OutputStream(shared_ptr<ActiveStatus> status, int fd);
 
     void write(const char *buffer, int64_t length);
 
@@ -40,6 +40,7 @@ public:
 private:
     void updateBlockStream(int64_t curPos);
 
+    int mLocalSpaceFD;
     shared_ptr<BlockOutputStream> blockOutputStream;
     shared_ptr<ActiveStatus> status;
     int64_t pos;

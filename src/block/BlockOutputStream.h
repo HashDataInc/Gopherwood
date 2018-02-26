@@ -30,7 +30,7 @@ namespace Gopherwood {
 namespace Internal {
 class BlockOutputStream {
 public:
-    BlockOutputStream();
+    BlockOutputStream(int fd);
 
     void setPosition(int32_t blockId, int64_t blockOffset);
 
@@ -42,9 +42,10 @@ public:
 
     ~BlockOutputStream();
 private:
-    int32_t blockId;
-    int64_t blockSize;
-    int64_t blockOffset;
+    int mLocalSpaceFD;
+    int32_t mBlockId;
+    int64_t mBlockSize;
+    int64_t mBlockOffset;
 };
 
 }

@@ -47,11 +47,10 @@ public:
 private:
     FileId makeFileId(const std::string filePath);
 
+    int32_t mLocalSpaceFile = -1;
     const char* workDir;
-
-    shared_ptr<SharedMemoryContext> sharedMemoryContext;
-
-    shared_ptr<ActiveStatusContext> activeStatusContext;
+    shared_ptr<SharedMemoryContext> mSharedMemoryContext;
+    shared_ptr<ActiveStatusContext> mActiveStatusContext;
 };
 
 }

@@ -40,6 +40,7 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
     shared_ptr<SharedMemoryContext> ctx;
     shared_ptr < shared_memory_object > shm;
     shared_ptr < named_semaphore > semaphore;
+    shared_ptr < mapped_region > region;
 
     /* open/create semaphore for this context */
     semaphore = openSemaphore("semaphore");
@@ -53,14 +54,22 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
 
         /* create Shared Memory */
         shm = createSharedMemory(Configuration::SHARED_MEMORY_NAME.c_str());
-        /* set Shared Memory size */
-        shm->truncate(1 + Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket));
+        int size = sizeof(ShareMemHeader) + Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket);
+        shm->truncate(size);
+        region = shared_ptr < mapped_region >(new mapped_region(*shm, read_write));
+
+        /* Init Shared Memory */
+        void* addr = region->get_address();
+        ShareMemHeader* header = static_cast<ShareMemHeader*>(addr);
+        header->enter();
+        header->numBlocks = Configuration::NUMBER_OF_BLOCKS;
+        memset((char*)addr+sizeof(ShareMemHeader), 0, Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket));
+        header->exit();
 
         semaphore->post();
+    } else{
+        region = shared_ptr < mapped_region >(new mapped_region(*shm, read_write));
     }
-
-    /* map the Shared Memory for this context */
-    shared_ptr < mapped_region > region(new mapped_region(*shm, read_write));
 
     ctx = shared_ptr < SharedMemoryContext > (new SharedMemoryContext(workDir, region, semaphore));
 

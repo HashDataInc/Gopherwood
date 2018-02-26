@@ -19,30 +19,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "file/File.h"
-#include "client/gopherwood.h"
+#ifndef GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H
+#define GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H
+#include "platform.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status) :
-        id(id), name(fileName), flags(flags), localFD(fd), mStatus(status) {
-    if ((flags & GW_WRONLY) || (flags & GW_RDWR)){
-        mOutStream = shared_ptr<OutputStream>(new OutputStream(status, localFD));
-    }
+class OssBlockWriter {
+public:
+    OssBlockWriter();
 
-    if ((flags & GW_RDONLY) || (flags & GW_RDWR)) {
-        mInStream = shared_ptr<InputStream>(new InputStream());
-    }
-}
+    ~OssBlockWriter();
+private:
 
-void File::write(const char *buffer, int64_t length)
-{
-    mOutStream->write(buffer, length);
-}
-
-File::~File() {
-}
+};
 
 }
 }
+#endif //GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H

@@ -34,7 +34,7 @@ namespace Internal {
 
 class File {
 public:
-    File(FileId id, std::string fileName, int flags, shared_ptr<ActiveStatus> status);
+    File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status);
 
     void write(const char *buffer, int64_t length);
 
@@ -44,9 +44,10 @@ private:
     FileId id;
     std::string name;
     int flags;
-    shared_ptr<ActiveStatus> status;
-    shared_ptr<BlockOutputStream> out;
-    shared_ptr<InputStream> in;
+    int localFD;
+    shared_ptr<ActiveStatus> mStatus;
+    shared_ptr<OutputStream> mOutStream;
+    shared_ptr<InputStream> mInStream;
 };
 
 }

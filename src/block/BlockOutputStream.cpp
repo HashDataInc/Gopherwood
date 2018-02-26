@@ -24,21 +24,21 @@
 namespace Gopherwood {
 namespace Internal {
 
-BlockOutputStream::BlockOutputStream()
+BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd)
 {
 
 }
 
 void BlockOutputStream::setPosition(int32_t newBlockId, int64_t newBlockOffset)
 {
-    blockId = newBlockId;
-    blockOffset = newBlockOffset;
+    mBlockId = newBlockId;
+    mBlockOffset = newBlockOffset;
 
 }
 
 int64_t BlockOutputStream::remaining()
 {
-    return blockSize - blockOffset;
+    return mBlockSize - mBlockOffset;
 }
 
 int64_t BlockOutputStream::write(const char *buffer, int64_t length)

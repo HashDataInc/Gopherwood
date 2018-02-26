@@ -34,11 +34,31 @@ namespace Internal {
 
 using namespace boost::interprocess;
 
+typedef struct ShareMemHeader {
+    uint8_t     flags;
+    char        padding[3];
+    int32_t    numBlocks;
+
+    inline void enter() {flags|=0x01;};
+    inline void exit() {flags&=0xFE;};
+} ShareMemHeader;
+
+#define BucketTypeMask 0xFFFFFFFC
+
 typedef struct ShareMemBucket {
     uint32_t flags;
     FileId fileId;
     int32_t fileBlockIndex;
+
+    bool isFreeBucket() {return (flags|0x00000003)==0;};
+    bool isActiveBucket() {return (flags|0x00000003)==1;};
+    bool isUsedBucket() {return (flags|0x00000003)==2;};
+
+    void setBucketFree() {flags = flags&BucketTypeMask;};
+    void setBucketActive() {flags = (flags&BucketTypeMask)|0x00000001;};
+    void setBucketUsed() {flags = (flags&BucketTypeMask)|0x00000002;};
 } ShareMemBucket;
+
 
 class SharedMemoryContext {
 public:
@@ -60,6 +80,8 @@ private:
     std::string workDir;
     shared_ptr<mapped_region> mShareMem;
     shared_ptr<named_semaphore> mSemaphore;
+    ShareMemHeader* header;
+    ShareMemBucket* buckets;
 };
 
 }

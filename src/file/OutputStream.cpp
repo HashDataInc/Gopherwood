@@ -24,32 +24,35 @@
 namespace Gopherwood {
 namespace Internal {
 
-OutputStream::OutputStream(shared_ptr<ActiveStatus> status) :
-        status(status){
+OutputStream::OutputStream(shared_ptr<ActiveStatus> status, int fd) :
+        status(status), mLocalSpaceFD(fd){
     pos = 0;
-    blockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream());
+    blockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream(mLocalSpaceFD));
 }
 
 void OutputStream::write(const char *buffer, int64_t length) {
     int64_t bytesToWrite = length;
     int64_t curPos = 0;
-
-    /* update BlockOutputStream, flush previous cached data
-     * and switch to target block id & offset */
-    updateBlockStream(status->getCurPosition());
+    bool needUpdate = true;
 
     /* write the buffer, switch target block if needed */
     while(bytesToWrite > 0)
     {
+        /* update BlockOutputStream, flush previous cached data
+         * and switch to target block id & offset */
+        if (needUpdate) {
+            updateBlockStream(status->getCurPosition());
+            needUpdate = false;
+        }
+
         int64_t written;
-        if (bytesToWrite <= blockOutputStream->remaining())
-        {
+        if (bytesToWrite <= blockOutputStream->remaining()) {
             written = blockOutputStream->write(buffer + curPos, bytesToWrite);
             bytesToWrite -= written;
-        }else
-        {
+        }else {
             written = blockOutputStream->write(buffer + curPos, blockOutputStream->remaining());
             bytesToWrite -= written;
+            needUpdate = true;
         }
     }
 }
@@ -60,8 +63,6 @@ void OutputStream::updateBlockStream(int64_t curPos){
     /* get current block info */
     BlockInfo info = status->getCurBlockInfo();
     blockOutputStream->setPosition(info.id, info.offset);
-
-
 }
 
 

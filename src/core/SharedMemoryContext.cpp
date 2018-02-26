@@ -27,6 +27,9 @@ namespace Internal {
 SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region,
         shared_ptr<named_semaphore> semaphore) :
         workDir(dir), mShareMem(region), mSemaphore(semaphore) {
+    void* addr = region->get_address();
+    header = static_cast<ShareMemHeader*>(addr);
+    buckets = static_cast<ShareMemBucket*>((void*)((char*)addr+sizeof(ShareMemHeader)));
 }
 
 void SharedMemoryContext::reset() {
@@ -36,13 +39,29 @@ void SharedMemoryContext::reset() {
 std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId)
 {
     std::vector<int32_t> res;
-
     getMutex();
 
-    
+    int numBlocksToAcquire = calcBlockAcquireNum();
+
+    /* pick up from free buckets */
+    for(int32_t i=0; i<header->numBlocks; i++)
+    {
+        if(buckets[i].isFreeBucket())
+        {
+            buckets[i].setBucketActive();
+            res.push_back(i);
+            numBlocksToAcquire--;
+        }
+    }
+
+    /* TODO: pick up from Used buckets and evict them */
+    if (numBlocksToAcquire > 0)
+    {
+    }
+
+    assert(numBlocksToAcquire == 0);
 
     releaseMutex();
-
     return res;
 }
 
@@ -55,10 +74,12 @@ int SharedMemoryContext::calcBlockAcquireNum()
 void SharedMemoryContext::getMutex()
 {
     mSemaphore->wait();
+    header->enter();
 }
 
 void SharedMemoryContext::releaseMutex()
 {
+    header->exit();
     mSemaphore->post();
 }
 

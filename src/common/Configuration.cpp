@@ -19,12 +19,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "Configuration.h"
 
 namespace Gopherwood {
 namespace Internal {
 
+std::string Configuration::LOCAL_SPACE_FILE("GopherwoodLocal");
 std::string Configuration::SHARED_MEMORY_NAME("GopherwoodSharedMem");
 
 int Configuration::NUMBER_OF_BLOCKS = 20;

@@ -20,6 +20,7 @@
  * limitations under the License.
  */
 #include "FileSystem.h"
+#include "common/Configuration.h"
 #include "common/hash.h"
 #include "core/ActiveStatus.h"
 
@@ -28,9 +29,16 @@ namespace Internal {
 
 FileSystem::FileSystem(const char *workDir) :
         workDir(workDir) {
+    std::stringstream ss;
+    ss << workDir << '/' << "-" << Configuration::LOCAL_SPACE_FILE;
+    std::string filePath = ss.str();
 
-    sharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir);
-    activeStatusContext = shared_ptr<ActiveStatusContext>(new ActiveStatusContext(sharedMemoryContext));
+    int flags = O_CREAT | O_RDWR;
+
+    mLocalSpaceFile = open(filePath.c_str(), flags, 0644);
+
+    mSharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir);
+    mActiveStatusContext = shared_ptr<ActiveStatusContext>(new ActiveStatusContext(mSharedMemoryContext));
 }
 
 FileId FileSystem::makeFileId(const std::string filePath)
@@ -54,10 +62,10 @@ File* FileSystem::CreateFile(const char *fileName, int flags)
     shared_ptr<ActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
-    status = activeStatusContext->initFileActiveStatus(fileId);
+    status = mActiveStatusContext->initFileActiveStatus(fileId);
 
     std::string name(fileName);
-    return new File(fileId, name, flags, status);
+    return new File(fileId, name, flags, mLocalSpaceFile, status);
 }
 
 File* FileSystem::OpenFile(const char *fileName, int flags)
