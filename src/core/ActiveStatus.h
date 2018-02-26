@@ -59,7 +59,7 @@ private:
 
     bool needNewBlock();
 
-    void acquireNewBlock();
+    void acquireNewBlocks();
 
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     FileId mfileId;

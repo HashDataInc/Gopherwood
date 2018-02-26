@@ -24,35 +24,42 @@
 
 #include "platform.h"
 #include "common/Memory.h"
+#include "file/FileId.h"
 
 #include <boost/interprocess/mapped_region.hpp>
-
-using namespace boost::interprocess;
+#include <boost/interprocess/sync/named_semaphore.hpp>
 
 namespace Gopherwood {
 namespace Internal {
 
-typedef struct shmBucket {
-    char type;
-    char isKick;
-    int32_t blockIndex;
-    char fileName[256];
-} shmBucket;
+using namespace boost::interprocess;
+
+typedef struct ShareMemBucket {
+    uint32_t flags;
+    FileId fileId;
+    int32_t fileBlockIndex;
+} ShareMemBucket;
 
 class SharedMemoryContext {
 public:
     SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region,
             shared_ptr<named_semaphore> semaphore);
 
-    int32_t acquireBlock();
+    std::vector<int32_t> acquireBlock(FileId fileId);
 
     void reset();
 
     ~SharedMemoryContext();
 private:
+    int calcBlockAcquireNum();
+
+    void getMutex();
+
+    void releaseMutex();
+
     std::string workDir;
-    shared_ptr<mapped_region> mapped_shm;
-    shared_ptr<named_semaphore> semaphore;
+    shared_ptr<mapped_region> mShareMem;
+    shared_ptr<named_semaphore> mSemaphore;
 };
 
 }

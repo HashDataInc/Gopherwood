@@ -26,16 +26,40 @@ namespace Internal {
 
 SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region,
         shared_ptr<named_semaphore> semaphore) :
-        workDir(dir), mapped_shm(region), semaphore(semaphore) {
+        workDir(dir), mShareMem(region), mSemaphore(semaphore) {
 }
 
 void SharedMemoryContext::reset() {
-    std::memset(mapped_shm->get_address(), 0, mapped_shm->get_size());
+    std::memset(mShareMem->get_address(), 0, mShareMem->get_size());
 }
 
-int32_t SharedMemoryContext::acquireBlock()
+std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId)
 {
-    return 0;
+    std::vector<int32_t> res;
+
+    getMutex();
+
+    
+
+    releaseMutex();
+
+    return res;
+}
+
+int SharedMemoryContext::calcBlockAcquireNum()
+{
+    return 1;
+}
+
+/* TODO: Use timed_wait() */
+void SharedMemoryContext::getMutex()
+{
+    mSemaphore->wait();
+}
+
+void SharedMemoryContext::releaseMutex()
+{
+    mSemaphore->post();
 }
 
 }

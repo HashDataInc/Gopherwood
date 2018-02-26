@@ -33,7 +33,7 @@ namespace Internal {
 struct FileId {
 
     size_t hashcode;
-    unsigned int collisionId;
+    uint32_t collisionId;
 
     FileId() : hashcode(0), collisionId(0) {};
 

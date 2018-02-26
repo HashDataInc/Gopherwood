@@ -36,7 +36,7 @@ BlockInfo ActiveStatus::getCurBlockInfo()
 {
     if (needNewBlock())
     {
-        acquireNewBlock();
+        acquireNewBlocks();
     }
 
     BlockInfo info;
@@ -46,7 +46,6 @@ BlockInfo ActiveStatus::getCurBlockInfo()
 }
 int32_t ActiveStatus::getCurBlockId()
 {
-
     return mBlockArray[mPos/Configuration::LOCAL_BLOCK_SIZE].id;
 }
 
@@ -60,11 +59,15 @@ bool ActiveStatus::needNewBlock()
     return (mNumBlocks <= 0 || mPos/Configuration::LOCAL_BLOCK_SIZE >= mNumBlocks);
 }
 
-void ActiveStatus::acquireNewBlock()
+void ActiveStatus::acquireNewBlocks()
 {
-    int32_t newBlockId = mSharedMemoryContext->acquireBlock();
-    Block newBlock(newBlockId);
-    mBlockArray.push_back(newBlock);
+    std::vector<int32_t> newBlockIds = mSharedMemoryContext->acquireBlock(mfileId);
+
+    for (std::vector<int32_t>::size_type i=0; i<newBlockIds.size(); i++)
+    {
+        Block newBlock(newBlockIds[i]);
+        mBlockArray.push_back(newBlock);
+    }
 }
 
 }
