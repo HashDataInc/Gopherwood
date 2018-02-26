@@ -34,6 +34,8 @@ namespace Gopherwood {
         extern int MAX_PROCESS;//maximum number of processes running at the same time.
         extern int MAX_QUOTA_SIZE;
 
+        extern char* LOG_FILE_PATH;
+
     }
 
 

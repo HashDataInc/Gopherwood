@@ -107,7 +107,7 @@ void testGWDelete(string fileName) {
     gopherwoodFS gwFS = gwCreateContext();
     gwFile file = gwOpenFile(gwFS, (char *) fileName.c_str(), O_RDONLY);
     std::cout << "***********START OF DELETE**************" << std::endl;
-    deleteFile(gwFS, file);
+//    deleteFile(gwFS, file);
     std::cout << "***********END OF  DELETE**************" << std::endl;
 }
 
