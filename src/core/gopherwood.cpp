@@ -356,6 +356,7 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
 }
 
 
+/**
 int deleteFile(gopherwoodFS fs, gwFile file) {
     try {
         if (file) {
@@ -390,7 +391,17 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
 
     return -1;
 }
+ **/
 
+//TODO
+int deleteFile(char *filePath) {
+    return 0;
+}
+
+//TODO. this may be rethinking, why and how cancel the operation?
+int cancelFile(gopherwoodFS fs, gwFile file) {
+    return 0;
+}
 
 static void ConstructGWFileInfo(GWFileInfo *retval, std::shared_ptr<FileStatus> status) {
     retval->fileSize = status->getFileSize();
