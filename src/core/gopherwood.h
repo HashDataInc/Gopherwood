@@ -118,7 +118,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
  */
 //TODO in this implement, only the read-only mode can seek the file,
 //TODO write mode are not allowed.
-int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos);
+int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos,int where);
 
 
 int gwCloseFile(gopherwoodFS fs, gwFile file);
@@ -133,7 +133,7 @@ int deleteFile(char *filePath);
 int cancelFile(gopherwoodFS fs, gwFile file);
 
 
-GWFileInfo *getFileInfo(gopherwoodFS fs, gwFile file);
+GWFileInfo *gwStatFile(gopherwoodFS fs, gwFile file);
 
 
 #endif /* _GOPHERWOOD_CORE_GOPHERWOOD_H_ */
