@@ -283,7 +283,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
 }
 
 
-int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos) {
+int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos,int where) {
     try {
         if (file->isInput()) {
             file->getInputStream().seek(desiredPos);
@@ -410,7 +410,7 @@ static void ConstructGWFileInfo(GWFileInfo *retval, std::shared_ptr<FileStatus> 
 
 
 //TODO.
-GWFileInfo *getFileInfo(gopherwoodFS fs, gwFile file) {
+GWFileInfo *gwStatFile(gopherwoodFS fs, gwFile file) {
     GWFileInfo *retval = NULL;
     try {
         if (file->isInput()) {
