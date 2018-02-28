@@ -12,6 +12,7 @@
 #include "XmlConfig.h"
 #include "fcntl.h"
 #include "Logger.h"
+#include <openssl/md5.h>
 #include "../common/Logger.h"
 
 #ifndef ERROR_MESSAGE_BUFFER_SIZE
@@ -242,26 +243,43 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
     try {
         file = new GWFileInternalWrapper();
 
+        /*construct the md5 fileName*/
+        unsigned char md5hashFileName[33] = {0};
+        MD5((const unsigned char *) fileName, strlen(fileName), md5hashFileName);
+        std::string tmpStr;
+        char buf[65] = {0};
+        char tmp[3] = {0};
+        for (int i = 0; i < 32; i++) {
+            sprintf(tmp, "%02x", md5hashFileName[i]);
+            strcat(buf, tmp);
+        }
+        buf[32] = '\0';
+        tmpStr = std::string(buf);
+        /*construct the md5 fileName*/
+
+
+
+        LOG(Gopherwood::Internal::INFO, "gwOpenFile. the before fileName=%s,after=%s", fileName, tmpStr.c_str());
         if ((flags & O_CREAT) || (flags & O_APPEND) || (flags & O_WRONLY)) {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is write only");
             int internalFlags = Gopherwood::WriteOnly;
             file->setOutput(true);
-            os = new OutputStream(fs->getFilesystem(), (char *) fileName, internalFlags);
+            os = new OutputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), internalFlags);
             file->setOutputStream(os);
         } else if ((flags == O_RDONLY)) {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is read only");
             file->setInput(true);
-            is = new InputStream(fs->getFilesystem(), fileName, true);
+            is = new InputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), true);
             file->setInputStream(is);
         } else {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is read and write");
 
             file->setInputAndOutput(true);
-            is = new InputStream(fs->getFilesystem(), fileName, true);
+            is = new InputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), true);
             file->setInputStream(is);
 
             int internalFlags = Gopherwood::ReadWrite;
-            os = new OutputStream(fs->getFilesystem(), (char *) fileName, internalFlags);
+            os = new OutputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), internalFlags);
             file->setOutputStream(os);
         }
 
@@ -283,7 +301,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
 }
 
 
-int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos,int where) {
+int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int where) {
     try {
         if (file->isInput()) {
             file->getInputStream().seek(desiredPos);
