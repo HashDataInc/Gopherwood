@@ -28,7 +28,7 @@ namespace Internal {
 File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status) :
         id(id), name(fileName), flags(flags), localFD(fd), mStatus(status) {
     if ((flags & GW_WRONLY) || (flags & GW_RDWR)){
-        mOutStream = shared_ptr<OutputStream>(new OutputStream(status, localFD));
+        mOutStream = shared_ptr<OutputStream>(new OutputStream(localFD, status));
     }
 
     if ((flags & GW_RDONLY) || (flags & GW_RDWR)) {

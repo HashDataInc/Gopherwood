@@ -32,13 +32,13 @@ namespace Gopherwood {
 namespace Internal {
 class OutputStream {
 public:
-    OutputStream(shared_ptr<ActiveStatus> status, int fd);
+    OutputStream(int fd, shared_ptr<ActiveStatus> status);
 
     void write(const char *buffer, int64_t length);
 
     ~OutputStream();
 private:
-    void updateBlockStream(int64_t curPos);
+    void updateBlockStream();
 
     int mLocalSpaceFD;
     shared_ptr<BlockOutputStream> blockOutputStream;

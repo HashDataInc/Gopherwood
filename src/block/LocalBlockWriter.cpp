@@ -19,3 +19,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "block/LocalBlockWriter.h"
+
+namespace Gopherwood {
+namespace Internal {
+
+LocalBlockWriter::LocalBlockWriter(int fd) : mLocalSpaceFD(fd) {
+    mOffset = 0;
+}
+
+int LocalBlockWriter::seek(int64_t offset) {
+    int res = lseek(mLocalSpaceFD, offset, SEEK_SET);
+    return res;
+}
+
+int LocalBlockWriter::writeLocal(const char* buffer, int64_t length) {
+    int res = write(mLocalSpaceFD, buffer, length);
+    return res;
+}
+
+LocalBlockWriter::~LocalBlockWriter() {
+
+}
+
+}
+}

@@ -29,7 +29,7 @@ AUTO_SOURCES(files "*.h" "RECURSE" "${CMAKE_CURRENT_SOURCE_DIR}")
 LIST(APPEND libgopherwood_SOURCES ${files})
 
 SET(HEADER 
-    core/gopherwood.h)
+    client/gopherwood.h)
 
 ADD_LIBRARY(libgopherwood-static STATIC ${libgopherwood_SOURCES})
 ADD_LIBRARY(libgopherwood-shared SHARED ${libgopherwood_SOURCES})

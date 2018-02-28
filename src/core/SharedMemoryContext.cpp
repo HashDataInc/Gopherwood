@@ -20,13 +20,13 @@
  * limitations under the License.
  */
 #include "SharedMemoryContext.h"
+#include "common/Logger.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region,
-        shared_ptr<named_semaphore> semaphore) :
-        workDir(dir), mShareMem(region), mSemaphore(semaphore) {
+SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> &region) :
+        workDir(dir), mShareMem(region) {
     void* addr = region->get_address();
     header = static_cast<ShareMemHeader*>(addr);
     buckets = static_cast<ShareMemBucket*>((void*)((char*)addr+sizeof(ShareMemHeader)));
@@ -42,15 +42,19 @@ std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId)
     getMutex();
 
     int numBlocksToAcquire = calcBlockAcquireNum();
-
+    LOG(INFO, "[SharedMemoryContext::acquireBlock] need to acquire %d blocks.", numBlocksToAcquire);
     /* pick up from free buckets */
     for(int32_t i=0; i<header->numBlocks; i++)
     {
         if(buckets[i].isFreeBucket())
         {
+            LOG(INFO, "got one free bucket");
             buckets[i].setBucketActive();
             res.push_back(i);
             numBlocksToAcquire--;
+            if (numBlocksToAcquire == 0){
+                break;
+            }
         }
     }
 
@@ -58,8 +62,6 @@ std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId)
     if (numBlocksToAcquire > 0)
     {
     }
-
-    assert(numBlocksToAcquire == 0);
 
     releaseMutex();
     return res;
@@ -70,17 +72,16 @@ int SharedMemoryContext::calcBlockAcquireNum()
     return 1;
 }
 
-/* TODO: Use timed_wait() */
 void SharedMemoryContext::getMutex()
 {
-    mSemaphore->wait();
-    header->enter();
 }
 
 void SharedMemoryContext::releaseMutex()
 {
-    header->exit();
-    mSemaphore->post();
+}
+
+SharedMemoryContext::~SharedMemoryContext() {
+
 }
 
 }

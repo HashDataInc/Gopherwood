@@ -24,16 +24,27 @@
 
 #include "platform.h"
 
+#include "common/Memory.h"
+
 namespace Gopherwood {
 namespace Internal {
 
 class LocalBlockWriter {
 public:
-    LocalBlockWriter();
+    LocalBlockWriter(int fd);
+
+    int seek(int64_t offset);
+
+    int writeLocal(const char* buffer, int64_t length);
+
+    inline int64_t getCurOffset(){
+        return mOffset;
+    };
 
     ~LocalBlockWriter();
 private:
-
+    int mLocalSpaceFD;
+    int64_t mOffset;            //offset of the local space file
 };
 
 }

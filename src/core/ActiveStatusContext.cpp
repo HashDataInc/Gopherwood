@@ -46,5 +46,9 @@ shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId
     return activeStatus;
 }
 
+ActiveStatusContext::~ActiveStatusContext() {
+
+}
+
 }
 }

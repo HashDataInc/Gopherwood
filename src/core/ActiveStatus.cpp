@@ -20,6 +20,7 @@
  * limitations under the License.
  */
 #include "common/Configuration.h"
+#include "common/Logger.h"
 #include "core/ActiveStatus.h"
 
 namespace Gopherwood {
@@ -28,6 +29,7 @@ namespace Internal {
 ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
         mSharedMemoryContext(sharedMemoryContext){
     mNumBlocks = 0;
+    mPos = 0;
     mfileId.hashcode = fileId.hashcode;
     mfileId.collisionId = fileId.collisionId;
 }
@@ -68,6 +70,10 @@ void ActiveStatus::acquireNewBlocks()
         Block newBlock(newBlockIds[i]);
         mBlockArray.push_back(newBlock);
     }
+}
+
+ActiveStatus::~ActiveStatus() {
+
 }
 
 }

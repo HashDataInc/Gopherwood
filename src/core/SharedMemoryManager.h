@@ -44,14 +44,12 @@ public:
         return instance;
     };
 
-    shared_ptr<SharedMemoryContext> buildSharedMemoryContext(const char* workDir);
+    shared_ptr<SharedMemoryContext> buildSharedMemoryContext(const char* workDir, int32_t lockFD);
 
 private:
     shared_ptr<shared_memory_object> createSharedMemory(const char* name);
 
     shared_ptr<shared_memory_object> openSharedMemory(const char* name, bool* exist);
-
-    shared_ptr<named_semaphore> openSemaphore(const char* name);
 
     void rebuildShmFromManifest(shared_ptr<SharedMemoryContext> ctx);
 

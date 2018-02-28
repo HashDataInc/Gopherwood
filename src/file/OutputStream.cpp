@@ -24,8 +24,8 @@
 namespace Gopherwood {
 namespace Internal {
 
-OutputStream::OutputStream(shared_ptr<ActiveStatus> status, int fd) :
-        status(status), mLocalSpaceFD(fd){
+OutputStream::OutputStream(int fd, shared_ptr<ActiveStatus> status) :
+        mLocalSpaceFD(fd), status(status){
     pos = 0;
     blockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream(mLocalSpaceFD));
 }
@@ -41,7 +41,7 @@ void OutputStream::write(const char *buffer, int64_t length) {
         /* update BlockOutputStream, flush previous cached data
          * and switch to target block id & offset */
         if (needUpdate) {
-            updateBlockStream(status->getCurPosition());
+            updateBlockStream();
             needUpdate = false;
         }
 
@@ -57,12 +57,16 @@ void OutputStream::write(const char *buffer, int64_t length) {
     }
 }
 
-void OutputStream::updateBlockStream(int64_t curPos){
+void OutputStream::updateBlockStream(){
     blockOutputStream->flush();
 
     /* get current block info */
     BlockInfo info = status->getCurBlockInfo();
     blockOutputStream->setPosition(info.id, info.offset);
+}
+
+OutputStream::~OutputStream(){
+
 }
 
 

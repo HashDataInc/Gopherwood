@@ -28,5 +28,9 @@ InputStream::InputStream() {
 
 }
 
+InputStream::~InputStream(){
+    
+}
+
 }
 }

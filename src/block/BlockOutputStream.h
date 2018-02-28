@@ -24,6 +24,7 @@
 
 #include "platform.h"
 
+#include "block/LocalBlockWriter.h"
 #include "common/Memory.h"
 
 namespace Gopherwood {
@@ -42,10 +43,14 @@ public:
 
     ~BlockOutputStream();
 private:
+    int64_t getLocalSpaceOffset();
+
     int mLocalSpaceFD;
     int32_t mBlockId;
     int64_t mBlockSize;
     int64_t mBlockOffset;
+
+    shared_ptr<LocalBlockWriter> mLocalWriter;
 };
 
 }

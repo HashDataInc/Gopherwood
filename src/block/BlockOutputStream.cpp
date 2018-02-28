@@ -20,20 +20,21 @@
  * limitations under the License.
  */
 #include "block/BlockOutputStream.h"
+#include "common/Configuration.h"
 
 namespace Gopherwood {
 namespace Internal {
 
 BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd)
 {
-
+    mLocalWriter = shared_ptr<LocalBlockWriter>(new LocalBlockWriter(fd));
+    mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
 }
 
 void BlockOutputStream::setPosition(int32_t newBlockId, int64_t newBlockOffset)
 {
     mBlockId = newBlockId;
     mBlockOffset = newBlockOffset;
-
 }
 
 int64_t BlockOutputStream::remaining()
@@ -43,7 +44,19 @@ int64_t BlockOutputStream::remaining()
 
 int64_t BlockOutputStream::write(const char *buffer, int64_t length)
 {
-    return 0;
+    int64_t written = -1;
+
+    if (mBlockId >= 0)
+    {
+        if (mLocalWriter->getCurOffset() != getLocalSpaceOffset())
+        {
+            mLocalWriter->seek(getLocalSpaceOffset());
+        }
+        written = mLocalWriter->writeLocal(buffer, length);
+    } else{
+        /* Write to OSS */
+    }
+    return written;
 }
 
 void BlockOutputStream::flush()
@@ -51,6 +64,13 @@ void BlockOutputStream::flush()
 
 }
 
+int64_t BlockOutputStream::getLocalSpaceOffset(){
+    return mBlockId * mBlockSize + mBlockOffset;
+}
+
+BlockOutputStream::~BlockOutputStream() {
+
+}
 
 }
 }

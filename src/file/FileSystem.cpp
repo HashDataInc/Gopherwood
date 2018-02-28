@@ -22,6 +22,7 @@
 #include "FileSystem.h"
 #include "common/Configuration.h"
 #include "common/hash.h"
+#include "common/Logger.h"
 #include "core/ActiveStatus.h"
 
 namespace Gopherwood {
@@ -29,15 +30,20 @@ namespace Internal {
 
 FileSystem::FileSystem(const char *workDir) :
         workDir(workDir) {
+    /* open local space file */
     std::stringstream ss;
-    ss << workDir << '/' << "-" << Configuration::LOCAL_SPACE_FILE;
+    ss << workDir << '/' << Configuration::LOCAL_SPACE_FILE;
     std::string filePath = ss.str();
-
-    int flags = O_CREAT | O_RDWR;
-
+    int flags = O_CREAT|O_RDWR;
     mLocalSpaceFile = open(filePath.c_str(), flags, 0644);
 
-    mSharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir);
+    /* create lock file */
+    ss.str("");
+    ss << workDir << "/SmLock";
+    filePath = ss.str();
+    int32_t lockFile = open(filePath.c_str(), flags, 0644);
+
+    mSharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir, lockFile);
     mActiveStatusContext = shared_ptr<ActiveStatusContext>(new ActiveStatusContext(mSharedMemoryContext));
 }
 

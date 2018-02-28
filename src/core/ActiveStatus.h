@@ -45,10 +45,6 @@ class ActiveStatus {
 public:
     ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
-    int64_t getCurPosition() {
-        return mPos;
-    };
-
     BlockInfo getCurBlockInfo();
 
     ~ActiveStatus();

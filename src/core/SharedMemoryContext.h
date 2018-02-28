@@ -27,7 +27,6 @@
 #include "file/FileId.h"
 
 #include <boost/interprocess/mapped_region.hpp>
-#include <boost/interprocess/sync/named_semaphore.hpp>
 
 namespace Gopherwood {
 namespace Internal {
@@ -50,9 +49,9 @@ typedef struct ShareMemBucket {
     FileId fileId;
     int32_t fileBlockIndex;
 
-    bool isFreeBucket() {return (flags|0x00000003)==0;};
-    bool isActiveBucket() {return (flags|0x00000003)==1;};
-    bool isUsedBucket() {return (flags|0x00000003)==2;};
+    bool isFreeBucket() {return (flags&0x00000003)==0 ? true : false;};
+    bool isActiveBucket() {return (flags&0x00000003)==1 ? true : false;};
+    bool isUsedBucket() {return (flags&0x00000003)==2 ? true : false;};
 
     void setBucketFree() {flags = flags&BucketTypeMask;};
     void setBucketActive() {flags = (flags&BucketTypeMask)|0x00000001;};
@@ -62,8 +61,7 @@ typedef struct ShareMemBucket {
 
 class SharedMemoryContext {
 public:
-    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region,
-            shared_ptr<named_semaphore> semaphore);
+    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> &region);
 
     std::vector<int32_t> acquireBlock(FileId fileId);
 
@@ -79,7 +77,6 @@ private:
 
     std::string workDir;
     shared_ptr<mapped_region> mShareMem;
-    shared_ptr<named_semaphore> mSemaphore;
     ShareMemHeader* header;
     ShareMemBucket* buckets;
 };
