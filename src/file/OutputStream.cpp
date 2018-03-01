@@ -74,8 +74,7 @@ void OutputStream::updateBlockStream(){
     blockOutputStream->flush();
 
     /* Update the BlockInfo of the BlockOutputStream */
-    BlockInfo info = status->getCurBlockInfo();
-    blockOutputStream->setBlockInfo(info.id, info.offset);
+    blockOutputStream->setBlockInfo(status->getCurBlockInfo());
 }
 
 OutputStream::~OutputStream(){

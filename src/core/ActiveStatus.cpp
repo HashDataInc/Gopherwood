@@ -58,13 +58,15 @@ BlockInfo ActiveStatus::getCurBlockInfo()
 
     /* build the block info */
     BlockInfo info;
-    info.id = getCurBlockId();
+    Block block = getCurBlock();
+    info.id = block.bucketId;
+    info.isLocal = block.isLocal;
     info.offset = getCurBlockOffset();
     return info;
 }
-int32_t ActiveStatus::getCurBlockId()
+Block ActiveStatus::getCurBlock()
 {
-    return mBlockArray[mPos/Configuration::LOCAL_BLOCK_SIZE].id;
+    return mBlockArray[mPos/Configuration::LOCAL_BLOCK_SIZE];
 }
 
 int64_t ActiveStatus::getCurBlockOffset()
@@ -74,18 +76,25 @@ int64_t ActiveStatus::getCurBlockOffset()
 
 bool ActiveStatus::needNewBlock()
 {
-    return (mNumBlocks <= 0 || mPos/Configuration::LOCAL_BLOCK_SIZE >= mNumBlocks);
+    int curBlockInd = mPos/Configuration::LOCAL_BLOCK_SIZE;
+    return (mNumBlocks <= 0 ||                              // empty file
+            curBlockInd >= mNumBlocks ||                    // append more data
+            !mBlockArray[curBlockInd].isLocal ||            // block been evicted
+            (mBlockArray[curBlockInd].isLocal &&            // block in used(2) state
+             mBlockArray[curBlockInd].state==BUCKET_USED));
 }
 
 void ActiveStatus::acquireNewBlocks()
 {
-    std::vector<int32_t> newBlockIds = mSharedMemoryContext->acquireBlock(mfileId);
+    std::vector<int32_t> newBlocks = mSharedMemoryContext->acquireBlock(mfileId);
 
-    for (std::vector<int32_t>::size_type i=0; i<newBlockIds.size(); i++)
+    /* TODO:
+     * put to pre allocated list first */
+
+    for (std::vector<int32_t>::size_type i=0; i<newBlocks.size(); i++)
     {
-        LOG(INFO, "[ActiveStatus::acquireNewBlocks] add block %d.",
-            newBlockIds[i]);
-        Block newBlock(newBlockIds[i]);
+        LOG(INFO, "[ActiveStatus::acquireNewBlocks] add block %d.", newBlocks[i]);
+        Block newBlock(newBlocks[i], mBlockArray.size(),true, BUCKET_ACTIVE);
         mBlockArray.push_back(newBlock);
     }
 }

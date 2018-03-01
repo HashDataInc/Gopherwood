@@ -32,38 +32,37 @@ BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd)
     mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
 }
 
-void BlockOutputStream::setBlockInfo(int32_t newBlockId, int64_t newBlockOffset)
+void BlockOutputStream::setBlockInfo(BlockInfo info)
 {
-    LOG(INFO, "[BlockOutputStream::setBlockInfo] Set BlockInfo, new blockId=%d, new blockOffset=%ld",
-    newBlockId, newBlockOffset);
-    mBlockId = newBlockId;
-    mBlockOffset = newBlockOffset;
+    LOG(INFO, "[BlockOutputStream::setBlockInfo] Set BlockInfo, new blockId=%d, new blockOffset=%ld, %s",
+        info.id, info.offset, info.isLocal?"local":"remote");
+    mBlockInfo = info;
 }
 
 int64_t BlockOutputStream::remaining()
 {
-    return mBlockSize - mBlockOffset;
+    return mBlockSize - mBlockInfo.offset;
 }
 
 int64_t BlockOutputStream::write(const char *buffer, int64_t length)
 {
     int64_t written = -1;
 
-    if (mBlockId >= 0)
+    if (mBlockInfo.isLocal)
     {
         if (mLocalWriter->getCurOffset() != getLocalSpaceOffset())
         {
             mLocalWriter->seek(getLocalSpaceOffset());
         }
         LOG(INFO, "[BlockOutputStream::write] Write to local space, blockId=%d, offset=%ld, length=%ld",
-        mBlockId, mBlockOffset, length);
+            mBlockInfo.id, mBlockInfo.offset, length);
         written = mLocalWriter->writeLocal(buffer, length);
     } else{
         /* Write to OSS */
     }
 
-    mBlockOffset += written;
-    assert(mBlockOffset<=mBlockSize);
+    mBlockInfo.offset += written;
+    assert(mBlockInfo.offset<=mBlockSize);
 
     return written;
 }
@@ -74,7 +73,7 @@ void BlockOutputStream::flush()
 }
 
 int64_t BlockOutputStream::getLocalSpaceOffset(){
-    return mBlockId * mBlockSize + mBlockOffset;
+    return mBlockInfo.id * mBlockSize + mBlockInfo.offset;
 }
 
 BlockOutputStream::~BlockOutputStream() {

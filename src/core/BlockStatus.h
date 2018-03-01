@@ -19,41 +19,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_
-#define _GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_
-
+#ifndef GOPHERWOOD_BLOCKSTATUS_H
+#define GOPHERWOOD_BLOCKSTATUS_H
 #include "platform.h"
-
-#include "block/LocalBlockWriter.h"
-#include "core/ActiveStatus.h"
-#include "common/Memory.h"
 
 namespace Gopherwood {
 namespace Internal {
-class BlockOutputStream {
-public:
-    BlockOutputStream(int fd);
 
-    void setBlockInfo(BlockInfo info);
 
-    int64_t remaining();
+typedef struct Block {
+    int32_t     bucketId;
+    int32_t     blockId;
+    bool        isLocal;
+    uint8_t     state;
 
-    int64_t write(const char *buffer, int64_t length);
+    Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s) :
+            bucketId(theBucketId),
+            blockId(theBlockId),
+            isLocal(local),
+            state(s) {};
+} Block;
 
-    void flush();
-
-    ~BlockOutputStream();
-private:
-    int64_t getLocalSpaceOffset();
-
-    int mLocalSpaceFD;
-    int64_t mBlockSize;
-    BlockInfo mBlockInfo;
-
-    shared_ptr<LocalBlockWriter> mLocalWriter;
-};
+typedef struct BlockInfo {
+    int32_t id;
+    int64_t offset;
+    bool    isLocal;
+} BlockInfo;
 
 }
 }
-
-#endif //_GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_
+#endif //GOPHERWOOD_BLOCKSTATUS_H

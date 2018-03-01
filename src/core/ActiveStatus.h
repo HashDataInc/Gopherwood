@@ -26,20 +26,10 @@
 
 #include "file/FileId.h"
 #include "core/SharedMemoryContext.h"
+#include "core/BlockStatus.h"
 
 namespace Gopherwood {
 namespace Internal {
-
-typedef struct Block {
-    int32_t id;
-
-    Block(int32_t theId) : id(theId){};
-} Block;
-
-typedef struct BlockInfo {
-    int32_t id;
-    int64_t offset;
-} BlockInfo;
 
 class ActiveStatus {
 public:
@@ -53,7 +43,7 @@ public:
 
     ~ActiveStatus();
 private:
-    int32_t getCurBlockId();
+    Block getCurBlock();
 
     int64_t getCurBlockOffset();
 
@@ -67,6 +57,7 @@ private:
     int64_t mEof;
     int32_t mNumBlocks;
     std::vector<Block> mBlockArray;
+    std::vector<Block> mPreAllocatedBlocks;
 };
 
 

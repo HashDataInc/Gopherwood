@@ -24,6 +24,7 @@
 
 #include "platform.h"
 #include "common/Memory.h"
+#include "core/BlockStatus.h"
 #include "file/FileId.h"
 
 #include <boost/interprocess/mapped_region.hpp>
@@ -43,6 +44,9 @@ typedef struct ShareMemHeader {
 } ShareMemHeader;
 
 #define BucketTypeMask 0xFFFFFFFC
+#define BUCKET_FREE      0
+#define BUCKET_ACTIVE    1
+#define BUCKET_USED      2
 
 typedef struct ShareMemBucket {
     uint32_t flags;
