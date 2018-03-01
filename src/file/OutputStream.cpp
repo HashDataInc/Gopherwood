@@ -26,14 +26,21 @@ namespace Internal {
 
 OutputStream::OutputStream(int fd, shared_ptr<ActiveStatus> status) :
         mLocalSpaceFD(fd), status(status){
-    pos = 0;
+    mPos = -1;
     blockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream(mLocalSpaceFD));
 }
 
 void OutputStream::write(const char *buffer, int64_t length) {
     int64_t bytesToWrite = length;
-    int64_t curPos = 0;
-    bool needUpdate = true;
+    int64_t bytesWritten = 0;
+    bool needUpdate = false;
+
+    /* update OutputStream file level position */
+    int64_t statusPos = status->getPosition();
+    if(mPos != statusPos){
+        needUpdate = true;
+        mPos = statusPos;
+    }
 
     /* write the buffer, switch target block if needed */
     while(bytesToWrite > 0)
@@ -45,24 +52,30 @@ void OutputStream::write(const char *buffer, int64_t length) {
             needUpdate = false;
         }
 
+        /* write to target block */
         int64_t written;
         if (bytesToWrite <= blockOutputStream->remaining()) {
-            written = blockOutputStream->write(buffer + curPos, bytesToWrite);
-            bytesToWrite -= written;
+            written = blockOutputStream->write(buffer + bytesWritten, bytesToWrite);
         }else {
-            written = blockOutputStream->write(buffer + curPos, blockOutputStream->remaining());
-            bytesToWrite -= written;
+            written = blockOutputStream->write(buffer + bytesWritten, blockOutputStream->remaining());
             needUpdate = true;
         }
+
+        /* update statistics */
+        bytesToWrite -= written;
+        bytesWritten += written;
+        mPos += written;
+        status->setPosition(mPos);
     }
 }
 
 void OutputStream::updateBlockStream(){
+    /* TODO: Implement this once we make BlockOutput stream a buffered stream */
     blockOutputStream->flush();
 
-    /* get current block info */
+    /* Update the BlockInfo of the BlockOutputStream */
     BlockInfo info = status->getCurBlockInfo();
-    blockOutputStream->setPosition(info.id, info.offset);
+    blockOutputStream->setBlockInfo(info.id, info.offset);
 }
 
 OutputStream::~OutputStream(){

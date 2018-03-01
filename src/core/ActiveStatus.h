@@ -45,6 +45,10 @@ class ActiveStatus {
 public:
     ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
+    int64_t getPosition();
+
+    void setPosition(int64_t pos);
+
     BlockInfo getCurBlockInfo();
 
     ~ActiveStatus();
@@ -60,6 +64,7 @@ private:
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     FileId mfileId;
     int64_t mPos;
+    int64_t mEof;
     int32_t mNumBlocks;
     std::vector<Block> mBlockArray;
 };

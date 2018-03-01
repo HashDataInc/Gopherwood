@@ -30,17 +30,33 @@ ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> shared
         mSharedMemoryContext(sharedMemoryContext){
     mNumBlocks = 0;
     mPos = 0;
+    mEof = 0;
     mfileId.hashcode = fileId.hashcode;
     mfileId.collisionId = fileId.collisionId;
 }
 
+int64_t ActiveStatus::getPosition(){
+    return mPos;
+}
+
+void ActiveStatus::setPosition(int64_t pos){
+    mPos = pos;
+    if (mPos > mEof){
+        mEof = mPos;
+    }
+}
+
+/* When calling this function, it means out/in stream
+ * wants to access this block. Thus we need to update
+ * quota or check the LRU status. */
 BlockInfo ActiveStatus::getCurBlockInfo()
 {
-    if (needNewBlock())
-    {
+    /* check if we need to acquire more blocks */
+    if (needNewBlock()) {
         acquireNewBlocks();
     }
 
+    /* build the block info */
     BlockInfo info;
     info.id = getCurBlockId();
     info.offset = getCurBlockOffset();
@@ -67,6 +83,8 @@ void ActiveStatus::acquireNewBlocks()
 
     for (std::vector<int32_t>::size_type i=0; i<newBlockIds.size(); i++)
     {
+        LOG(INFO, "[ActiveStatus::acquireNewBlocks] add block %d.",
+            newBlockIds[i]);
         Block newBlock(newBlockIds[i]);
         mBlockArray.push_back(newBlock);
     }

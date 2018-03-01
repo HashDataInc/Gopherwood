@@ -21,6 +21,7 @@
  */
 #include "block/BlockOutputStream.h"
 #include "common/Configuration.h"
+#include "common/Logger.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -31,8 +32,10 @@ BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd)
     mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
 }
 
-void BlockOutputStream::setPosition(int32_t newBlockId, int64_t newBlockOffset)
+void BlockOutputStream::setBlockInfo(int32_t newBlockId, int64_t newBlockOffset)
 {
+    LOG(INFO, "[BlockOutputStream::setBlockInfo] Set BlockInfo, new blockId=%d, new blockOffset=%ld",
+    newBlockId, newBlockOffset);
     mBlockId = newBlockId;
     mBlockOffset = newBlockOffset;
 }
@@ -52,10 +55,16 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length)
         {
             mLocalWriter->seek(getLocalSpaceOffset());
         }
+        LOG(INFO, "[BlockOutputStream::write] Write to local space, blockId=%d, offset=%ld, length=%ld",
+        mBlockId, mBlockOffset, length);
         written = mLocalWriter->writeLocal(buffer, length);
     } else{
         /* Write to OSS */
     }
+
+    mBlockOffset += written;
+    assert(mBlockOffset<=mBlockSize);
+
     return written;
 }
 

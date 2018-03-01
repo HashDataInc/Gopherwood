@@ -43,7 +43,7 @@ private:
     int mLocalSpaceFD;
     shared_ptr<BlockOutputStream> blockOutputStream;
     shared_ptr<ActiveStatus> status;
-    int64_t pos;
+    int64_t mPos;
 };
 
 }

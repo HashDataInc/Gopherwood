@@ -48,7 +48,7 @@ std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId)
     {
         if(buckets[i].isFreeBucket())
         {
-            LOG(INFO, "got one free bucket");
+            LOG(INFO, "[SharedMemoryContext::acquireBlock] got one free bucket(%d)", i);
             buckets[i].setBucketActive();
             res.push_back(i);
             numBlocksToAcquire--;

@@ -20,6 +20,7 @@
  * limitations under the License.
  */
 #include "block/LocalBlockWriter.h"
+#include "common/Logger.h"
 
 namespace Gopherwood {
 namespace Internal {

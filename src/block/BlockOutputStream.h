@@ -33,7 +33,7 @@ class BlockOutputStream {
 public:
     BlockOutputStream(int fd);
 
-    void setPosition(int32_t blockId, int64_t blockOffset);
+    void setBlockInfo(int32_t blockId, int64_t blockOffset);
 
     int64_t remaining();
 
