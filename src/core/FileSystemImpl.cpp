@@ -1106,6 +1106,8 @@ namespace Gopherwood {
             LOG(INFO, "FileSystemImpl::deleteFile. 2. in the end the  shared memory status is :");
             //**************TODO JUST FOR TEST, NEET TO BE DELETED********************************
 
+            //5. remove the fileStatus from the fileStatusMap
+            fileStatusMap.erase(fileName);
         }
 
 
