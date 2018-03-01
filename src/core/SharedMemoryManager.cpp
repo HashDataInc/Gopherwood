@@ -25,6 +25,10 @@ namespace Gopherwood {
         }
 
         bool SharedMemoryManager::checkSharedMemoryInFile() {
+            if (!semaphoreP()) {
+                LOG(LOG_ERROR, "can not acquire the semaphore, create SharedMemory failure");
+            }
+
             int flags = O_RDONLY;
             int sharedMemoryFd = open(SHARED_MEMORY_PATH_FILE_NAME, flags, 0777);
             if (sharedMemoryFd < 0) {
@@ -33,6 +37,10 @@ namespace Gopherwood {
             } else {
                 LOG(INFO, "the shared memory file exist");
             }
+
+            if (!semaphoreV()) {
+                LOG(LOG_ERROR, "can not release the semaphore, create SharedMemory failure");
+            }
         }
 
 
@@ -40,10 +48,6 @@ namespace Gopherwood {
          * create the shared memory
          */
         void SharedMemoryManager::createSharedMemory() {
-            if (!semaphoreP()) {
-                LOG(LOG_ERROR, "can not acquire the semaphore, create SharedMemory failure");
-            }
-
             file_mapping::remove(SHARED_MEMORY_PATH_FILE_NAME);
             std::filebuf fbuf;
             fbuf.open(SHARED_MEMORY_PATH_FILE_NAME, std::ios_base::in | std::ios_base::out
@@ -52,9 +56,6 @@ namespace Gopherwood {
             //IMPORTANT,init the shared memory to '0', not 0
             for (int i = 0; i < TOTAL_SHARED_MEMORY_LENGTH; i++) {
                 fbuf.sputc('0');
-            }
-            if (!semaphoreV()) {
-                LOG(LOG_ERROR, "can not release the semaphore, create SharedMemory failure");
             }
         }
 
