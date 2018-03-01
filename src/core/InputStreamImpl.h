@@ -86,10 +86,10 @@ namespace Gopherwood {
 
         private:
             std::shared_ptr<FileSystemInter> filesystem;
-            int32_t cursorBucketID; // the cursor bucket id of the output stream
-            int32_t cursorIndex;//the index of the cursorBucketID. status->getBlockIdVector()[cursorIndex] = cursorBucketID
+            int32_t cursorBucketID = 0; // the cursor bucket id of the output stream
+            int32_t cursorIndex = 0;//the index of the cursorBucketID. status->getBlockIdVector()[cursorIndex] = cursorBucketID
 
-            int64_t cursorOffset;// the cursor offset of the output stream
+            int64_t cursorOffset = 0;// the cursor offset of the output stream
             string fileName;
 
 

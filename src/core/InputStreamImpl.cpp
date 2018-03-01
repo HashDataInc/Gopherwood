@@ -54,6 +54,14 @@ namespace Gopherwood {
         //TODO should do chase from log first
         int32_t InputStreamImpl::read(char *buf, int32_t size) {
             try {
+                int64_t pos = cursorIndex * SIZE_OF_BLOCK + cursorOffset;
+                if (pos >= filesystem->getTheEOFOffset(fileName.c_str())) {
+                    *buf = NULL;
+                    LOG(INFO,
+                        "InputStreamImpl::read. the seek pos exceed the file size which pos =%d, and the endOffsetOfBucket=%d ",
+                        pos, filesystem->getTheEOFOffset(fileName.c_str()));
+                    return 0;
+                }
                 int32_t done = readInternal(buf, size);
                 return done;
             } catch (...) {
