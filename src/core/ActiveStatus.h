@@ -51,11 +51,14 @@ private:
 
     void acquireNewBlocks();
 
+    void extendOneBlock();
+
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     FileId mfileId;
     int64_t mPos;
     int64_t mEof;
     int32_t mNumBlocks;
+    int64_t mBlockSize;
     std::vector<Block> mBlockArray;
     std::vector<Block> mPreAllocatedBlocks;
 };

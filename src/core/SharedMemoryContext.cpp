@@ -25,8 +25,8 @@
 namespace Gopherwood {
 namespace Internal {
 
-SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> &region) :
-        workDir(dir), mShareMem(region) {
+SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD) :
+        workDir(dir), mShareMem(region), mLockFD(lockFD) {
     void* addr = region->get_address();
     header = static_cast<ShareMemHeader*>(addr);
     buckets = static_cast<ShareMemBucket*>((void*)((char*)addr+sizeof(ShareMemHeader)));
@@ -39,7 +39,6 @@ void SharedMemoryContext::reset() {
 std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId)
 {
     std::vector<int32_t> res;
-    getMutex();
 
     int numBlocksToAcquire = calcBlockAcquireNum();
     LOG(INFO, "[SharedMemoryContext::acquireBlock] need to acquire %d blocks.", numBlocksToAcquire);
@@ -63,7 +62,6 @@ std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId)
     {
     }
 
-    releaseMutex();
     return res;
 }
 
@@ -72,12 +70,14 @@ int SharedMemoryContext::calcBlockAcquireNum()
     return 1;
 }
 
-void SharedMemoryContext::getMutex()
+void SharedMemoryContext::lock()
 {
+    lockf(mLockFD, F_LOCK, 0);
 }
 
-void SharedMemoryContext::releaseMutex()
+void SharedMemoryContext::unlock()
 {
+    lockf(mLockFD, F_ULOCK, 0);
 }
 
 SharedMemoryContext::~SharedMemoryContext() {

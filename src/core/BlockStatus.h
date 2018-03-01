@@ -26,6 +26,9 @@
 namespace Gopherwood {
 namespace Internal {
 
+#define InvalidBlockId  -1
+#define LocalBlock      true
+#define RemoteBlock     false
 
 typedef struct Block {
     int32_t     bucketId;

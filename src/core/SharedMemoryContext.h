@@ -65,22 +65,23 @@ typedef struct ShareMemBucket {
 
 class SharedMemoryContext {
 public:
-    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> &region);
+    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD);
 
     std::vector<int32_t> acquireBlock(FileId fileId);
 
     void reset();
 
+    void lock();
+
+    void unlock();
+
     ~SharedMemoryContext();
 private:
     int calcBlockAcquireNum();
 
-    void getMutex();
-
-    void releaseMutex();
-
     std::string workDir;
     shared_ptr<mapped_region> mShareMem;
+    int mLockFD;
     ShareMemHeader* header;
     ShareMemBucket* buckets;
 };

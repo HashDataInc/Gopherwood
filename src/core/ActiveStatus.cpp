@@ -31,6 +31,7 @@ ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> shared
     mNumBlocks = 0;
     mPos = 0;
     mEof = 0;
+    mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
     mfileId.hashcode = fileId.hashcode;
     mfileId.collisionId = fileId.collisionId;
 }
@@ -51,10 +52,18 @@ void ActiveStatus::setPosition(int64_t pos){
  * quota or check the LRU status. */
 BlockInfo ActiveStatus::getCurBlockInfo()
 {
-    /* check if we need to acquire more blocks */
-    if (needNewBlock()) {
-        acquireNewBlocks();
+    /* TODO: Enhance for more cases */
+    int curBlockIndex = mPos/mBlockSize;
+
+    /* LOCK SHARED MEOMRY*/
+    mSharedMemoryContext->lock();
+
+    if (curBlockIndex + 1 > mNumBlocks){
+        extendOneBlock();
     }
+
+    /* UNLOCK SHARED MEOMRY*/
+    mSharedMemoryContext->unlock();
 
     /* build the block info */
     BlockInfo info;
@@ -66,17 +75,17 @@ BlockInfo ActiveStatus::getCurBlockInfo()
 }
 Block ActiveStatus::getCurBlock()
 {
-    return mBlockArray[mPos/Configuration::LOCAL_BLOCK_SIZE];
+    return mBlockArray[mPos/mBlockSize];
 }
 
 int64_t ActiveStatus::getCurBlockOffset()
 {
-    return mPos % Configuration::LOCAL_BLOCK_SIZE;
+    return mPos % mBlockSize;
 }
 
 bool ActiveStatus::needNewBlock()
 {
-    int curBlockInd = mPos/Configuration::LOCAL_BLOCK_SIZE;
+    int curBlockInd = mPos/mBlockSize;
     return (mNumBlocks <= 0 ||                              // empty file
             curBlockInd >= mNumBlocks ||                    // append more data
             !mBlockArray[curBlockInd].isLocal ||            // block been evicted
@@ -88,15 +97,25 @@ void ActiveStatus::acquireNewBlocks()
 {
     std::vector<int32_t> newBlocks = mSharedMemoryContext->acquireBlock(mfileId);
 
-    /* TODO:
-     * put to pre allocated list first */
-
     for (std::vector<int32_t>::size_type i=0; i<newBlocks.size(); i++)
     {
         LOG(INFO, "[ActiveStatus::acquireNewBlocks] add block %d.", newBlocks[i]);
-        Block newBlock(newBlocks[i], mBlockArray.size(),true, BUCKET_ACTIVE);
-        mBlockArray.push_back(newBlock);
+        Block newBlock(newBlocks[i], InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
+        mPreAllocatedBlocks.push_back(newBlock);
     }
+}
+
+/* get block from pre-allocated blocks */
+void ActiveStatus::extendOneBlock(){
+    if (mPreAllocatedBlocks.size() == 0) {
+        acquireNewBlocks();
+    }
+
+    Block b = mPreAllocatedBlocks.back();
+    mPreAllocatedBlocks.pop_back();
+    b.blockId = mNumBlocks;
+    mBlockArray.push_back(b);
+    mNumBlocks++;
 }
 
 ActiveStatus::~ActiveStatus() {

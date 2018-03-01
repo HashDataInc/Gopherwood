@@ -87,7 +87,7 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
         }
     }
 
-    ctx = shared_ptr <SharedMemoryContext> (new SharedMemoryContext(workDir, region));
+    ctx = shared_ptr <SharedMemoryContext> (new SharedMemoryContext(workDir, region, lockFD));
 
     /* TODO: Rebuild Shared Memory status from existing manifest logs */
     if (!shmExist) {
