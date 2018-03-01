@@ -284,6 +284,11 @@ namespace Gopherwood {
 
             //2. get the blockID which seeks to
             int64_t blockIndex = pos / SIZE_OF_BLOCK;
+            /*BUG-FIX. if the file size is the multiple of the SIZE_OF_BLOCK. for example, if the SIZE_OF_BLOCK=1024, and the pos=1024.
+             so this need to acquire more blocks.*/
+            while (blockIndex == status->getBlockIdVector().size()) {
+                filesystem->acquireNewBlock((char *) fileName.data());
+            }
             int blockID = status->getBlockIdVector()[blockIndex];
 
             LOG(INFO, "InputStreamImpl::checkStatus. blockID=%d", blockID);
