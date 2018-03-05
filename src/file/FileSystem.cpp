@@ -22,8 +22,6 @@
 #include "FileSystem.h"
 #include "common/Configuration.h"
 #include "common/hash.h"
-#include "common/Logger.h"
-#include "core/ActiveStatus.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -42,6 +40,15 @@ FileSystem::FileSystem(const char *workDir) :
     ss << workDir << "/SmLock";
     filePath = ss.str();
     int32_t lockFile = open(filePath.c_str(), flags, 0644);
+
+    /* create Manifest log folder */
+    ss.str("");
+    ss << workDir << Configuration::MANIFEST_FOLDER;
+    filePath = ss.str();
+    struct stat st = {0};
+    if (stat(filePath.c_str(), &st) == -1) {
+        mkdir(filePath.c_str(), 0755);
+    }
 
     mSharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir, lockFile);
     mActiveStatusContext = shared_ptr<ActiveStatusContext>(new ActiveStatusContext(mSharedMemoryContext));

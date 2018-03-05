@@ -27,57 +27,54 @@ namespace Internal {
 
 SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD) :
         workDir(dir), mShareMem(region), mLockFD(lockFD) {
-    void* addr = region->get_address();
-    header = static_cast<ShareMemHeader*>(addr);
-    buckets = static_cast<ShareMemBucket*>((void*)((char*)addr+sizeof(ShareMemHeader)));
+    void *addr = region->get_address();
+    header = static_cast<ShareMemHeader *>(addr);
+    buckets = static_cast<ShareMemBucket *>((void *) ((char *) addr + sizeof(ShareMemHeader)));
 }
 
 void SharedMemoryContext::reset() {
     std::memset(mShareMem->get_address(), 0, mShareMem->get_size());
 }
 
-std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId)
-{
+std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId) {
     std::vector<int32_t> res;
 
     int numBlocksToAcquire = calcBlockAcquireNum();
     LOG(INFO, "[SharedMemoryContext::acquireBlock] need to acquire %d blocks.", numBlocksToAcquire);
     /* pick up from free buckets */
-    for(int32_t i=0; i<header->numBlocks; i++)
-    {
-        if(buckets[i].isFreeBucket())
-        {
+    for (int32_t i = 0; i < header->numBlocks; i++) {
+        if (buckets[i].isFreeBucket()) {
             LOG(INFO, "[SharedMemoryContext::acquireBlock] got one free bucket(%d)", i);
             buckets[i].setBucketActive();
             res.push_back(i);
             numBlocksToAcquire--;
-            if (numBlocksToAcquire == 0){
+            if (numBlocksToAcquire == 0) {
                 break;
             }
         }
     }
 
     /* TODO: pick up from Used buckets and evict them */
-    if (numBlocksToAcquire > 0)
-    {
+    if (numBlocksToAcquire > 0) {
     }
 
     return res;
 }
 
-int SharedMemoryContext::calcBlockAcquireNum()
-{
+int SharedMemoryContext::calcBlockAcquireNum() {
     return 1;
 }
 
-void SharedMemoryContext::lock()
-{
+void SharedMemoryContext::lock() {
     lockf(mLockFD, F_LOCK, 0);
 }
 
-void SharedMemoryContext::unlock()
-{
+void SharedMemoryContext::unlock() {
     lockf(mLockFD, F_ULOCK, 0);
+}
+
+std::string &SharedMemoryContext::getWorkDir() {
+    return workDir;
 }
 
 SharedMemoryContext::~SharedMemoryContext() {

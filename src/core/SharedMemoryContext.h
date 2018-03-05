@@ -35,12 +35,13 @@ namespace Internal {
 using namespace boost::interprocess;
 
 typedef struct ShareMemHeader {
-    uint8_t     flags;
-    char        padding[3];
-    int32_t    numBlocks;
+    uint8_t flags;
+    char padding[3];
+    int32_t numBlocks;
 
-    inline void enter() {flags|=0x01;};
-    inline void exit() {flags&=0xFE;};
+    inline void enter() { flags |= 0x01; };
+
+    inline void exit() { flags &= 0xFE; };
 } ShareMemHeader;
 
 #define BucketTypeMask 0xFFFFFFFC
@@ -53,13 +54,17 @@ typedef struct ShareMemBucket {
     FileId fileId;
     int32_t fileBlockIndex;
 
-    bool isFreeBucket() {return (flags&0x00000003)==0 ? true : false;};
-    bool isActiveBucket() {return (flags&0x00000003)==1 ? true : false;};
-    bool isUsedBucket() {return (flags&0x00000003)==2 ? true : false;};
+    bool isFreeBucket() { return (flags & 0x00000003) == 0 ? true : false; };
 
-    void setBucketFree() {flags = flags&BucketTypeMask;};
-    void setBucketActive() {flags = (flags&BucketTypeMask)|0x00000001;};
-    void setBucketUsed() {flags = (flags&BucketTypeMask)|0x00000002;};
+    bool isActiveBucket() { return (flags & 0x00000003) == 1 ? true : false; };
+
+    bool isUsedBucket() { return (flags & 0x00000003) == 2 ? true : false; };
+
+    void setBucketFree() { flags = flags & BucketTypeMask; };
+
+    void setBucketActive() { flags = (flags & BucketTypeMask) | 0x00000001; };
+
+    void setBucketUsed() { flags = (flags & BucketTypeMask) | 0x00000002; };
 } ShareMemBucket;
 
 
@@ -75,15 +80,18 @@ public:
 
     void unlock();
 
+    std::string &getWorkDir();
+
     ~SharedMemoryContext();
+
 private:
     int calcBlockAcquireNum();
 
     std::string workDir;
     shared_ptr<mapped_region> mShareMem;
     int mLockFD;
-    ShareMemHeader* header;
-    ShareMemBucket* buckets;
+    ShareMemHeader *header;
+    ShareMemBucket *buckets;
 };
 
 }

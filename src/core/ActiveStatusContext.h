@@ -42,6 +42,7 @@ public:
     shared_ptr<ActiveStatus> initFileActiveStatus(FileId fileId);
 
     ~ActiveStatusContext();
+
 private:
     unordered_map<std::string, shared_ptr<ActiveStatus>> mActiveStatusMap;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;

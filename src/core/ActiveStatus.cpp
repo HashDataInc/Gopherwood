@@ -27,13 +27,13 @@ namespace Gopherwood {
 namespace Internal {
 
 ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
-        mSharedMemoryContext(sharedMemoryContext){
+        mFileId(fileId), mSharedMemoryContext(sharedMemoryContext){
     mNumBlocks = 0;
     mPos = 0;
     mEof = 0;
     mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
-    mfileId.hashcode = fileId.hashcode;
-    mfileId.collisionId = fileId.collisionId;
+
+    mManifest = shared_ptr<Manifest>(new Manifest(getManifestFileName(mFileId)));
 }
 
 int64_t ActiveStatus::getPosition(){
@@ -95,14 +95,17 @@ bool ActiveStatus::needNewBlock()
 
 void ActiveStatus::acquireNewBlocks()
 {
-    std::vector<int32_t> newBlocks = mSharedMemoryContext->acquireBlock(mfileId);
+    std::vector<Block> blocksForLog;
+    std::vector<int32_t> newBlocks = mSharedMemoryContext->acquireBlock(mFileId);
 
     for (std::vector<int32_t>::size_type i=0; i<newBlocks.size(); i++)
     {
         LOG(INFO, "[ActiveStatus::acquireNewBlocks] add block %d.", newBlocks[i]);
         Block newBlock(newBlocks[i], InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
+        blocksForLog.push_back(newBlock);
         mPreAllocatedBlocks.push_back(newBlock);
     }
+    mManifest->logAcquireNewBlock(blocksForLog);
 }
 
 /* get block from pre-allocated blocks */
@@ -116,6 +119,12 @@ void ActiveStatus::extendOneBlock(){
     b.blockId = mNumBlocks;
     mBlockArray.push_back(b);
     mNumBlocks++;
+}
+
+std::string ActiveStatus::getManifestFileName(FileId fileId) {
+    std::stringstream ss;
+    ss << mSharedMemoryContext->getWorkDir() << Configuration::MANIFEST_FOLDER << '/' << mFileId.hashcode << '-' << mFileId.collisionId;
+    return ss.str();
 }
 
 ActiveStatus::~ActiveStatus() {

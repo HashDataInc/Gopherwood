@@ -27,6 +27,7 @@
 #include "file/FileId.h"
 #include "core/SharedMemoryContext.h"
 #include "core/BlockStatus.h"
+#include "core/Manifest.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -42,6 +43,7 @@ public:
     BlockInfo getCurBlockInfo();
 
     ~ActiveStatus();
+
 private:
     Block getCurBlock();
 
@@ -53,14 +55,21 @@ private:
 
     void extendOneBlock();
 
+    std::string getManifestFileName(FileId fileId);
+
+    /* Fields */
+    FileId mFileId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
-    FileId mfileId;
+    shared_ptr<Manifest> mManifest;
+
     int64_t mPos;
     int64_t mEof;
     int32_t mNumBlocks;
     int64_t mBlockSize;
+
     std::vector<Block> mBlockArray;
     std::vector<Block> mPreAllocatedBlocks;
+
 };
 
 

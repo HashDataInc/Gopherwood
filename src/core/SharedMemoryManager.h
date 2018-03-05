@@ -40,16 +40,16 @@ class SharedMemoryManager {
 public:
     static shared_ptr<SharedMemoryManager> getInstance() {
         if (!instance)
-            instance = shared_ptr < SharedMemoryManager > (new SharedMemoryManager());
+            instance = shared_ptr<SharedMemoryManager>(new SharedMemoryManager());
         return instance;
     };
 
-    shared_ptr<SharedMemoryContext> buildSharedMemoryContext(const char* workDir, int32_t lockFD);
+    shared_ptr<SharedMemoryContext> buildSharedMemoryContext(const char *workDir, int32_t lockFD);
 
 private:
-    shared_ptr<shared_memory_object> createSharedMemory(const char* name);
+    shared_ptr<shared_memory_object> createSharedMemory(const char *name);
 
-    shared_ptr<shared_memory_object> openSharedMemory(const char* name, bool* exist);
+    shared_ptr<shared_memory_object> openSharedMemory(const char *name, bool *exist);
 
     void rebuildShmFromManifest(shared_ptr<SharedMemoryContext> ctx);
 

@@ -25,22 +25,19 @@ namespace Gopherwood {
 namespace Internal {
 
 ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext) :
-        mSharedMemoryContext(sharedMemoryContext){
+        mSharedMemoryContext(sharedMemoryContext) {
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId)
-{
+shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId) {
     unordered_map<std::string, shared_ptr<ActiveStatus>>::iterator item =
             mActiveStatusMap.find(fileId.toString());
-    if (item != mActiveStatusMap.end())
-    {
+    if (item != mActiveStatusMap.end()) {
         return item->second;
     }
     return NULL;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId)
-{
+shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId) {
     shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mSharedMemoryContext));
     mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;

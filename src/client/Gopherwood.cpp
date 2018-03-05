@@ -28,8 +28,6 @@
 
 #include "gopherwood.h"
 #include "file/FileSystem.h"
-#include "file/InputStream.h"
-#include "file/OutputStream.h"
 
 #ifdef __cplusplus
 extern "C" {
