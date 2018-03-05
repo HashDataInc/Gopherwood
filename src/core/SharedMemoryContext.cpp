@@ -67,9 +67,11 @@ int SharedMemoryContext::calcBlockAcquireNum() {
 
 void SharedMemoryContext::lock() {
     lockf(mLockFD, F_LOCK, 0);
+    header->enter();
 }
 
 void SharedMemoryContext::unlock() {
+    header->exit();
     lockf(mLockFD, F_ULOCK, 0);
 }
 

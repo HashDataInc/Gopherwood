@@ -50,8 +50,7 @@ void ActiveStatus::setPosition(int64_t pos){
 /* When calling this function, it means out/in stream
  * wants to access this block. Thus we need to update
  * quota or check the LRU status. */
-BlockInfo ActiveStatus::getCurBlockInfo()
-{
+BlockInfo ActiveStatus::getCurBlockInfo() {
     /* TODO: Enhance for more cases */
     int curBlockIndex = mPos/mBlockSize;
 
@@ -73,18 +72,16 @@ BlockInfo ActiveStatus::getCurBlockInfo()
     info.offset = getCurBlockOffset();
     return info;
 }
-Block ActiveStatus::getCurBlock()
-{
+
+Block ActiveStatus::getCurBlock() {
     return mBlockArray[mPos/mBlockSize];
 }
 
-int64_t ActiveStatus::getCurBlockOffset()
-{
+int64_t ActiveStatus::getCurBlockOffset() {
     return mPos % mBlockSize;
 }
 
-bool ActiveStatus::needNewBlock()
-{
+bool ActiveStatus::needNewBlock() {
     int curBlockInd = mPos/mBlockSize;
     return (mNumBlocks <= 0 ||                              // empty file
             curBlockInd >= mNumBlocks ||                    // append more data
@@ -93,8 +90,7 @@ bool ActiveStatus::needNewBlock()
              mBlockArray[curBlockInd].state==BUCKET_USED));
 }
 
-void ActiveStatus::acquireNewBlocks()
-{
+void ActiveStatus::acquireNewBlocks() {
     std::vector<Block> blocksForLog;
     std::vector<int32_t> newBlocks = mSharedMemoryContext->acquireBlock(mFileId);
 
@@ -105,11 +101,15 @@ void ActiveStatus::acquireNewBlocks()
         blocksForLog.push_back(newBlock);
         mPreAllocatedBlocks.push_back(newBlock);
     }
+
+    /* Manifest Log */
     mManifest->logAcquireNewBlock(blocksForLog);
 }
 
 /* get block from pre-allocated blocks */
 void ActiveStatus::extendOneBlock(){
+    std::vector<Block> blocksForLog;
+
     if (mPreAllocatedBlocks.size() == 0) {
         acquireNewBlocks();
     }
@@ -119,6 +119,10 @@ void ActiveStatus::extendOneBlock(){
     b.blockId = mNumBlocks;
     mBlockArray.push_back(b);
     mNumBlocks++;
+    blocksForLog.push_back(b);
+
+    /* Manifest Log */
+    mManifest->extendBlock(blocksForLog);
 }
 
 std::string ActiveStatus::getManifestFileName(FileId fileId) {
