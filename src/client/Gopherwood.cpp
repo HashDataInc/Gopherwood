@@ -87,6 +87,20 @@ static void handleException(const Gopherwood::exception_ptr &error) {
                 Gopherwood::Internal::GetExceptionDetail(error, buffer));
 
         Gopherwood::rethrow_exception(error);
+    } catch (const Gopherwood::GopherwoodInvalidParmException &) {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Handle Gopherwood Invalid Parameter Exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+        errno = EINVALIDPARM;
+    } catch (const Gopherwood::GopherwoodSharedMemException &) {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Handle Gopherwood Shared Memory Exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+        errno = ESHRMEM;
     } catch (const Gopherwood::GopherwoodSyncException &) {
         std::string buffer;
         LOG(
@@ -153,7 +167,15 @@ tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length) {
     return 0;
 }
 
-int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos) {
+int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int mode) {
+    try {
+        file->getFile().seek(desiredPos, mode);
+        return 0;
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+
     return -1;
 }
 

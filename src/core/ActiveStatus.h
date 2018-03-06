@@ -40,6 +40,8 @@ public:
 
     void setPosition(int64_t pos);
 
+    int64_t getEof();
+
     BlockInfo getCurBlockInfo();
 
     void flush();

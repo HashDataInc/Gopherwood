@@ -52,6 +52,16 @@ public:
     }
 };
 
+class GopherwoodInvalidParmException: public GopherwoodException {
+public:
+    GopherwoodInvalidParmException(const std::string &arg, const char *file, int line, const char *stack) :
+            GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodInvalidParmException() throw () {
+    }
+};
+
 class GopherwoodSyncException: public GopherwoodException {
 public:
     GopherwoodSyncException(const std::string &arg, const char *file, int line, const char *stack) :

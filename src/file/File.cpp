@@ -21,6 +21,8 @@
  */
 #include "file/File.h"
 #include "client/gopherwood.h"
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -42,9 +44,29 @@ File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<Active
     }
 }
 
-void File::write(const char *buffer, int64_t length)
-{
+void File::write(const char *buffer, int64_t length) {
     mOutStream->write(buffer, length);
+}
+
+void File::seek(int64_t pos, int mode) {
+    int64_t eof = mStatus->getEof();
+    int64_t targetPos = -1;
+
+    if (mode == SEEK_SET) {
+        targetPos = pos;
+    } else if (mode == SEEK_CUR){
+        targetPos = mStatus->getPosition() + pos;
+    } else if (mode == SEEK_END){
+        targetPos = eof + pos;
+    }
+
+    if (targetPos >= 0 && targetPos <= eof){
+        mStatus->setPosition(targetPos);
+    } else{
+        THROW(GopherwoodInvalidParmException,
+              "[File::seek] target offset %ld exceed Eof %ld",
+              targetPos, eof);
+    }
 }
 
 void File::close() {
@@ -57,7 +79,6 @@ void File::close() {
     if (mInStream){
         mInStream->close();
     }
-
 }
 
 File::~File() {

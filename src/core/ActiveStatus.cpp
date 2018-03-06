@@ -54,6 +54,10 @@ void ActiveStatus::setPosition(int64_t pos){
     }
 }
 
+int64_t ActiveStatus::getEof() {
+    return mEof;
+}
+
 /* When calling this function, it means out/in stream
  * wants to access this block. Thus we need to update
  * quota or check the LRU status. */

@@ -39,7 +39,9 @@ extern "C" {
 
 /* error number mapping */
 #define EGOPHERWOOD     100     //GopherException
-#define ESYNC           101     //
+#define ESYNC           101     //GopherwoodSyncException
+#define EINVALIDPARM    102     //GopherwoodInvalidParmException
+#define ESHRMEM         103     //GopherwoodSharedMemException
 
 /*******************************************
  * AccessFileType - the access file's type
@@ -133,7 +135,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
  */
 //TODO  in this implement, only the read-only mode can seek the file,
 //      write mode are not allowed.
-int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos);
+int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int mode);
 
 /**
  * gwCloseFile - Close an open file.
