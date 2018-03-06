@@ -62,6 +62,16 @@ public:
     }
 };
 
+class GopherwoodSharedMemException: public GopherwoodException {
+public:
+    GopherwoodSharedMemException(const std::string &arg, const char *file, int line, const char *stack) :
+            GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodSharedMemException() throw () {
+    }
+};
+
 class GopherwoodCanceled: public GopherwoodException {
 public:
     GopherwoodCanceled(const std::string & arg, const char * file, int line, const char * stack) :

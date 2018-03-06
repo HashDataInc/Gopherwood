@@ -20,6 +20,8 @@
  * limitations under the License.
  */
 #include "SharedMemoryContext.h"
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
 #include "common/Logger.h"
 
 namespace Gopherwood {
@@ -59,6 +61,20 @@ std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId) {
     }
 
     return res;
+}
+
+void SharedMemoryContext::releaseBlock(std::vector<Block> &blocks) {
+    for (uint32_t i=0; i<blocks.size(); i++) {
+        int32_t bucketId = blocks[i].bucketId;
+        if (buckets[bucketId].isActiveBucket()){
+            buckets[bucketId].setBucketFree();
+        } else{
+            THROW(
+                    GopherwoodSharedMemException,
+                    "[SharedMemoryContext::releaseBlock] state of bucket %d is not Active",
+                    bucketId);
+        }
+    }
 }
 
 int SharedMemoryContext::calcBlockAcquireNum() {

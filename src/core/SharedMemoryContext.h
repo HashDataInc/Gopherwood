@@ -74,6 +74,8 @@ public:
 
     std::vector<int32_t> acquireBlock(FileId fileId);
 
+    void releaseBlock(std::vector<Block> &blocks);
+
     void reset();
 
     void lock();

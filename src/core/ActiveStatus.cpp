@@ -30,6 +30,9 @@ namespace Internal {
                             mManifest->catchUpLog();
 #define MANIFEST_LOG_END    mManifest->unlock();
 
+#define SHARED_MEM_BEGIN    mSharedMemoryContext->lock();
+#define SHARED_MEM_END      mSharedMemoryContext->unlock();
+
 ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
         mFileId(fileId), mSharedMemoryContext(sharedMemoryContext){
     mNumBlocks = 0;
@@ -58,15 +61,13 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
     /* TODO: Enhance for more cases */
     int curBlockIndex = mPos/mBlockSize;
 
-    /* LOCK SHARED MEOMRY*/
-    mSharedMemoryContext->lock();
+    SHARED_MEM_BEGIN
 
     if (curBlockIndex + 1 > mNumBlocks){
         extendOneBlock();
     }
 
-    /* UNLOCK SHARED MEMORY*/
-    mSharedMemoryContext->unlock();
+    SHARED_MEM_END
 
     /* build the block info */
     BlockInfo info;
@@ -140,8 +141,10 @@ void ActiveStatus::flush() {
 
 /* truncate existing Manifest file and flush latest block status to it */
 void ActiveStatus::archive() {
-    /* release all preAllocatedBlocks
-     * TODO: */
+    /* release all preAllocatedBlocks */
+    SHARED_MEM_BEGIN
+    mSharedMemoryContext->releaseBlock(mPreAllocatedBlocks);
+    SHARED_MEM_END
 
     /* truncate existing Manifest file and flush latest block status to it */
     MANIFEST_LOG_BEGIN
