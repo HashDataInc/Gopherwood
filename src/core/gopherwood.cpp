@@ -226,7 +226,7 @@ gopherwoodFS gwCreateContext() {
 }
 
 
-int destroyContext(gopherwoodFS fs) {
+int gwDestroyContext(gopherwoodFS fs) {
     return fs->getFilesystem().destroyFileSystem();
 }
 
@@ -413,12 +413,12 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
 */
 
 //TODO
-int deleteFile(char *filePath) {
+int gwDeleteFile(char *filePath) {
     return 0;
 }
 
 //TODO. this may be rethinking, why and how cancel the operation?
-int cancelFile(gopherwoodFS fs, gwFile file) {
+int gwCancelFile(gopherwoodFS fs, gwFile file) {
     return 0;
 }
 

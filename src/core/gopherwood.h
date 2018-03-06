@@ -77,7 +77,7 @@ extern "C"
 gopherwoodFS gwCreateContext();
 
 
-int destroyContext(gopherwoodFS fs);
+int gwDestroyContext(gopherwoodFS fs);
 
 
 /**
@@ -148,11 +148,11 @@ int gwCloseFile(gopherwoodFS fs, gwFile file);
 
 //int deleteFile(gopherwoodFS fs, gwFile file);
 //TODO
-int deleteFile(char *filePath);
+int gwDeleteFile(char *filePath);
 
 
 //TODO
-int cancelFile(gopherwoodFS fs, gwFile file);
+int gwCancelFile(gopherwoodFS fs, gwFile file);
 
 
 GWFileInfo *gwStatFile(gopherwoodFS fs, gwFile file);
