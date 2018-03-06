@@ -42,6 +42,10 @@ public:
 
     BlockInfo getCurBlockInfo();
 
+    void flush();
+
+    void archive();
+
     ~ActiveStatus();
 
 private:

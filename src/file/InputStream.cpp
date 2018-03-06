@@ -28,6 +28,10 @@ InputStream::InputStream() {
 
 }
 
+void InputStream::close() {
+
+}
+
 InputStream::~InputStream(){
     
 }

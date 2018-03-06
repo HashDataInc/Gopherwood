@@ -26,6 +26,10 @@
 namespace Gopherwood {
 namespace Internal {
 
+#define MANIFEST_LOG_BEGIN  mManifest->lock(); \
+                            mManifest->catchUpLog();
+#define MANIFEST_LOG_END    mManifest->unlock();
+
 ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
         mFileId(fileId), mSharedMemoryContext(sharedMemoryContext){
     mNumBlocks = 0;
@@ -61,7 +65,7 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
         extendOneBlock();
     }
 
-    /* UNLOCK SHARED MEOMRY*/
+    /* UNLOCK SHARED MEMORY*/
     mSharedMemoryContext->unlock();
 
     /* build the block info */
@@ -103,7 +107,9 @@ void ActiveStatus::acquireNewBlocks() {
     }
 
     /* Manifest Log */
+    MANIFEST_LOG_BEGIN
     mManifest->logAcquireNewBlock(blocksForLog);
+    MANIFEST_LOG_END
 }
 
 /* get block from pre-allocated blocks */
@@ -122,7 +128,25 @@ void ActiveStatus::extendOneBlock(){
     blocksForLog.push_back(b);
 
     /* Manifest Log */
-    mManifest->extendBlock(blocksForLog);
+    MANIFEST_LOG_BEGIN
+    mManifest->logExtendBlock(blocksForLog);
+    MANIFEST_LOG_END
+}
+
+/* flush cached Manifest logs to disk */
+void ActiveStatus::flush() {
+
+}
+
+/* truncate existing Manifest file and flush latest block status to it */
+void ActiveStatus::archive() {
+    /* release all preAllocatedBlocks
+     * TODO: */
+
+    /* truncate existing Manifest file and flush latest block status to it */
+    MANIFEST_LOG_BEGIN
+    mManifest->logFullStatus(mBlockArray);
+    MANIFEST_LOG_END
 }
 
 std::string ActiveStatus::getManifestFileName(FileId fileId) {

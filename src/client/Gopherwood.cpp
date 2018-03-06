@@ -170,6 +170,14 @@ int32_t gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length) 
 }
 
 int gwCloseFile(gopherwoodFS fs, gwFile file) {
+    try {
+        file->getFile().close();
+        return 0;
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+
     return -1;
 }
 

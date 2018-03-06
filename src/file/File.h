@@ -38,6 +38,8 @@ public:
 
     void write(const char *buffer, int64_t length);
 
+    void close();
+
     ~File();
 
 private:

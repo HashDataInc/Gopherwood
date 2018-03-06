@@ -32,6 +32,8 @@ class InputStream {
 public:
     InputStream();
 
+    void close();
+
     ~InputStream();
 private:
 };

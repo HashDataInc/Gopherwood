@@ -30,15 +30,34 @@ File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<Active
     if ((flags & GW_WRONLY) || (flags & GW_RDWR)){
         mOutStream = shared_ptr<OutputStream>(new OutputStream(localFD, status));
     }
+    else{
+        mOutStream = NULL;
+    }
 
     if ((flags & GW_RDONLY) || (flags & GW_RDWR)) {
         mInStream = shared_ptr<InputStream>(new InputStream());
+    }
+    else{
+        mInStream = NULL;
     }
 }
 
 void File::write(const char *buffer, int64_t length)
 {
     mOutStream->write(buffer, length);
+}
+
+void File::close() {
+    mStatus->archive();
+
+    if (mOutStream){
+        mOutStream->close();
+    }
+
+    if (mInStream){
+        mInStream->close();
+    }
+
 }
 
 File::~File() {

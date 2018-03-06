@@ -69,6 +69,9 @@ void OutputStream::write(const char *buffer, int64_t length) {
     }
 }
 
+void OutputStream::close() {
+
+}
 void OutputStream::updateBlockStream(){
     /* TODO: Implement this once we make BlockOutput stream a buffered stream */
     blockOutputStream->flush();

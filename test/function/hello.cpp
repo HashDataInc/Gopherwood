@@ -18,5 +18,7 @@ int main(int argc, char *argv[])
 
     gwWrite(fs, file, buffer, 10);
 
+    gwCloseFile(fs, file);
+
     return 0;
 }
