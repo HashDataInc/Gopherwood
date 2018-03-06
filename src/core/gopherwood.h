@@ -31,18 +31,18 @@ typedef struct GWFileInternalWrapper *gwFile;
 /*******************************************
  * AccessFileType - the access file's type
  *******************************************/
-#define	GW_RDONLY	0x0000		/* open for reading only */
-#define	GW_WRONLY	0x0001		/* open for writing only */
-#define	GW_RDWR		0x0002		/* open for reading and writing */
-#define	GW_CREAT	0x0004		/* create if nonexistant */
+#define	GW_RDONLY	0x00000000		/* open for reading only */
+#define	GW_WRONLY	0x00000001		/* open for writing only */
+#define	GW_RDWR		0x00000002		/* open for reading and writing */
+#define	GW_CREAT	0x00000004		/* create if nonexistant */
 
 
 /********************************************
  *  Hint
  ********************************************/
-#define GW_RNDACC   0x10000     /* random access */
-#define GW_SEQACC   0x20000     /* sequence access */
-#define GW_RDONCE   0x40000     /* read once*/
+#define GW_RNDACC   0x00010000     /* random access */
+#define GW_SEQACC   0x00020000     /* sequence access */
+#define GW_RDONCE   0x00040000     /* read once*/
 
 
 typedef enum AccessFileType {
