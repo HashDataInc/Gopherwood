@@ -260,13 +260,13 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
 
 
         LOG(Gopherwood::Internal::INFO, "gwOpenFile. the before fileName=%s,after=%s", fileName, tmpStr.c_str());
-        if ((flags & O_CREAT) || (flags & O_APPEND) || (flags & O_WRONLY)) {
+        if ((flags & GW_CREAT) || (flags & GW_WRONLY)) {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is write only");
             int internalFlags = Gopherwood::WriteOnly;
             file->setOutput(true);
             os = new OutputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), internalFlags);
             file->setOutputStream(os);
-        } else if ((flags == O_RDONLY)) {
+        } else if ((flags == GW_RDONLY)) {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is read only");
             file->setInput(true);
             is = new InputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), true);
@@ -344,6 +344,7 @@ int32_t gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length) 
 
 
 int gwCloseFile(gopherwoodFS fs, gwFile file) {
+
     try {
         if (file) {
             if (file->isInput()) {
@@ -373,8 +374,7 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
     return -1;
 }
 
-
-/**
+/*
 int deleteFile(gopherwoodFS fs, gwFile file) {
     try {
         if (file) {
@@ -403,13 +403,14 @@ int deleteFile(gopherwoodFS fs, gwFile file) {
         SetErrorMessage("Out of memory");
         errno = ENOMEM;
     } catch (...) {
+
         delete file;
         SetLastException(Gopherwood::current_exception());
     }
 
     return -1;
 }
- **/
+*/
 
 //TODO
 int deleteFile(char *filePath) {
