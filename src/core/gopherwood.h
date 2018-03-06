@@ -31,10 +31,10 @@ typedef struct GWFileInternalWrapper *gwFile;
 /*******************************************
  * AccessFileType - the access file's type
  *******************************************/
-#define	GW_RDONLY	0x00000000		/* open for reading only */
-#define	GW_WRONLY	0x00000001		/* open for writing only */
-#define	GW_RDWR		0x00000002		/* open for reading and writing */
-#define	GW_CREAT	0x00000004		/* create if nonexistant */
+#define    GW_RDONLY    0x00000000        /* open for reading only */
+#define    GW_WRONLY    0x00000001        /* open for writing only */
+#define    GW_RDWR        0x00000002        /* open for reading and writing */
+#define    GW_CREAT    0x00000004        /* create if nonexistant */
 
 
 /********************************************
@@ -62,6 +62,12 @@ typedef struct FileInfo {
     tOffset fileSize;
 
 } GWFileInfo;
+
+
+#ifdef  __cplusplus
+extern "C"
+{
+#endif //__cplusplus
 
 
 /**
@@ -134,7 +140,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
  */
 //TODO in this implement, only the read-only mode can seek the file,
 //TODO write mode are not allowed.
-int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos,int where);
+int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int where);
 
 
 int gwCloseFile(gopherwoodFS fs, gwFile file);
@@ -151,5 +157,11 @@ int cancelFile(gopherwoodFS fs, gwFile file);
 
 GWFileInfo *gwStatFile(gopherwoodFS fs, gwFile file);
 
+
+#ifdef __cplusplus
+
+}
+
+#endif //__cplusplus
 
 #endif /* _GOPHERWOOD_CORE_GOPHERWOOD_H_ */
