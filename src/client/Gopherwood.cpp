@@ -164,7 +164,15 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
 }
 
 tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length) {
-    return 0;
+    try {
+        file->getFile().read(static_cast<const char *>(buffer), length);
+        return length;
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+
+    return -1;
 }
 
 int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int mode) {

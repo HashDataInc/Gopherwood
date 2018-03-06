@@ -36,6 +36,8 @@ class File {
 public:
     File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status);
 
+    void read(const char *buffer, int64_t length);
+
     void write(const char *buffer, int64_t length);
 
     void seek(int64_t pos, int mode);

@@ -24,7 +24,12 @@
 namespace Gopherwood {
 namespace Internal {
 
-InputStream::InputStream() {
+InputStream::InputStream(int fd, shared_ptr<ActiveStatus> status) :
+        mLocalSpaceFD(fd), status(status){
+
+}
+
+void InputStream::read(const char *buffer, int64_t length) {
 
 }
 

@@ -19,8 +19,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_
-#define _GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_
+#ifndef _GOPHERWOOD_BLOCK_BLOCKOUTPUTSTREAM_H_
+#define _GOPHERWOOD_BLOCK_BLOCKOUTPUTSTREAM_H_
 
 #include "platform.h"
 
@@ -56,4 +56,4 @@ private:
 }
 }
 
-#endif //_GOPHERWOOD_FILE_BLOCKOUTPUTSTREAM_H_
+#endif //_GOPHERWOOD_BLOCK_BLOCKOUTPUTSTREAM_H_

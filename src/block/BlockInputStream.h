@@ -19,29 +19,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef GOPHERWOOD_BLOCK_BLOCKINPUTSTREAM_H
+#define GOPHERWOOD_BLOCK_BLOCKINPUTSTREAM_H
+
+#include "platform.h"
+
 #include "block/LocalBlockReader.h"
-#include "common/Logger.h"
+#include "core/ActiveStatus.h"
+#include "common/Memory.h"
 
 namespace Gopherwood {
 namespace Internal {
+class BlockInputStream {
+public:
+    BlockInputStream(int fd);
 
-LocalBlockReader::LocalBlockReader(int fd) : mLocalSpaceFD(fd) {
-    mOffset = 0;
-}
+    void setBlockInfo(BlockInfo info);
 
-int LocalBlockReader::seek(int64_t offset) {
-    int res = lseek(mLocalSpaceFD, offset, SEEK_SET);
-    return res;
-}
+    int64_t remaining();
 
-int LocalBlockReader::readLocal(char* buffer, int64_t length) {
-    int res = read(mLocalSpaceFD, buffer, length);
-    return res;
-}
+    int64_t read(const char *buffer, int64_t length);
 
-LocalBlockReader::~LocalBlockReader() {
+    ~BlockInputStream();
+private:
+    int64_t getLocalSpaceOffset();
 
-}
+    int mLocalSpaceFD;
+    int64_t mBlockSize;
+    BlockInfo mBlockInfo;
+    shared_ptr<LocalBlockReader> mLocalReader;
+};
 
 }
 }
+#endif //GOPHERWOOD_BLOCK_BLOCKINPUTSTREAM_H

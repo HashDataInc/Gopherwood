@@ -24,18 +24,27 @@
 
 #include "platform.h"
 
+#include "block/BlockInputStream.h"
 #include "common/Memory.h"
+#include "core/ActiveStatus.h"
 
 namespace Gopherwood {
 namespace Internal {
 class InputStream {
 public:
-    InputStream();
+    InputStream(int fd, shared_ptr<ActiveStatus> status);
+
+    void read(const char *buffer, int64_t length);
 
     void close();
 
     ~InputStream();
 private:
+
+    int mLocalSpaceFD;
+    shared_ptr<ActiveStatus> status;
+    shared_ptr<BlockInputStream> blockOutputStream;
+    int64_t mPos;
 };
 
 }

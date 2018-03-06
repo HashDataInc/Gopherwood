@@ -19,28 +19,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "block/LocalBlockReader.h"
+#include "block/BlockInputStream.h"
+#include "common/Configuration.h"
 #include "common/Logger.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-LocalBlockReader::LocalBlockReader(int fd) : mLocalSpaceFD(fd) {
-    mOffset = 0;
+BlockInputStream::BlockInputStream(int fd) : mLocalSpaceFD(fd) {
+    mLocalReader = shared_ptr<LocalBlockReader>(new LocalBlockReader(fd));
+    mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
 }
 
-int LocalBlockReader::seek(int64_t offset) {
-    int res = lseek(mLocalSpaceFD, offset, SEEK_SET);
-    return res;
+void BlockInputStream::setBlockInfo(BlockInfo info) {
+    LOG(INFO, "[BlockInputStream::setBlockInfo] Set BlockInfo, new blockId=%d, new blockOffset=%ld, %s",
+        info.id, info.offset, info.isLocal?"local":"remote");
+    mBlockInfo = info;
 }
 
-int LocalBlockReader::readLocal(char* buffer, int64_t length) {
-    int res = read(mLocalSpaceFD, buffer, length);
-    return res;
+int64_t BlockInputStream::remaining() {
+    return mBlockSize - mBlockInfo.offset;
 }
 
-LocalBlockReader::~LocalBlockReader() {
-
+int64_t BlockInputStream::getLocalSpaceOffset(){
+    return mBlockInfo.id * mBlockSize + mBlockInfo.offset;
 }
 
 }
