@@ -63,7 +63,7 @@ std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId) {
     return res;
 }
 
-void SharedMemoryContext::releaseBlock(std::vector<Block> &blocks) {
+void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
     for (uint32_t i=0; i<blocks.size(); i++) {
         int32_t bucketId = blocks[i].bucketId;
         if (buckets[bucketId].isActiveBucket()){
@@ -73,6 +73,22 @@ void SharedMemoryContext::releaseBlock(std::vector<Block> &blocks) {
                     GopherwoodSharedMemException,
                     "[SharedMemoryContext::releaseBlock] state of bucket %d is not Active",
                     bucketId);
+        }
+    }
+}
+
+void SharedMemoryContext::inactivateBlocks(std::vector<Block> &blocks, FileId fileId){
+    for (uint32_t i=0; i<blocks.size(); i++) {
+        Block b = blocks[i];
+        if (buckets[b.bucketId].isActiveBucket()){
+            buckets[b.bucketId].fileId = fileId;
+            buckets[b.bucketId].fileBlockIndex = b.blockId;
+            buckets[b.bucketId].setBucketFree();
+        } else{
+            THROW(
+                    GopherwoodSharedMemException,
+                    "[SharedMemoryContext::inactivateBlocks] state of bucket %d is not Active",
+                    b.bucketId);
         }
     }
 }

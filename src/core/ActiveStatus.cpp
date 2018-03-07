@@ -156,9 +156,17 @@ void ActiveStatus::flush() {
 void ActiveStatus::archive() {
     MANIFEST_LOG_BEGIN
 
-    /* release all preAllocatedBlocks */
+    /* get blocks to inactivate */
+    std::vector<int> activeBlockIds = mLRUCache->getAllKeyObject();
+    std::vector<Block> activeBlocks;
+    for (uint32_t i=0; i<activeBlockIds.size(); i++) {
+        activeBlocks.push_back(mBlockArray[i]);
+    }
+
+    /* release all preAllocatedBlocks & active buckets */
     SHARED_MEM_BEGIN
-    mSharedMemoryContext->releaseBlock(mPreAllocatedBlocks);
+    mSharedMemoryContext->releaseBlocks(mPreAllocatedBlocks);
+    mSharedMemoryContext->inactivateBlocks(activeBlocks, mFileId);
     SHARED_MEM_END
 
     /* truncate existing Manifest file and flush latest block status to it */
