@@ -21,7 +21,7 @@
  */
 #include "FileSystem.h"
 #include "common/Configuration.h"
-#include "common/hash.h"
+#include "common/Hash.h"
 
 namespace Gopherwood {
 namespace Internal {

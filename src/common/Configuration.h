@@ -35,6 +35,8 @@ public:
     static std::string MANIFEST_FOLDER;
     static int NUMBER_OF_BLOCKS;
     static int64_t LOCAL_BLOCK_SIZE;
+    static int MAX_CONCURRENCY;
+    static int MAX_QUOTA_SIZE;
 };
 
 

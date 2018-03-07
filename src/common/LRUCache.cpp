@@ -28,6 +28,7 @@
 #include "Logger.h"
 
 namespace Gopherwood {
+namespace Internal {
 
 template<typename key_t, typename value_t>
 class LRUCache {
@@ -114,6 +115,7 @@ private:
     size_t _max_size;
 };
 
+}
 } // namespace Gopherwood
 
 #endif    /* _GOPHERWOOD_COMMON_LRUCACHE_H_ */

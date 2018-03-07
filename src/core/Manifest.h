@@ -29,29 +29,29 @@ namespace Gopherwood {
 namespace Internal {
 
 enum RecordType {
-    /* block type change 0 to 1 */
-            acquireNewBlock = 0,
-
-    /* block type change 1 to 2 */
-            inactiveBlock = 1,
-
-    /* block type change 1 to 0 */
-            releaseBlock = 2,
-
-    /* update block status*/
-            blockUpdate = 3,
-
-    /* the block lists is in the OSS, the id is negative */
-            remoteBlock = 4,
-
-    /* the file have been closed and the FileStatus are collected and merged. */
-            fullStatus = 5,
-
-    /* delete one block. used in the block which we wants to cache is in the OSS */
-            deleteBlock = 6,
-
-    /* file expand a new block */
-            extendBlock = 7
+    /* acquire new blocks to activestatus pin list
+     * transit Shared Memory state from 0 to 1 */
+    acquireNewBlock = 0,
+    /* inactive a file block from activestatus
+     * transit Shared Memory state from 1 to 2 */
+    inactiveBlock = 1,
+    /* active a file block, add to activestatus
+     * transit Shared Memory state from 2 to 1 */
+    activeBlock = 2,
+    /* release a file block from activestatus
+     * transit Shared Memory state from 1 to 0 */
+    releaseBlock = 3,
+    /* change a file block status
+     * transit Shared Memory state from 1 to 0 */
+    blockUpdate = 4,
+    /* assign a block to local bucket */
+    assignBlock = 5,
+    /* evict a block from local space to OSS
+     * transit Shared Memory state from 2 to 0 */
+    evictBlock = 6,
+    /* the file have been closed and the FileStatus
+     * are collected and merged. */
+    fullStatus = 7
 };
 
 struct Common {

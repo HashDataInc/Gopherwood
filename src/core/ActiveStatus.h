@@ -25,6 +25,7 @@
 #include "platform.h"
 
 #include "file/FileId.h"
+#include "common/LRUCache.cpp"
 #include "core/SharedMemoryContext.h"
 #include "core/BlockStatus.h"
 #include "core/Manifest.h"
@@ -67,6 +68,7 @@ private:
     FileId mFileId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<Manifest> mManifest;
+    shared_ptr<LRUCache<int, Block>> mLRUCache;
 
     int64_t mPos;
     int64_t mEof;

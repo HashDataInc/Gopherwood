@@ -41,6 +41,7 @@ ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> shared
     mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
 
     mManifest = shared_ptr<Manifest>(new Manifest(getManifestFileName(mFileId)));
+    mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::MAX_QUOTA_SIZE));
 }
 
 int64_t ActiveStatus::getPosition(){
@@ -125,11 +126,19 @@ void ActiveStatus::extendOneBlock(){
         acquireNewBlocks();
     }
 
+    /* build the block */
     Block b = mPreAllocatedBlocks.back();
     mPreAllocatedBlocks.pop_back();
     b.blockId = mNumBlocks;
+
+    /* add to block array */
     mBlockArray.push_back(b);
     mNumBlocks++;
+
+    /* add to LRU cache */
+    mLRUCache->put(b.blockId, b);
+
+    /* prepare for log */
     blocksForLog.push_back(b);
 
     /* Manifest Log */
@@ -145,14 +154,16 @@ void ActiveStatus::flush() {
 
 /* truncate existing Manifest file and flush latest block status to it */
 void ActiveStatus::archive() {
+    MANIFEST_LOG_BEGIN
+
     /* release all preAllocatedBlocks */
     SHARED_MEM_BEGIN
     mSharedMemoryContext->releaseBlock(mPreAllocatedBlocks);
     SHARED_MEM_END
 
     /* truncate existing Manifest file and flush latest block status to it */
-    MANIFEST_LOG_BEGIN
     mManifest->logFullStatus(mBlockArray);
+
     MANIFEST_LOG_END
 }
 

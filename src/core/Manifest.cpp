@@ -53,7 +53,7 @@ void Manifest::logExtendBlock(std::vector<Block> &blocks) {
     opaque.extendBlock.padding = 0;
 
     /* build log record */
-    std::string logRecord = serializeManifestLog(blocks, RecordType::extendBlock, opaque);
+    std::string logRecord = serializeManifestLog(blocks, RecordType::assignBlock, opaque);
 
     /* flush to log */
     mfAppend(logRecord);
