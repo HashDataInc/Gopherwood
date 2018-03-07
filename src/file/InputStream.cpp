@@ -25,12 +25,56 @@ namespace Gopherwood {
 namespace Internal {
 
 InputStream::InputStream(int fd, shared_ptr<ActiveStatus> status) :
-        mLocalSpaceFD(fd), status(status){
-
+        mLocalSpaceFD(fd), mStatus(status){
+    mPos = -1;
+    mBlockInputStream = shared_ptr<BlockInputStream>(new BlockInputStream(mLocalSpaceFD));
 }
 
-void InputStream::read(const char *buffer, int64_t length) {
+void InputStream::updateBlockStream(){
+    /* TODO: Implement this once we make BlockOutput stream a buffered stream */
+    mBlockInputStream->flush();
 
+    /* Update the BlockInfo of the BlockOutputStream */
+    mBlockInputStream->setBlockInfo(mStatus->getCurBlockInfo());
+}
+
+void InputStream::read(char *buffer, int64_t length) {
+    int64_t bytesToRead = length;
+    int64_t bytesRead = 0;
+    bool needUpdate = false;
+
+    /* update OutputStream file level position */
+    int64_t statusPos = mStatus->getPosition();
+    if(mPos != statusPos){
+        needUpdate = true;
+        mPos = statusPos;
+    }
+
+    /* write the buffer, switch target block if needed */
+    while(bytesToRead > 0)
+    {
+        /* update BlockOutputStream, flush previous cached data
+         * and switch to target block id & offset */
+        if (needUpdate) {
+            updateBlockStream();
+            needUpdate = false;
+        }
+
+        /* write to target block */
+        int64_t read;
+        if (bytesToRead <= mBlockInputStream->remaining()) {
+            read = mBlockInputStream->read(buffer + bytesRead, bytesToRead);
+        }else {
+            read = mBlockInputStream->read(buffer + bytesRead, mBlockInputStream->remaining());
+            needUpdate = true;
+        }
+
+        /* update statistics */
+        bytesToRead -= read;
+        bytesRead += read;
+        mPos += read;
+        mStatus->setPosition(mPos);
+    }
 }
 
 void InputStream::close() {

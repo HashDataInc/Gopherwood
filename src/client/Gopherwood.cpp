@@ -165,7 +165,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
 
 tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length) {
     try {
-        file->getFile().read(static_cast<const char *>(buffer), length);
+        file->getFile().read(static_cast<char *>(buffer), length);
         return length;
     } catch (...) {
         SetLastException(Gopherwood::current_exception());

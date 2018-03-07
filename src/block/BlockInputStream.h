@@ -38,7 +38,9 @@ public:
 
     int64_t remaining();
 
-    int64_t read(const char *buffer, int64_t length);
+    int64_t read(char *buffer, int64_t length);
+
+    void flush();
 
     ~BlockInputStream();
 private:

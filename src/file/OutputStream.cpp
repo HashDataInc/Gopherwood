@@ -25,9 +25,17 @@ namespace Gopherwood {
 namespace Internal {
 
 OutputStream::OutputStream(int fd, shared_ptr<ActiveStatus> status) :
-        mLocalSpaceFD(fd), status(status){
+        mLocalSpaceFD(fd), mStatus(status){
     mPos = -1;
-    blockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream(mLocalSpaceFD));
+    mBlockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream(mLocalSpaceFD));
+}
+
+void OutputStream::updateBlockStream(){
+    /* TODO: Implement this once we make BlockOutput stream a buffered stream */
+    mBlockOutputStream->flush();
+
+    /* Update the BlockInfo of the BlockOutputStream */
+    mBlockOutputStream->setBlockInfo(mStatus->getCurBlockInfo());
 }
 
 void OutputStream::write(const char *buffer, int64_t length) {
@@ -36,7 +44,7 @@ void OutputStream::write(const char *buffer, int64_t length) {
     bool needUpdate = false;
 
     /* update OutputStream file level position */
-    int64_t statusPos = status->getPosition();
+    int64_t statusPos = mStatus->getPosition();
     if(mPos != statusPos){
         needUpdate = true;
         mPos = statusPos;
@@ -54,10 +62,10 @@ void OutputStream::write(const char *buffer, int64_t length) {
 
         /* write to target block */
         int64_t written;
-        if (bytesToWrite <= blockOutputStream->remaining()) {
-            written = blockOutputStream->write(buffer + bytesWritten, bytesToWrite);
+        if (bytesToWrite <= mBlockOutputStream->remaining()) {
+            written = mBlockOutputStream->write(buffer + bytesWritten, bytesToWrite);
         }else {
-            written = blockOutputStream->write(buffer + bytesWritten, blockOutputStream->remaining());
+            written = mBlockOutputStream->write(buffer + bytesWritten, mBlockOutputStream->remaining());
             needUpdate = true;
         }
 
@@ -65,20 +73,15 @@ void OutputStream::write(const char *buffer, int64_t length) {
         bytesToWrite -= written;
         bytesWritten += written;
         mPos += written;
-        status->setPosition(mPos);
+        mStatus->setPosition(mPos);
     }
 }
 
 void OutputStream::close() {
 
 }
-void OutputStream::updateBlockStream(){
-    /* TODO: Implement this once we make BlockOutput stream a buffered stream */
-    blockOutputStream->flush();
 
-    /* Update the BlockInfo of the BlockOutputStream */
-    blockOutputStream->setBlockInfo(status->getCurBlockInfo());
-}
+
 
 OutputStream::~OutputStream(){
 

@@ -43,8 +43,8 @@ private:
     void updateBlockStream();
 
     int mLocalSpaceFD;
-    shared_ptr<BlockOutputStream> blockOutputStream;
-    shared_ptr<ActiveStatus> status;
+    shared_ptr<BlockOutputStream> mBlockOutputStream;
+    shared_ptr<ActiveStatus> mStatus;
     int64_t mPos;
 };
 

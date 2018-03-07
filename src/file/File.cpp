@@ -44,7 +44,7 @@ File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<Active
     }
 }
 
-void File::read(const char *buffer, int64_t length) {
+void File::read(char *buffer, int64_t length) {
     mInStream->read(buffer, length);
 }
 

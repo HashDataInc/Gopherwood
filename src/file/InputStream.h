@@ -34,16 +34,17 @@ class InputStream {
 public:
     InputStream(int fd, shared_ptr<ActiveStatus> status);
 
-    void read(const char *buffer, int64_t length);
+    void read(char *buffer, int64_t length);
 
     void close();
 
     ~InputStream();
 private:
+    void updateBlockStream();
 
     int mLocalSpaceFD;
-    shared_ptr<ActiveStatus> status;
-    shared_ptr<BlockInputStream> blockOutputStream;
+    shared_ptr<ActiveStatus> mStatus;
+    shared_ptr<BlockInputStream> mBlockInputStream;
     int64_t mPos;
 };
 

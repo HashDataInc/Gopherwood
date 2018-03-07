@@ -41,8 +41,39 @@ int64_t BlockInputStream::remaining() {
     return mBlockSize - mBlockInfo.offset;
 }
 
+int64_t BlockInputStream::read(char *buffer, int64_t length){
+    int64_t read = -1;
+
+    if (mBlockInfo.isLocal)
+    {
+        if (mLocalReader->getCurOffset() != getLocalSpaceOffset())
+        {
+            mLocalReader->seek(getLocalSpaceOffset());
+        }
+        LOG(INFO, "[BlockInputStream::read] Read from local space, blockId=%d, offset=%ld, length=%ld",
+            mBlockInfo.id, mBlockInfo.offset, length);
+        read = mLocalReader->readLocal(buffer, length);
+    } else{
+        /* Read from OSS */
+    }
+
+    mBlockInfo.offset += read;
+    assert(mBlockInfo.offset<=mBlockSize);
+
+    return read;
+}
+
+void BlockInputStream::flush()
+{
+
+}
+
 int64_t BlockInputStream::getLocalSpaceOffset(){
     return mBlockInfo.id * mBlockSize + mBlockInfo.offset;
+}
+
+BlockInputStream::~BlockInputStream() {
+
 }
 
 }
