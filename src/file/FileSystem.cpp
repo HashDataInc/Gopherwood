@@ -26,6 +26,13 @@
 namespace Gopherwood {
 namespace Internal {
 
+void FileSystem::Format(const char *workDir){
+    std::stringstream ss;
+    ss << "exec rm -r " << workDir << "/*";
+    system(ss.str().c_str());
+    shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
+}
+
 FileSystem::FileSystem(const char *workDir) :
         workDir(workDir) {
     /* open local space file */

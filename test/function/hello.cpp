@@ -13,6 +13,8 @@ int main(int argc, char *argv[])
 {
     char buffer[]= "hello, world!";
 
+    gwFormatContext(workDir);
+
     fs =  gwCreateContext(workDir);
 
     gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);

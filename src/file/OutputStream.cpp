@@ -19,6 +19,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
 #include "file/OutputStream.h"
 
 namespace Gopherwood {
@@ -67,6 +69,11 @@ void OutputStream::write(const char *buffer, int64_t length) {
         }else {
             written = mBlockOutputStream->write(buffer + bytesWritten, mBlockOutputStream->remaining());
             needUpdate = true;
+        }
+
+        if (written == -1){
+            THROW(GopherwoodException,
+                  "[OutputStream::write] write error!");
         }
 
         /* update statistics */

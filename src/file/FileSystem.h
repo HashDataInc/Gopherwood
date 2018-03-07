@@ -36,6 +36,8 @@ namespace Internal {
 
 class FileSystem {
 public:
+    static void Format(const char *workDir);
+
     FileSystem(const char *workDir);
 
     File* CreateFile(const char *fileName, int flags);

@@ -43,6 +43,7 @@ extern "C" {
 #define EINVALIDPARM    102     //GopherwoodInvalidParmException
 #define ESHRMEM         103     //GopherwoodSharedMemException
 
+
 /*******************************************
  * AccessFileType - the access file's type
  *******************************************/
@@ -70,10 +71,18 @@ typedef struct GWFileInternalWrapper *gwFile;
 /**
  * gwCreateContext - Connect to a gopherwood file system.
  *
- * @param fileName   the file name
+ * @param workDir   the working directory
  * @return Returns a handle to the filesystem or NULL on error.
  */
-gopherwoodFS gwCreateContext(char *fileName);
+gopherwoodFS gwCreateContext(char *workDir);
+
+/**
+ * gwFormatContext - Format a gopherwood file system.
+ *
+ * @param workDir   the working directory
+ * @return Returns a handle to the filesystem or NULL on error.
+ */
+void gwFormatContext(char *workDir);
 
 /**
  * gwRead - Read data from an open file.
@@ -151,7 +160,7 @@ int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int mode);
 int gwCloseFile(gopherwoodFS fs, gwFile file);
 
 /**
- * alluxioDelete - Delete file.
+ * gwDeleteFile - Delete file.
  *
  * @param   fs      The configured filesystem handle.
  * @param   path    The path of the file.
@@ -160,7 +169,7 @@ int gwCloseFile(gopherwoodFS fs, gwFile file);
  *          case of a file the recursive argument is irrelevant.
  * @return Returns 0 on success, -1 on error.
  */
-int deleteFile(gopherwoodFS fs, gwFile file);
+int gwDeleteFile(gopherwoodFS fs, gwFile file);
 
 #ifdef __cplusplus
 }

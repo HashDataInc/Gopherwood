@@ -129,16 +129,25 @@ static void handleException(const Gopherwood::exception_ptr &error) {
     }
 }
 
-gopherwoodFS gwCreateContext(char *fileName) {
+gopherwoodFS gwCreateContext(char *workDir) {
     gopherwoodFS retVal = NULL;
     try {
-        FileSystem *fs = new FileSystem(fileName);
+        FileSystem *fs = new FileSystem(workDir);
         retVal = new GWFileSystemInternalWrapper(fs);
     } catch (...) {
         SetLastException(Gopherwood::current_exception());
         handleException(Gopherwood::current_exception());
     }
     return retVal;
+}
+
+void gwFormatContext(char *workDir) {
+    try {
+        FileSystem::Format(workDir);
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
 }
 
 gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
