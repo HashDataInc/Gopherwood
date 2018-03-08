@@ -38,8 +38,8 @@ namespace Gopherwood {
 //
 //    }
 
-    void InputStream::seek(int64_t pos) {
-        impl->seek(pos);
+    int64_t InputStream::seek(int64_t pos) {
+        return impl->seek(pos);
     }
 
     void InputStream::close() {

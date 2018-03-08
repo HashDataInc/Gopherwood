@@ -7,9 +7,8 @@ namespace Gopherwood {
     using namespace boost::interprocess;
     namespace Internal {
 
-
         SharedMemoryManager::SharedMemoryManager() {
-
+            key = ftok(SHARED_MEMORY_PATH_FILE_NAME, 1);
         }
 
         SharedMemoryManager::~SharedMemoryManager() {
@@ -558,7 +557,7 @@ namespace Gopherwood {
         // ******************* semaphore **************************
 
         int SharedMemoryManager::checkSemaphore() {
-            key_t key = ftok(SHARED_MEMORY_PATH_FILE_NAME, 1);
+
             int tmpSemID = semget(key, 1, 0666 | IPC_CREAT | IPC_EXCL);
 
             //this means the semaphore already exist, get the semaphoreID
@@ -578,7 +577,6 @@ namespace Gopherwood {
 
 
         int SharedMemoryManager::createSemaphore() {
-            key_t key = ftok(SHARED_MEMORY_PATH_FILE_NAME, 1);
             semaphoreID = semget(key, 1, 0666 | IPC_CREAT);
             return semaphoreID;
         }

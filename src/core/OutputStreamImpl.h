@@ -65,7 +65,7 @@ namespace Gopherwood {
 
             void setError(const exception_ptr &error);
 
-            void seek(int64_t pos);
+            int64_t seek(int64_t pos);
 
             void deleteFileBucket(int64_t pos);
 
@@ -85,7 +85,7 @@ namespace Gopherwood {
         private:
 //            void createFile(char *fileName);
 
-            void checkStatus(int64_t pos);
+            int64_t checkStatus(int64_t pos);
 
             void seekInternal(int64_t pos);
 

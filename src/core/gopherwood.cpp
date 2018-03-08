@@ -260,7 +260,7 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
 
 
         LOG(Gopherwood::Internal::INFO, "gwOpenFile. the before fileName=%s,after=%s", fileName, tmpStr.c_str());
-        if ((flags & GW_CREAT) || (flags & GW_WRONLY)) {
+        if ((flags & GW_WRONLY)) {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is write only");
             int internalFlags = Gopherwood::WriteOnly;
             file->setOutput(true);
@@ -274,13 +274,13 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
         } else {
             LOG(Gopherwood::Internal::INFO, "gwOpenFile the mode is read and write");
 
-            file->setInputAndOutput(true);
-            is = new InputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), true);
-            file->setInputStream(is);
-
             int internalFlags = Gopherwood::ReadWrite;
             os = new OutputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), internalFlags);
             file->setOutputStream(os);
+
+            file->setInputAndOutput(true);
+            is = new InputStream(fs->getFilesystem(), (char *) tmpStr.c_str(), true);
+            file->setInputStream(is);
         }
 
         return file;
@@ -301,17 +301,18 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
 }
 
 
-int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int where) {
+int64_t gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int where) {
+    int64_t retOffset = 0;
     try {
         if (file->isInput()) {
-            file->getInputStream().seek(desiredPos);
+            retOffset = file->getInputStream().seek(desiredPos);
         } else if (file->isOutput()) {
-            file->getOutputStream().seek(desiredPos);
+            retOffset = file->getOutputStream().seek(desiredPos);
         } else {
-            file->getInputStream().seek(desiredPos);
-            file->getOutputStream().seek(desiredPos);
+            retOffset = file->getInputStream().seek(desiredPos);
+            retOffset = file->getOutputStream().seek(desiredPos);
         }
-        return 0;
+        return retOffset;
     } catch (const std::bad_alloc &e) {
         SetErrorMessage("Out of memory");
         errno = ENOMEM;

@@ -38,19 +38,19 @@ namespace Gopherwood {
             }
             status = filesystem->getFileStatus(fileName);
             //3. default seek to the end of the file
-            LOG(INFO,
-                "OutputStreamImpl::OutputStreamImpl. getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",
-                status->getBlockIdVector().size(), status->getLastBucket(), status->getEndOffsetOfBucket());
-            int64_t endOfOffset = filesystem->getTheEOFOffset(fileName);
-            LOG(INFO, "OutputStreamImpl::OutputStreamImpl. endOfOffset = %d", endOfOffset);
-
-            if (status->getBlockIdVector().size() == 0) {
-                LOG(INFO,
-                    "OutputStreamImpl::OutputStreamImpl. openFile do not seek, because the file do not contain any bucket");
-                //do nothing, because the file do not contain any bucket.
-            } else {
-                seek(endOfOffset);
-            }
+//            LOG(INFO,
+//                "OutputStreamImpl::OutputStreamImpl. getBlockIdVector().size() = %d,status->getLastBucket() = %d, status->getEndOffsetOfBucket()=%d",
+//                status->getBlockIdVector().size(), status->getLastBucket(), status->getEndOffsetOfBucket());
+//            int64_t endOfOffset = filesystem->getTheEOFOffset(fileName);
+//            LOG(INFO, "OutputStreamImpl::OutputStreamImpl. endOfOffset = %d", endOfOffset);
+//
+//            if (status->getBlockIdVector().size() == 0) {
+//                LOG(INFO,
+//                    "OutputStreamImpl::OutputStreamImpl. openFile do not seek, because the file do not contain any bucket");
+//                //do nothing, because the file do not contain any bucket.
+//            } else {
+//                seek(endOfOffset);
+//            }
 
         }
 
@@ -192,13 +192,16 @@ namespace Gopherwood {
             filesystem->closeFile((char *) fileName.data());
         }
 
-        void OutputStreamImpl::seek(int64_t pos) {
-            checkStatus(pos);
+        int64_t OutputStreamImpl::seek(int64_t pos) {
+            int64_t retOffset = checkStatus(pos);
             try {
-                seekInternal(pos);
+                if (retOffset > 0) {
+                    seekInternal(pos);
+                }
             } catch (...) {
                 throw;
             }
+            return retOffset;
         }
 
 
@@ -236,7 +239,7 @@ namespace Gopherwood {
 
         }
 
-        void OutputStreamImpl::checkStatus(int64_t pos) {
+        int64_t OutputStreamImpl::checkStatus(int64_t pos) {
             while (status->getBlockIdVector().size() == 0) {
                 LOG(INFO, "checkStatus, the file do not contain any bucket, so create new one for write");
                 filesystem->acquireNewBlock((char *) fileName.data());
@@ -246,31 +249,32 @@ namespace Gopherwood {
             LOG(INFO, "OutputStreamImpl::checkStatus pos = %d", pos);
             if (pos < 0) {
                 LOG(LOG_ERROR, "OutputStreamImpl::checkStatus pos can not be smaller than zero");
+                return -1;
             }
             //1. check the size of the file
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
             LOG(INFO, "OutputStreamImpl::checkStatus. theEOFOffset=%d", theEOFOffset);
 
-            if (theEOFOffset == 0) {
-                LOG(INFO, "the file do not contain any one bucket");
-                return;
-            }
+//            if (theEOFOffset == 0) {
+//                LOG(INFO, "the file do not contain any one bucket");
+//                return -1;
+//            }
             if (status->getBlockIdVector().size() == 0) {
                 LOG(LOG_ERROR, "OutputStreamImpl::checkStatus. do not contain any file");
-                return;
+                return -1;
             }
 
             if (pos > theEOFOffset) {
                 //todo, throw error
                 LOG(LOG_ERROR, "error, the given pos exceed the size of the file");
-                return;
+                return -1;
             }
 
             //2. get the blockID which seeks to
             int64_t blockIndex = pos / SIZE_OF_BLOCK;
             /*BUG-FIX. if the file size is the multiple of the SIZE_OF_BLOCK. for example, if the SIZE_OF_BLOCK=1024, and the pos=1024.
             so this need to acquire more blocks.*/
-            while(blockIndex==status->getBlockIdVector().size()){
+            while (blockIndex == status->getBlockIdVector().size()) {
                 filesystem->acquireNewBlock((char *) fileName.data());
             }
             int blockID = status->getBlockIdVector()[blockIndex];
@@ -279,7 +283,7 @@ namespace Gopherwood {
 
             //3. check the blockID is PING or not.(its type='1' or not)
             if (status->getLruCache()->get(blockID)) {
-                return;
+                return pos;
             }
 
             /*********************************todo FOR TEST********************/
@@ -299,7 +303,7 @@ namespace Gopherwood {
                     vector<int32_t> newPingBlockVector;
                     newPingBlockVector.push_back(blockID);
                     filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
-                    return;
+                    return pos;
                 } else {
                     //3.1.2 the block is in the OSS
                     LOG(INFO, "3.1.2. OutputStreamImpl::checkStatus the block is in the OSS");
@@ -312,6 +316,7 @@ namespace Gopherwood {
                 LOG(INFO, "3.2. OutputStreamImpl::checkStatus the block is in OSS");
             }
 
+            return pos;
         }
 
 
@@ -426,7 +431,6 @@ namespace Gopherwood {
                 LOG(INFO, "3.2. OutputStreamImpl::deleteFileBucket the block is in OSS");
             }
         }
-
 
 
     }

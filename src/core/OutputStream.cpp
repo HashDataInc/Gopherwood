@@ -24,8 +24,8 @@ namespace Gopherwood {
         delete impl;
     }
 
-    void OutputStream::seek(int64_t pos) {
-        impl->seek(pos);
+    int64_t OutputStream::seek(int64_t pos) {
+        return impl->seek(pos);
     }
 
     void OutputStream::write(const char *buf, int64_t size) {

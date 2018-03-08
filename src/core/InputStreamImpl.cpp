@@ -30,7 +30,7 @@ namespace Gopherwood {
             }
             status = filesystem->getFileStatus(fileName);
             //3. default seek the offset to zero when read.
-            seek(0);
+//            seek(0);
         }
 
         InputStreamImpl::~InputStreamImpl() {
@@ -211,14 +211,17 @@ namespace Gopherwood {
         }
 
 
-        void InputStreamImpl::seek(int64_t pos) {
-            checkStatus(pos);
+        int64_t InputStreamImpl::seek(int64_t pos) {
+            int64_t retOffset = checkStatus(pos);
             try {
-                seekInternal(pos);
+                if (retOffset > 0) {
+                    seekInternal(pos);
+                }
             } catch (...) {
                 throw;
             }
 
+            return retOffset;
         }
 
         void InputStreamImpl::seekInternal(int64_t pos) {
@@ -258,10 +261,11 @@ namespace Gopherwood {
 
         }
 
-        void InputStreamImpl::checkStatus(int64_t pos) {
+        int64_t InputStreamImpl::checkStatus(int64_t pos) {
             LOG(INFO, "InputStreamImpl::checkStatus pos = %d", pos);
             if (pos < 0) {
                 LOG(LOG_ERROR, "InputStreamImpl::checkStatus pos can not be smaller than zero");
+                return -1;
             }
             //1. check the size of the file
             int64_t theEOFOffset = this->filesystem->getTheEOFOffset(this->fileName.data());
@@ -269,33 +273,28 @@ namespace Gopherwood {
 
             if (theEOFOffset == 0) {
                 LOG(INFO, "the file do not contain any one bucket");
-                return;
+                return 0;
             }
             if (status->getBlockIdVector().size() == 0) {
                 LOG(LOG_ERROR, "InputStreamImpl::checkStatus. do not contain any file");
-                return;
+                return -1;
             }
 
             if (pos > theEOFOffset) {
                 //todo, throw error
                 LOG(LOG_ERROR, "error, the given pos exceed the size of the file");
-                return;
+                return -1;
             }
 
             //2. get the blockID which seeks to
             int64_t blockIndex = pos / SIZE_OF_BLOCK;
-            /*BUG-FIX. if the file size is the multiple of the SIZE_OF_BLOCK. for example, if the SIZE_OF_BLOCK=1024, and the pos=1024.
-             so this need to acquire more blocks.*/
-            while (blockIndex == status->getBlockIdVector().size()) {
-                filesystem->acquireNewBlock((char *) fileName.data());
-            }
             int blockID = status->getBlockIdVector()[blockIndex];
 
             LOG(INFO, "InputStreamImpl::checkStatus. blockID=%d", blockID);
 
             //3. check the blockID is PING or not.(its type='1' or not)
             if (status->getLruCache()->get(blockID)) {
-                return;
+                return pos;
             }
 
 
@@ -315,7 +314,7 @@ namespace Gopherwood {
                     vector<int32_t> newPingBlockVector;
                     newPingBlockVector.push_back(blockID);
                     filesystem->checkAndAddPingBlockID((char *) fileName.data(), newPingBlockVector);
-                    return;
+                    return pos;
                 } else {
                     //3.1.2 the block is in the OSS. this means the block have been evicted to the OSS
                     LOG(INFO, "3.1.2. InputStreamImpl::checkStatus the block is in the OSS");
@@ -327,6 +326,7 @@ namespace Gopherwood {
                 LOG(INFO, "3.2. InputStreamImpl::checkStatus the block is in OSS");
                 filesystem->writeDataFromOSS2Bucket(blockIndex, fileName);
             }
+            return pos;
         }
 
 

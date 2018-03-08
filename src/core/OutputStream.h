@@ -125,7 +125,7 @@ namespace Gopherwood {
          */
         void close();
 
-        void seek(int64_t pos);
+        int64_t seek(int64_t pos);
 
 
         void deleteFile();
