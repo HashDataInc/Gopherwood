@@ -28,14 +28,15 @@ std::string Configuration::LOCAL_SPACE_FILE("GopherwoodLocal");
 std::string Configuration::SHARED_MEMORY_NAME("GopherwoodSharedMem");
 std::string Configuration::MANIFEST_FOLDER("/manifest");
 
-int Configuration::NUMBER_OF_BLOCKS = 100;
+int32_t Configuration::NUMBER_OF_BLOCKS = 100;
 
 int64_t Configuration::LOCAL_BLOCK_SIZE = 64 * 1024 * 1024;
 
 int Configuration::MAX_CONCURRENCY = 10;
 
-int Configuration::MAX_QUOTA_SIZE = Configuration::NUMBER_OF_BLOCKS/Configuration::MAX_CONCURRENCY;
+uint32_t Configuration::MAX_QUOTA_SIZE = Configuration::NUMBER_OF_BLOCKS/Configuration::MAX_CONCURRENCY;
 
+int Configuration::PRE_ALLOCATE_BUCKET_NUM = 3;
 
 
 }

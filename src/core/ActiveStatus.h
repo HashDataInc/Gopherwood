@@ -52,11 +52,13 @@ public:
     ~ActiveStatus();
 
 private:
+    void adjustActiveBlock(int curBlockInd);
+
     Block getCurBlock();
 
     int64_t getCurBlockOffset();
 
-    bool needNewBlock();
+    bool needNewBlock(int curBlockInd);
 
     void acquireNewBlocks();
 

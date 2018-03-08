@@ -29,16 +29,16 @@ namespace Gopherwood {
 namespace Internal {
 
 enum RecordType {
-    /* acquire new blocks to activestatus pin list
+    /* acquire new blocks to active status pin list
      * transit Shared Memory state from 0 to 1 */
     acquireNewBlock = 0,
-    /* inactive a file block from activestatus
+    /* inactive a file block from active status
      * transit Shared Memory state from 1 to 2 */
     inactiveBlock = 1,
-    /* active a file block, add to activestatus
+    /* active a file block, add to active status
      * transit Shared Memory state from 2 to 1 */
     activeBlock = 2,
-    /* release a file block from activestatus
+    /* release a file block from active status
      * transit Shared Memory state from 1 to 0 */
     releaseBlock = 3,
     /* change a file block status

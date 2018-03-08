@@ -42,6 +42,8 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
     shared_ptr<shared_memory_object> shm;
     shared_ptr<mapped_region> region;
 
+    /* TODO: remove this line !*/
+    shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
     /* try to open the shared memory */
     shm = openSharedMemory(Configuration::SHARED_MEMORY_NAME.c_str(), &shmExist);
 
@@ -62,7 +64,10 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
         void *addr = region->get_address();
         ShareMemHeader *header = static_cast<ShareMemHeader *>(addr);
         header->enter();
-        header->numBlocks = Configuration::NUMBER_OF_BLOCKS;
+        header->reset(Configuration::NUMBER_OF_BLOCKS);
+        LOG(INFO, "[SharedMemoryManager::buildSharedMemoryContext] num free bucket %d, "
+                "num active buckets %d, num used buckets %d ",
+                header->numFreeBuckets, header->numActiveBuckets, header->numUsedBuckets);
         memset((char *) addr + sizeof(ShareMemHeader), 0, Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket));
         header->exit();
 

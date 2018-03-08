@@ -19,6 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <common/Configuration.h>
 #include "SharedMemoryContext.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
@@ -38,28 +39,39 @@ void SharedMemoryContext::reset() {
     std::memset(mShareMem->get_address(), 0, mShareMem->get_size());
 }
 
-std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId) {
+std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId, int num) {
     std::vector<int32_t> res;
+    int count = num;
 
-    int numBlocksToAcquire = calcBlockAcquireNum();
-    LOG(INFO, "[SharedMemoryContext::acquireBlock] need to acquire %d blocks.", numBlocksToAcquire);
     /* pick up from free buckets */
-    for (int32_t i = 0; i < header->numBlocks; i++) {
+    for (int32_t i = 0; i < header->numBuckets; i++) {
         if (buckets[i].isFreeBucket()) {
             LOG(INFO, "[SharedMemoryContext::acquireBlock] got one free bucket(%d)", i);
             buckets[i].setBucketActive();
             res.push_back(i);
-            numBlocksToAcquire--;
-            if (numBlocksToAcquire == 0) {
+            /* update statistics */
+            count--;
+            header->numFreeBuckets--;
+            header->numActiveBuckets++;
+
+            if (count == 0) {
                 break;
             }
         }
     }
 
     /* TODO: pick up from Used buckets and evict them */
-    if (numBlocksToAcquire > 0) {
+    if (count > 0) {
     }
 
+    if (count != 0) {
+        THROW(GopherwoodSharedMemException,
+              "[SharedMemoryContext::acquireBlock] did not acquire enough buckets %d",
+              count);
+    }
+
+    LOG(INFO, "[SharedMemoryContext::acquireBlock] acquired %d blocks.", count);
+    printStatistics();
     return res;
 }
 
@@ -68,6 +80,9 @@ void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
         int32_t bucketId = blocks[i].bucketId;
         if (buckets[bucketId].isActiveBucket()){
             buckets[bucketId].setBucketFree();
+            /* update statistics */
+            header->numActiveBuckets--;
+            header->numFreeBuckets++;
         } else{
             THROW(
                     GopherwoodSharedMemException,
@@ -75,6 +90,8 @@ void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
                     bucketId);
         }
     }
+    LOG(INFO, "[SharedMemoryContext::releaseBlocks] released %lu blocks.", blocks.size());
+    printStatistics();
 }
 
 void SharedMemoryContext::inactivateBlocks(std::vector<Block> &blocks, FileId fileId){
@@ -84,17 +101,22 @@ void SharedMemoryContext::inactivateBlocks(std::vector<Block> &blocks, FileId fi
             buckets[b.bucketId].fileId = fileId;
             buckets[b.bucketId].fileBlockIndex = b.blockId;
             buckets[b.bucketId].setBucketFree();
+            /* update statistics */
+            header->numActiveBuckets--;
+            header->numUsedBuckets++;
         } else{
             THROW(
                     GopherwoodSharedMemException,
-                    "[SharedMemoryContext::inactivateBlocks] state of bucket %d is not Active",
+                    "[SharedMemoryContext::releaseBlock] state of bucket %d is not Active",
                     b.bucketId);
         }
     }
+    LOG(INFO, "[SharedMemoryContext::inactivateBlocks] inactivated %lu blocks.", blocks.size());
+    printStatistics();
 }
 
-int SharedMemoryContext::calcBlockAcquireNum() {
-    return 1;
+int SharedMemoryContext::calcDynamicQuotaNum() {
+    return Configuration::MAX_QUOTA_SIZE;
 }
 
 void SharedMemoryContext::lock() {
@@ -109,6 +131,23 @@ void SharedMemoryContext::unlock() {
 
 std::string &SharedMemoryContext::getWorkDir() {
     return workDir;
+}
+
+int32_t SharedMemoryContext::getFreeBucketNum(){
+    return header->numFreeBuckets;
+}
+
+int32_t SharedMemoryContext::getActiveBucketNum(){
+    return header->numActiveBuckets;
+}
+
+int32_t SharedMemoryContext::getUsedBucketNum(){
+    return header->numUsedBuckets;
+}
+
+void SharedMemoryContext::printStatistics() {
+    LOG(INFO, "[SharedMemoryContext::printStatistics] free %d, active %d, used %d",
+        header->numFreeBuckets, header->numActiveBuckets, header->numUsedBuckets);
 }
 
 SharedMemoryContext::~SharedMemoryContext() {

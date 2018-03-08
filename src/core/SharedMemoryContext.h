@@ -37,11 +37,22 @@ using namespace boost::interprocess;
 typedef struct ShareMemHeader {
     uint8_t flags;
     char padding[3];
-    int32_t numBlocks;
+    int32_t numBuckets;
+    int32_t numFreeBuckets;
+    int32_t numActiveBuckets;
+    int32_t numUsedBuckets;
 
     inline void enter() { flags |= 0x01; };
 
     inline void exit() { flags &= 0xFE; };
+
+    void reset(int32_t totalBucketNum) {
+        flags = 0;
+        numBuckets = totalBucketNum;
+        numFreeBuckets = totalBucketNum;
+        numActiveBuckets = 0;
+        numUsedBuckets = 0;
+    };
 } ShareMemHeader;
 
 #define BucketTypeMask 0xFFFFFFFC
@@ -72,24 +83,28 @@ class SharedMemoryContext {
 public:
     SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD);
 
-    std::vector<int32_t> acquireBlock(FileId fileId);
+    int calcDynamicQuotaNum();
+
+    std::vector<int32_t> acquireBlock(FileId fileId, int num);
 
     void releaseBlocks(std::vector<Block> &blocks);
 
     void inactivateBlocks(std::vector<Block> &blocks, FileId fileId);
 
     void reset();
-
     void lock();
-
     void unlock();
+
+    int32_t getFreeBucketNum();
+    int32_t getActiveBucketNum();
+    int32_t getUsedBucketNum();
 
     std::string &getWorkDir();
 
     ~SharedMemoryContext();
 
 private:
-    int calcBlockAcquireNum();
+    void printStatistics();
 
     std::string workDir;
     shared_ptr<mapped_region> mShareMem;

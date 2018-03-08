@@ -59,20 +59,16 @@ int64_t ActiveStatus::getEof() {
     return mEof;
 }
 
-/* When calling this function, it means out/in stream
- * wants to access this block. Thus we need to update
- * quota or check the LRU status. */
+/* This is the main entry point of adjusting active status. When calling this function, it means
+ * out/in stream wants to access this block. Thus we need to see if active status should be
+ * adjusted.*/
 BlockInfo ActiveStatus::getCurBlockInfo() {
     /* TODO: Enhance for more cases */
     int curBlockIndex = mPos/mBlockSize;
 
-    SHARED_MEM_BEGIN
-
-    if (curBlockIndex + 1 > mNumBlocks){
-        extendOneBlock();
+    if (needNewBlock(curBlockIndex)){
+        adjustActiveBlock(curBlockIndex);
     }
-
-    SHARED_MEM_END
 
     /* build the block info */
     BlockInfo info;
@@ -91,8 +87,7 @@ int64_t ActiveStatus::getCurBlockOffset() {
     return mPos % mBlockSize;
 }
 
-bool ActiveStatus::needNewBlock() {
-    int curBlockInd = mPos/mBlockSize;
+bool ActiveStatus::needNewBlock(int curBlockInd) {
     return (mNumBlocks <= 0 ||                              // empty file
             curBlockInd >= mNumBlocks ||                    // append more data
             !mBlockArray[curBlockInd].isLocal ||            // block been evicted
@@ -100,9 +95,65 @@ bool ActiveStatus::needNewBlock() {
              mBlockArray[curBlockInd].state==BUCKET_USED));
 }
 
+void ActiveStatus::adjustActiveBlock(int curBlockInd) {
+    if (curBlockInd + 1 > mNumBlocks){
+        extendOneBlock();
+    }
+}
+
+/* All block activation should follow these steps:
+ * 1. Check shared memory for the current quota
+ * 2(a). If still have quota available, and have 0 or 2 available
+ *       Then -> acquire more buckets for preAllocatedBlocks
+ * 2(b). If still have quota available, and no 0 or 2 available
+ *       Then -> play with current owned buckets
+ * 3(a). If quota equal to current active block num, and have 0 or 2 available
+ *       Then -> inactivate blocks from LRU first, then acquire new blocks
+ * 3(b). If quota equal to current active block num, and have 0 or 2 available
+ *       Then -> play with current owned buckets
+ * 4. If quota smaller than current active block num,
+ *       Then -> release blocks and use own quota
+ * Notes: When got chance to acquire new blocks, active status will try to
+ *        pre acquire a number of buckets to reduce the Shared Memory contention. */
 void ActiveStatus::acquireNewBlocks() {
     std::vector<Block> blocksForLog;
-    std::vector<int32_t> newBlocks = mSharedMemoryContext->acquireBlock(mFileId);
+    int32_t numToAcquire = 0;
+
+    SHARED_MEM_BEGIN
+    uint32_t quota = mSharedMemoryContext->calcDynamicQuotaNum();
+    int numAvailable = mSharedMemoryContext->getFreeBucketNum() +
+                       mSharedMemoryContext->getUsedBucketNum();
+    LOG(INFO, "[ActiveStatus::acquireNewBlocks] current quota is %u, num availables is %d.",
+        quota, numAvailable);
+
+    /* switch to different cases */
+    if (mLRUCache->size() < quota){
+        /* 2(a) */
+        if (numAvailable > 0) {
+            numToAcquire = numAvailable > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
+                                Configuration::PRE_ALLOCATE_BUCKET_NUM : numAvailable;
+        }
+        /* 2(b) */
+        else{
+            /* TODO: Not implemented */
+        }
+    } else if (mLRUCache->size() == quota){
+        /* 3(a) */
+        if (numAvailable > 0) {
+            /* TODO: Not implemented */
+        }
+        /* 3(b) */
+        else{
+            /* TODO: Not implemented */
+        }
+    }
+    /* 4 */
+    else {
+        /* TODO: Not implemented */
+    }
+
+    std::vector<int32_t> newBlocks = mSharedMemoryContext->acquireBlock(mFileId, numToAcquire);
+    SHARED_MEM_END
 
     for (std::vector<int32_t>::size_type i=0; i<newBlocks.size(); i++)
     {

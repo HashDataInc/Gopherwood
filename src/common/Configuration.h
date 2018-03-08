@@ -33,10 +33,11 @@ public:
     static std::string LOCAL_SPACE_FILE;
     static std::string SHARED_MEMORY_NAME;
     static std::string MANIFEST_FOLDER;
-    static int NUMBER_OF_BLOCKS;
+    static int32_t NUMBER_OF_BLOCKS;
     static int64_t LOCAL_BLOCK_SIZE;
     static int MAX_CONCURRENCY;
-    static int MAX_QUOTA_SIZE;
+    static uint32_t MAX_QUOTA_SIZE;
+    static int PRE_ALLOCATE_BUCKET_NUM;
 };
 
 
