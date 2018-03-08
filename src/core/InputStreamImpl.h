@@ -59,7 +59,7 @@ namespace Gopherwood {
              * To move the file point to the given position.
              * @param pos the given position.
              */
-            void seek(int64_t pos);
+            int64_t seek(int64_t pos);
 
             /**
              * To get the current file point position.
@@ -98,7 +98,7 @@ namespace Gopherwood {
 
 
         private:
-            void checkStatus(int64_t pos);
+            int64_t checkStatus(int64_t pos);
 
             void seekInternal(int64_t pos);
 

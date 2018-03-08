@@ -87,7 +87,7 @@ namespace Gopherwood {
             * To move the file point to the given position.
             * @param pos the given position.
             */
-            virtual void seek(int64_t pos)=0;
+            virtual int64_t seek(int64_t pos)=0;
 
             virtual string toString()=0;
 

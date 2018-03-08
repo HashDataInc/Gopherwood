@@ -58,7 +58,7 @@ namespace Gopherwood {
             const char *access_key_id = "CNQHLNCMKNSMQXMMTGVL";
             const char *secret_access_key = "RV9HRXHLpcBQe5cSqwZN7i2OBYpmvEO1wXpRugx7";
             const char *location = "pek3a";
-            const char *bucket_name = "gopherwood";
+            const char *bucket_name = "gopherwood-qhl";
 
 
 //            char qs_ak[100] = {"CNQHLNCMKNSMQXMMTGVL"};

@@ -121,6 +121,7 @@ namespace Gopherwood {
 //            char *smBucketInfo;
             std::shared_ptr<shared_memory_object> shmPtr;
             std::shared_ptr<mapped_region> regionPtr;
+            key_t key ;
 
             union semun {
                 int val;
