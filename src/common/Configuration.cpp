@@ -32,9 +32,11 @@ int32_t Configuration::NUMBER_OF_BLOCKS = 100;
 
 int64_t Configuration::LOCAL_BLOCK_SIZE = 64 * 1024 * 1024;
 
-int Configuration::MAX_CONCURRENCY = 10;
+int Configuration::MAX_CONNECTION = 128;
 
-uint32_t Configuration::MAX_QUOTA_SIZE = Configuration::NUMBER_OF_BLOCKS/Configuration::MAX_CONCURRENCY;
+int Configuration::CUR_CONNECTION = 10;
+
+uint32_t Configuration::CUR_QUOTA_SIZE = Configuration::NUMBER_OF_BLOCKS/Configuration::CUR_CONNECTION;
 
 int Configuration::PRE_ALLOCATE_BUCKET_NUM = 3;
 

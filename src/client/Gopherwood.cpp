@@ -21,6 +21,7 @@
  */
 #include "platform.h"
 
+#include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Logger.h"
@@ -34,6 +35,7 @@ extern "C" {
 #endif
 
 using Gopherwood::exception_ptr;
+using Gopherwood::Internal::Configuration;
 using Gopherwood::Internal::InputStream;
 using Gopherwood::Internal::BlockOutputStream;
 using Gopherwood::Internal::shared_ptr;
@@ -129,8 +131,14 @@ static void handleException(const Gopherwood::exception_ptr &error) {
     }
 }
 
-gopherwoodFS gwCreateContext(char *workDir) {
+gopherwoodFS gwCreateContext(char *workDir, GWContextConfig* config) {
     gopherwoodFS retVal = NULL;
+
+    if (config != NULL) {
+        Configuration::NUMBER_OF_BLOCKS = config->numBlocks;
+        Configuration::LOCAL_BLOCK_SIZE = config->blockSize;
+    }
+
     try {
         FileSystem *fs = new FileSystem(workDir);
         retVal = new GWFileSystemInternalWrapper(fs);
@@ -220,7 +228,23 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
     return -1;
 }
 
-int deleteFile(gopherwoodFS fs, gwFile file) {
+int gwDeleteFile(gopherwoodFS fs, gwFile file) {
+    return -1;
+}
+
+int gwDestroyContext(gopherwoodFS fs) {
+    try {
+        if (fs) {
+            delete fs;
+            fs = NULL;
+        }
+        return 0;
+    } catch (...) {
+        delete fs;
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+
     return -1;
 }
 

@@ -41,17 +41,19 @@ typedef struct ShareMemHeader {
     int32_t numFreeBuckets;
     int32_t numActiveBuckets;
     int32_t numUsedBuckets;
+    int32_t numMaxConn;
 
     inline void enter() { flags |= 0x01; };
 
     inline void exit() { flags &= 0xFE; };
 
-    void reset(int32_t totalBucketNum) {
+    void reset(int32_t totalBucketNum, int32_t maxConn) {
         flags = 0;
         numBuckets = totalBucketNum;
         numFreeBuckets = totalBucketNum;
         numActiveBuckets = 0;
         numUsedBuckets = 0;
+        numMaxConn = maxConn;
     };
 } ShareMemHeader;
 
@@ -78,10 +80,17 @@ typedef struct ShareMemBucket {
     void setBucketUsed() { flags = (flags & BucketTypeMask) | 0x00000002; };
 } ShareMemBucket;
 
+typedef struct ShareMemConn {
+    int pid;
+} ShareMemConn;
 
 class SharedMemoryContext {
 public:
     SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD);
+
+    int regist(int pid);
+
+    int unregist(int connId, int pid);
 
     int calcDynamicQuotaNum();
 
@@ -100,6 +109,7 @@ public:
     int32_t getUsedBucketNum();
 
     std::string &getWorkDir();
+    int32_t getNumMaxConn();
 
     ~SharedMemoryContext();
 
@@ -111,6 +121,7 @@ private:
     int mLockFD;
     ShareMemHeader *header;
     ShareMemBucket *buckets;
+    ShareMemConn *conns;
 };
 
 }

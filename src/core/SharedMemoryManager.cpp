@@ -54,7 +54,9 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
 
         /* create Shared Memory */
         shm = createSharedMemory(Configuration::SHARED_MEMORY_NAME.c_str());
-        int size = sizeof(ShareMemHeader) + Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket);
+        int size = sizeof(ShareMemHeader) +
+                   Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket) +
+                   Configuration::MAX_CONNECTION * sizeof(ShareMemConn);
         shm->truncate(size);
         offset_t size1;
         shm->get_size(size1);
@@ -64,11 +66,13 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
         void *addr = region->get_address();
         ShareMemHeader *header = static_cast<ShareMemHeader *>(addr);
         header->enter();
-        header->reset(Configuration::NUMBER_OF_BLOCKS);
+        header->reset(Configuration::NUMBER_OF_BLOCKS, Configuration::MAX_CONNECTION);
         LOG(INFO, "[SharedMemoryManager::buildSharedMemoryContext] num free bucket %d, "
                 "num active buckets %d, num used buckets %d ",
                 header->numFreeBuckets, header->numActiveBuckets, header->numUsedBuckets);
-        memset((char *) addr + sizeof(ShareMemHeader), 0, Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket));
+        memset((char *) addr + sizeof(ShareMemHeader), 0,
+               Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket) +
+               Configuration::MAX_CONNECTION * sizeof(ShareMemConn));
         header->exit();
 
         /* release mutex */

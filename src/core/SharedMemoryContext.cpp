@@ -33,6 +33,29 @@ SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_regi
     void *addr = region->get_address();
     header = static_cast<ShareMemHeader *>(addr);
     buckets = static_cast<ShareMemBucket *>((void *) ((char *) addr + sizeof(ShareMemHeader)));
+    conns = static_cast<ShareMemConn *>((void *) ((char *) addr + sizeof(ShareMemHeader) +
+                sizeof(ShareMemBucket)*header->numBuckets));
+}
+
+int SharedMemoryContext::regist(int pid) {
+    for (int i=0; i<header->numMaxConn; i++){
+        if (conns[i].pid == 0){
+            conns[i].pid = pid;
+            return i;
+        }
+    }
+    return -1;
+}
+
+int SharedMemoryContext::unregist(int connId, int pid){
+    if (connId < 0 || connId > header->numMaxConn){
+        return -1;
+    }
+    if (conns[connId].pid == pid){
+        conns[connId].pid = 0;
+        return 0;
+    }
+    return -1;
 }
 
 void SharedMemoryContext::reset() {
@@ -116,7 +139,7 @@ void SharedMemoryContext::inactivateBlocks(std::vector<Block> &blocks, FileId fi
 }
 
 int SharedMemoryContext::calcDynamicQuotaNum() {
-    return Configuration::MAX_QUOTA_SIZE;
+    return Configuration::CUR_QUOTA_SIZE;
 }
 
 void SharedMemoryContext::lock() {
@@ -131,6 +154,10 @@ void SharedMemoryContext::unlock() {
 
 std::string &SharedMemoryContext::getWorkDir() {
     return workDir;
+}
+
+int32_t SharedMemoryContext::getNumMaxConn(){
+    return header->numMaxConn;
 }
 
 int32_t SharedMemoryContext::getFreeBucketNum(){

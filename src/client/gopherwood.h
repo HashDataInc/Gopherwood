@@ -68,13 +68,18 @@ typedef struct GWFileSystemInternalWrapper *gopherwoodFS;
 struct GWFileInternalWrapper;
 typedef struct GWFileInternalWrapper *gwFile;
 
+typedef struct GWContextConfig {
+    int32_t numBlocks;
+    int64_t blockSize;
+} GWContextConfig;
+
 /**
  * gwCreateContext - Connect to a gopherwood file system.
  *
  * @param workDir   the working directory
  * @return Returns a handle to the filesystem or NULL on error.
  */
-gopherwoodFS gwCreateContext(char *workDir);
+gopherwoodFS gwCreateContext(char *workDir, GWContextConfig* config);
 
 /**
  * gwFormatContext - Format a gopherwood file system.
@@ -170,6 +175,14 @@ int gwCloseFile(gopherwoodFS fs, gwFile file);
  * @return Returns 0 on success, -1 on error.
  */
 int gwDeleteFile(gopherwoodFS fs, gwFile file);
+
+/**
+ * gwDestroyContext - free Gopherwood Context resources.
+ *
+ * @param   fs      The configured filesystem handle.
+ * @return  Returns 0 on success, -1 on error.
+ */
+int gwDestroyContext(gopherwoodFS fs);
 
 #ifdef __cplusplus
 }

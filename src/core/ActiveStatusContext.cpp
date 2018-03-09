@@ -19,14 +19,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "ActiveStatusContext.h"
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
+#include "core/ActiveStatusContext.h"
 
 namespace Gopherwood {
 namespace Internal {
 
 ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext) :
         mSharedMemoryContext(sharedMemoryContext) {
+    registInSharedMem();
 }
+
+void ActiveStatusContext::registInSharedMem(){
+    mSharedMemoryContext->lock();
+    mConnId = mSharedMemoryContext->regist(getpid());
+    if (mConnId == -1){
+        THROW(GopherwoodSharedMemException,
+              "[ActiveStatusContext::registInSharedMem] Exceed max connection limitation %d",
+              mSharedMemoryContext->getNumMaxConn());
+    }
+    LOG(INFO, "[ActiveStatusContext::registInSharedMem] Registered successfully, ConnID=%d, PID=%d", mConnId, getpid());
+    mSharedMemoryContext->unlock();
+}
+
+void ActiveStatusContext::unregistInSharedMem() {
+    mSharedMemoryContext->lock();
+    int rc = mSharedMemoryContext->unregist(mConnId, getpid());
+    if (rc != 0){
+        mSharedMemoryContext->unlock();
+        THROW(GopherwoodSharedMemException,
+              "[ActiveStatusContext::registInSharedMem] connection info mismatch with SharedMem ConnId=%d, PID=%d",
+              mConnId, getpid());
+    }
+    LOG(INFO, "[ActiveStatusContext::registInSharedMem] Unregistered successfully, ConnID=%d, PID=%d", mConnId,getpid());
+    mConnId = -1;
+    mSharedMemoryContext->unlock();
+}
+
 
 shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId) {
     unordered_map<std::string, shared_ptr<ActiveStatus>>::iterator item =
@@ -44,7 +74,7 @@ shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId
 }
 
 ActiveStatusContext::~ActiveStatusContext() {
-
+    unregistInSharedMem();
 }
 
 }

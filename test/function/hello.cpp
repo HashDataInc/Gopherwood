@@ -8,26 +8,34 @@
 
 static gopherwoodFS fs;
 char workDir[] = "/tmp/gopherwood";
+char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
 
 int main(int argc, char *argv[])
 {
-    char buffer[]= "hello, world!";
+    char* buffer = (char*)malloc(100);
 
     gwFormatContext(workDir);
 
-    fs =  gwCreateContext(workDir);
+    GWContextConfig config;
+    config.blockSize = 10;
+    config.numBlocks = 100;
+
+    fs =  gwCreateContext(workDir, &config);
 
     gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
 
-    gwWrite(fs, file, buffer, sizeof(buffer));
+    gwWrite(fs, file, input, sizeof(input));
 
-    gwSeek(fs, file, 7, SEEK_SET);
+    gwSeek(fs, file, 10, SEEK_SET);
 
-    gwRead(fs, file, buffer, 5);
+    int len = gwRead(fs, file, buffer, 20);
+    buffer[len] = '\0';
 
-    printf("!!!%s!!!", buffer);
+    printf("Read From Gopherwood %s", buffer);
 
     gwCloseFile(fs, file);
+
+    gwDestroyContext(fs);
 
     return 0;
 }

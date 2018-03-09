@@ -37,6 +37,10 @@ class ActiveStatusContext {
 public:
     ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
+    void registInSharedMem();
+
+    void unregistInSharedMem();
+
     shared_ptr<ActiveStatus> getFileActiveStatus(FileId fileId);
 
     shared_ptr<ActiveStatus> initFileActiveStatus(FileId fileId);
@@ -46,6 +50,7 @@ public:
 private:
     unordered_map<std::string, shared_ptr<ActiveStatus>> mActiveStatusMap;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
+    int mConnId;
 };
 
 

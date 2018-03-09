@@ -41,7 +41,7 @@ ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> shared
     mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
 
     mManifest = shared_ptr<Manifest>(new Manifest(getManifestFileName(mFileId)));
-    mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::MAX_QUOTA_SIZE));
+    mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::CUR_QUOTA_SIZE));
 }
 
 int64_t ActiveStatus::getPosition(){
@@ -61,9 +61,8 @@ int64_t ActiveStatus::getEof() {
 
 /* This is the main entry point of adjusting active status. When calling this function, it means
  * out/in stream wants to access this block. Thus we need to see if active status should be
- * adjusted.*/
+ * adjusted. */
 BlockInfo ActiveStatus::getCurBlockInfo() {
-    /* TODO: Enhance for more cases */
     int curBlockIndex = mPos/mBlockSize;
 
     if (needNewBlock(curBlockIndex)){
