@@ -37,6 +37,10 @@ struct FileId {
 
     FileId() : hashcode(0), collisionId(0) {};
 
+    void reset() {
+        hashcode = 0;
+        collisionId = 0;
+    }
     std::string toString()
     {
         std::stringstream ss;

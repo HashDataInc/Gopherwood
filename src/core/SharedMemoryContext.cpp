@@ -19,8 +19,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <common/Configuration.h>
-#include "SharedMemoryContext.h"
+
+#include "core/SharedMemoryContext.h"
+#include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Logger.h"
@@ -37,22 +38,25 @@ SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_regi
                 sizeof(ShareMemBucket)*header->numBuckets));
 }
 
+/* returning array index + 1 to simplify SharedMemory format.
+ * Otherwise, we need to travers and set all ShareMemBucket
+ * connId to -1. */
 int SharedMemoryContext::regist(int pid) {
     for (int i=0; i<header->numMaxConn; i++){
         if (conns[i].pid == 0){
             conns[i].pid = pid;
-            return i;
+            return i+1;
         }
     }
     return -1;
 }
 
 int SharedMemoryContext::unregist(int connId, int pid){
-    if (connId < 0 || connId > header->numMaxConn){
+    if (connId < 1 || connId > header->numMaxConn){
         return -1;
     }
-    if (conns[connId].pid == pid){
-        conns[connId].pid = 0;
+    if (conns[connId-1].pid == pid){
+        conns[connId-1].pid = 0;
         return 0;
     }
     return -1;
@@ -62,14 +66,14 @@ void SharedMemoryContext::reset() {
     std::memset(mShareMem->get_address(), 0, mShareMem->get_size());
 }
 
-std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId, int num) {
+std::vector<int32_t> SharedMemoryContext::acquireFreeBlock(int connId, int num) {
     std::vector<int32_t> res;
     int count = num;
 
     /* pick up from free buckets */
     for (int32_t i = 0; i < header->numBuckets; i++) {
         if (buckets[i].isFreeBucket()) {
-            LOG(INFO, "[SharedMemoryContext::acquireBlock] got one free bucket(%d)", i);
+            buckets[i].connId = connId;
             buckets[i].setBucketActive();
             res.push_back(i);
             /* update statistics */
@@ -83,25 +87,79 @@ std::vector<int32_t> SharedMemoryContext::acquireBlock(FileId fileId, int num) {
         }
     }
 
-    /* TODO: pick up from Used buckets and evict them */
-    if (count > 0) {
-    }
-
     if (count != 0) {
         THROW(GopherwoodSharedMemException,
               "[SharedMemoryContext::acquireBlock] did not acquire enough buckets %d",
               count);
     }
 
-    LOG(INFO, "[SharedMemoryContext::acquireBlock] acquired %d blocks.", count);
+    LOG(INFO, "[SharedMemoryContext::acquireBlock] acquired %lu blocks.", res.size());
     printStatistics();
     return res;
 }
 
+std::vector<int32_t> SharedMemoryContext::markEvicting(int connId, int num){
+    std::vector<int32_t> res;
+    int count = num;
+
+    /* pick up from used buckets */
+    for (int32_t i = 0; i < header->numBuckets; i++) {
+        if (buckets[i].isUsedBucket() && !buckets[i].isEvictingBucket()) {
+            buckets[i].setBucketEvicting();
+            buckets[i].connId = connId;
+            res.push_back(i);
+            /* update statistics */
+            count--;
+            header->numUsedBuckets--;
+            header->numEvictingBuckets++;
+
+            if (count == 0) {
+                break;
+            }
+        }
+    }
+    LOG(INFO, "[SharedMemoryContext::markEvicting] evicting %lu blocks.", res.size());
+    printStatistics();
+    return res;
+}
+
+ShareMemBucket* SharedMemoryContext::evictBlockStart(int32_t bucketId, int connId){
+    assert(bucketId >0 && bucketId<header->numBuckets);
+    assert(buckets[bucketId].isEvictingBucket());
+    assert(buckets[bucketId].connId == connId);
+
+    conns[connId-1].fileId = buckets[bucketId].fileId;
+    conns[connId-1].fileBlockIndex = buckets[bucketId].fileBlockIndex;
+    conns[connId-1].setConnEvicting();
+
+    return &buckets[bucketId];
+}
+
+/* NOTES: when calling this function, the bucket should be add to preAllocateArray in time! */
+void SharedMemoryContext::evictBlockFinish(int32_t bucketId, int connId) {
+    conns[connId-1].fileId.reset();
+    conns[connId-1].fileBlockIndex = 0;
+    conns[connId-1].unsetConnEvicting();
+
+    buckets[bucketId].fileId.reset();
+    buckets[bucketId].fileBlockIndex = 0;
+    buckets[bucketId].connId = connId;
+    buckets[bucketId].setBucketActive();
+    header->numActiveBuckets++;
+    header->numEvictingBuckets--;
+
+    LOG(INFO, "[SharedMemoryContext::evictBlockFinish] Bucket %d evict finished.", bucketId);
+    printStatistics();
+}
+
+/* Transit Bucket State from 1 to 0 */
 void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
     for (uint32_t i=0; i<blocks.size(); i++) {
         int32_t bucketId = blocks[i].bucketId;
         if (buckets[bucketId].isActiveBucket()){
+            buckets[bucketId].fileId.reset();
+            buckets[bucketId].fileBlockIndex = 0;
+            buckets[bucketId].connId = 0;
             buckets[bucketId].setBucketFree();
             /* update statistics */
             header->numActiveBuckets--;
@@ -117,21 +175,22 @@ void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
     printStatistics();
 }
 
+/* Transit Bucket State from 1 to 2 */
 void SharedMemoryContext::inactivateBlocks(std::vector<Block> &blocks, FileId fileId){
     for (uint32_t i=0; i<blocks.size(); i++) {
         Block b = blocks[i];
         if (buckets[b.bucketId].isActiveBucket()){
             buckets[b.bucketId].fileId = fileId;
             buckets[b.bucketId].fileBlockIndex = b.blockId;
+            buckets[b.bucketId].connId = 0;
             buckets[b.bucketId].setBucketFree();
             /* update statistics */
             header->numActiveBuckets--;
             header->numUsedBuckets++;
         } else{
-            THROW(
-                    GopherwoodSharedMemException,
-                    "[SharedMemoryContext::releaseBlock] state of bucket %d is not Active",
-                    b.bucketId);
+            THROW(GopherwoodSharedMemException,
+                  "[SharedMemoryContext::releaseBlock] state of bucket %d is not Active",
+                  b.bucketId);
         }
     }
     LOG(INFO, "[SharedMemoryContext::inactivateBlocks] inactivated %lu blocks.", blocks.size());
@@ -172,9 +231,13 @@ int32_t SharedMemoryContext::getUsedBucketNum(){
     return header->numUsedBuckets;
 }
 
+int32_t SharedMemoryContext::getEvictingBucketNum(){
+    return header->numEvictingBuckets;
+}
+
 void SharedMemoryContext::printStatistics() {
-    LOG(INFO, "[SharedMemoryContext::printStatistics] free %d, active %d, used %d",
-        header->numFreeBuckets, header->numActiveBuckets, header->numUsedBuckets);
+    LOG(INFO, "[SharedMemoryContext::printStatistics] free %d, active %d, used %d, evicting %d",
+        header->numFreeBuckets, header->numActiveBuckets, header->numUsedBuckets, header->numEvictingBuckets);
 }
 
 SharedMemoryContext::~SharedMemoryContext() {

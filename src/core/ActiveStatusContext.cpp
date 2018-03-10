@@ -44,6 +44,9 @@ void ActiveStatusContext::registInSharedMem(){
 }
 
 void ActiveStatusContext::unregistInSharedMem() {
+    if(mConnId == -1)
+        return;
+
     mSharedMemoryContext->lock();
     int rc = mSharedMemoryContext->unregist(mConnId, getpid());
     if (rc != 0){
@@ -68,7 +71,7 @@ shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId)
 }
 
 shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId) {
-    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mSharedMemoryContext));
+    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mConnId, mSharedMemoryContext));
     mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;
 }

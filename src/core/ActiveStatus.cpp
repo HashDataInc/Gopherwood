@@ -33,8 +33,8 @@ namespace Internal {
 #define SHARED_MEM_BEGIN    mSharedMemoryContext->lock();
 #define SHARED_MEM_END      mSharedMemoryContext->unlock();
 
-ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
-        mFileId(fileId), mSharedMemoryContext(sharedMemoryContext){
+ActiveStatus::ActiveStatus(FileId fileId, int32_t connId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
+        mFileId(fileId), mConnId(connId), mSharedMemoryContext(sharedMemoryContext) {
     mNumBlocks = 0;
     mPos = 0;
     mEof = 0;
@@ -44,13 +44,13 @@ ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> shared
     mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::CUR_QUOTA_SIZE));
 }
 
-int64_t ActiveStatus::getPosition(){
+int64_t ActiveStatus::getPosition() {
     return mPos;
 }
 
-void ActiveStatus::setPosition(int64_t pos){
+void ActiveStatus::setPosition(int64_t pos) {
     mPos = pos;
-    if (mPos > mEof){
+    if (mPos > mEof) {
         mEof = mPos;
     }
 }
@@ -63,9 +63,9 @@ int64_t ActiveStatus::getEof() {
  * out/in stream wants to access this block. Thus we need to see if active status should be
  * adjusted. */
 BlockInfo ActiveStatus::getCurBlockInfo() {
-    int curBlockIndex = mPos/mBlockSize;
+    int curBlockIndex = mPos / mBlockSize;
 
-    if (needNewBlock(curBlockIndex)){
+    if (needNewBlock(curBlockIndex)) {
         adjustActiveBlock(curBlockIndex);
     }
 
@@ -79,7 +79,7 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
 }
 
 Block ActiveStatus::getCurBlock() {
-    return mBlockArray[mPos/mBlockSize];
+    return mBlockArray[mPos / mBlockSize];
 }
 
 int64_t ActiveStatus::getCurBlockOffset() {
@@ -91,11 +91,11 @@ bool ActiveStatus::needNewBlock(int curBlockInd) {
             curBlockInd >= mNumBlocks ||                    // append more data
             !mBlockArray[curBlockInd].isLocal ||            // block been evicted
             (mBlockArray[curBlockInd].isLocal &&            // block in used(2) state
-             mBlockArray[curBlockInd].state==BUCKET_USED));
+             mBlockArray[curBlockInd].state == BUCKET_USED));
 }
 
 void ActiveStatus::adjustActiveBlock(int curBlockInd) {
-    if (curBlockInd + 1 > mNumBlocks){
+    if (curBlockInd + 1 > mNumBlocks) {
         extendOneBlock();
     }
 }
@@ -116,50 +116,92 @@ void ActiveStatus::adjustActiveBlock(int curBlockInd) {
  *        pre acquire a number of buckets to reduce the Shared Memory contention. */
 void ActiveStatus::acquireNewBlocks() {
     std::vector<Block> blocksForLog;
+    std::vector<int32_t> newBlocks;
+    std::vector<int32_t> evictBuckets;
+
     int32_t numToAcquire = 0;
+    int32_t numToInactivate = 0;
 
     SHARED_MEM_BEGIN
     uint32_t quota = mSharedMemoryContext->calcDynamicQuotaNum();
-    int numAvailable = mSharedMemoryContext->getFreeBucketNum() +
-                       mSharedMemoryContext->getUsedBucketNum();
+    int numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
+    int numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
+    int numAvailable = numFreeBuckets + numUsedBuckets;
     LOG(INFO, "[ActiveStatus::acquireNewBlocks] current quota is %u, num availables is %d.",
         quota, numAvailable);
 
-    /* switch to different cases */
-    if (mLRUCache->size() < quota){
-        /* 2(a) */
+    /************************************************
+     *      Determin the acquire policy first       *
+     ************************************************/
+    if (mLRUCache->size() < quota) {
+        /* 2(a) acquire more buckets for preAllocatedBlocks */
         if (numAvailable > 0) {
             numToAcquire = numAvailable > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
-                                Configuration::PRE_ALLOCATE_BUCKET_NUM : numAvailable;
+                           Configuration::PRE_ALLOCATE_BUCKET_NUM : numAvailable;
         }
-        /* 2(b) */
-        else{
+            /* 2(b) play with current owned buckets */
+        else {
             /* TODO: Not implemented */
         }
-    } else if (mLRUCache->size() == quota){
-        /* 3(a) */
+    } else if (mLRUCache->size() == quota) {
+        /* 3(a) inactivate blocks from LRU first, then acquire new blocks */
         if (numAvailable > 0) {
             /* TODO: Not implemented */
         }
-        /* 3(b) */
-        else{
+            /* 3(b) play with current owned buckets */
+        else {
             /* TODO: Not implemented */
         }
     }
-    /* 4 */
+        /* 4 release blocks and use own quota*/
     else {
         /* TODO: Not implemented */
     }
 
-    std::vector<int32_t> newBlocks = mSharedMemoryContext->acquireBlock(mFileId, numToAcquire);
+    /************************************************
+     *      Real Operations on SharedMemory         *
+     ************************************************/
+    /* release first */
+    if (numToInactivate > 0){
+
+    }
+
+    /* acquire new buckets */
+    if (numToAcquire > 0){
+        int numAcqurieFree;
+        int numToEvict;
+        if (numToAcquire > numFreeBuckets) {
+            numAcqurieFree = numFreeBuckets;
+            numToEvict = numToAcquire - numAcqurieFree;
+        } else {
+            numAcqurieFree = numToAcquire;
+            numToEvict = 0;
+        }
+
+        newBlocks = mSharedMemoryContext->acquireFreeBlock(mConnId, numAcqurieFree);
+        evictBuckets = mSharedMemoryContext->markEvicting(mConnId, numToEvict);
+    }
     SHARED_MEM_END
 
-    for (std::vector<int32_t>::size_type i=0; i<newBlocks.size(); i++)
-    {
+    /* add free buckets to preAllocatedBlocks */
+    for (std::vector<int32_t>::size_type i = 0; i < newBlocks.size(); i++) {
         LOG(INFO, "[ActiveStatus::acquireNewBlocks] add block %d.", newBlocks[i]);
         Block newBlock(newBlocks[i], InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
         blocksForLog.push_back(newBlock);
         mPreAllocatedBlocks.push_back(newBlock);
+    }
+
+    /* add evict buckets to preAllocatedBlocks */
+    for (uint32_t i=0; i<evictBuckets.size(); i++){
+        int bucketId = evictBuckets[i];
+        SHARED_MEM_BEGIN
+        ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mConnId);
+        /* TODO: evict the block */
+        mSharedMemoryContext->evictBlockFinish(bucketId, mConnId);
+        Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
+        blocksForLog.push_back(newBlock);
+        mPreAllocatedBlocks.push_back(newBlock);
+        SHARED_MEM_END
     }
 
     /* Manifest Log */
@@ -169,7 +211,7 @@ void ActiveStatus::acquireNewBlocks() {
 }
 
 /* get block from pre-allocated blocks */
-void ActiveStatus::extendOneBlock(){
+void ActiveStatus::extendOneBlock() {
     std::vector<Block> blocksForLog;
 
     if (mPreAllocatedBlocks.size() == 0) {
@@ -209,7 +251,7 @@ void ActiveStatus::archive() {
     /* get blocks to inactivate */
     std::vector<int> activeBlockIds = mLRUCache->getAllKeyObject();
     std::vector<Block> activeBlocks;
-    for (uint32_t i=0; i<activeBlockIds.size(); i++) {
+    for (uint32_t i = 0; i < activeBlockIds.size(); i++) {
         activeBlocks.push_back(mBlockArray[i]);
     }
 
@@ -227,7 +269,8 @@ void ActiveStatus::archive() {
 
 std::string ActiveStatus::getManifestFileName(FileId fileId) {
     std::stringstream ss;
-    ss << mSharedMemoryContext->getWorkDir() << Configuration::MANIFEST_FOLDER << '/' << mFileId.hashcode << '-' << mFileId.collisionId;
+    ss << mSharedMemoryContext->getWorkDir() << Configuration::MANIFEST_FOLDER << '/' << mFileId.hashcode << '-'
+       << mFileId.collisionId;
     return ss.str();
 }
 

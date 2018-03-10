@@ -35,7 +35,9 @@ namespace Internal {
 
 class ActiveStatus {
 public:
-    ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext);
+    ActiveStatus(FileId fileId,
+                 int32_t connId,
+                 shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
     int64_t getPosition();
 
@@ -68,6 +70,7 @@ private:
 
     /* Fields */
     FileId mFileId;
+    int32_t mConnId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, Block>> mLRUCache;
