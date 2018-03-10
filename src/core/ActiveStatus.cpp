@@ -35,7 +35,9 @@ namespace Internal {
 #define SHARED_MEM_BEGIN    mSharedMemoryContext->lock();
 #define SHARED_MEM_END      mSharedMemoryContext->unlock();
 
-ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
+ActiveStatus::ActiveStatus(FileId fileId,
+                           shared_ptr<SharedMemoryContext> sharedMemoryContext,
+                           bool isCreate) :
         mFileId(fileId), mSharedMemoryContext(sharedMemoryContext) {
     registInSharedMem();
     mNumBlocks = 0;
@@ -43,7 +45,14 @@ ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> shared
     mEof = 0;
     mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
 
-    mManifest = shared_ptr<Manifest>(new Manifest(getManifestFileName(mFileId)));
+    /* check file exist if not creating a new file */
+    std::string manifestFileName= getManifestFileName(mFileId);
+    if (!isCreate && access( manifestFileName.c_str(), F_OK ) == -1){
+        THROW(GopherwoodInvalidParmException,
+              "[ActiveStatus::ActiveStatus] File does not exist %s",
+              manifestFileName.c_str());
+    }
+    mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
     mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::CUR_QUOTA_SIZE));
 }
 

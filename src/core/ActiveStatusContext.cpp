@@ -40,7 +40,13 @@ shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId)
 }
 
 shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId) {
-    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mSharedMemoryContext));
+    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mSharedMemoryContext, true));
+    mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
+    return activeStatus;
+}
+
+shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId) {
+    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mSharedMemoryContext, false));
     mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;
 }

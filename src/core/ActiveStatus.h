@@ -36,7 +36,9 @@ namespace Internal {
 class ActiveStatus {
 public:
     ActiveStatus(FileId fileId,
-                 shared_ptr<SharedMemoryContext> sharedMemoryContext);
+                 shared_ptr<SharedMemoryContext> sharedMemoryContext,
+                 bool isCreate
+    );
 
     int64_t getPosition();
 

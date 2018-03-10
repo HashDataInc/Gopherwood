@@ -126,6 +126,10 @@ std::vector<int32_t> SharedMemoryContext::markEvicting(int activeId, int num){
     std::vector<int32_t> res;
     int count = num;
 
+    if (num <= 0){
+        return res;
+    }
+
     /* pick up from used buckets */
     for (int32_t i = 0; i < header->numBuckets; i++) {
         if (buckets[i].isUsedBucket() && !buckets[i].isEvictingBucket()) {

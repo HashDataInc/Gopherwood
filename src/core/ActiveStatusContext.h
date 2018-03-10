@@ -41,6 +41,8 @@ public:
 
     shared_ptr<ActiveStatus> initFileActiveStatus(FileId fileId);
 
+    shared_ptr<ActiveStatus> openFileActiveStatus(FileId fileId);
+
     ~ActiveStatusContext();
 
 private:

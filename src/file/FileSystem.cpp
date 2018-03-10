@@ -91,7 +91,14 @@ File* FileSystem::CreateFile(const char *fileName, int flags)
 
 File* FileSystem::OpenFile(const char *fileName, int flags)
 {
-    return NULL;
+    FileId fileId;
+    shared_ptr<ActiveStatus> status;
+
+    fileId = makeFileId(std::string(fileName));
+    status = mActiveStatusContext->openFileActiveStatus(fileId);
+
+    std::string name(fileName);
+    return new File(fileId, name, flags, mLocalSpaceFile, status);
 }
 
 FileSystem::~FileSystem() {
