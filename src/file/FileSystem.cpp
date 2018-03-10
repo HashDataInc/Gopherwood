@@ -31,6 +31,7 @@ void FileSystem::Format(const char *workDir){
     ss << "exec rm -r " << workDir << "/*";
     system(ss.str().c_str());
     shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
+    LOG(INFO, "[FileSystem::Format] %s", Configuration::SHARED_MEMORY_NAME.c_str());
 }
 
 FileSystem::FileSystem(const char *workDir) :

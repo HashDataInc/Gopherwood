@@ -38,8 +38,8 @@ struct FileId {
     FileId() : hashcode(0), collisionId(0) {};
 
     void reset() {
-        hashcode = 0;
-        collisionId = 0;
+        hashcode = -1;
+        collisionId = -1;
     }
     std::string toString()
     {

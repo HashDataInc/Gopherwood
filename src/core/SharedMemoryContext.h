@@ -34,6 +34,14 @@ namespace Internal {
 
 using namespace boost::interprocess;
 
+#define BucketTypeMask 0xFFFFFFFC
+#define BUCKET_FREE      0
+#define BUCKET_ACTIVE    1
+#define BUCKET_USED      2
+
+#define InvalidPid -1
+#define InvalidActiveId -1
+
 typedef struct ShareMemHeader {
     uint8_t flags;
     char padding[3];
@@ -42,7 +50,7 @@ typedef struct ShareMemHeader {
     int32_t numActiveBuckets;
     int32_t numUsedBuckets;
     int32_t numEvictingBuckets;
-    int32_t numMaxConn;
+    int32_t numMaxActiveStatus;
 
     inline void enter() { flags |= 0x01; };
 
@@ -55,14 +63,9 @@ typedef struct ShareMemHeader {
         numActiveBuckets = 0;
         numUsedBuckets = 0;
         numEvictingBuckets = 0;
-        numMaxConn = maxConn;
+        numMaxActiveStatus = maxConn;
     };
 } ShareMemHeader;
-
-#define BucketTypeMask 0xFFFFFFFC
-#define BUCKET_FREE      0
-#define BUCKET_ACTIVE    1
-#define BUCKET_USED      2
 
 /* Bit usages in flags field (low to high)
  * bit 0~1:     Bucket type 0/1/2
@@ -72,7 +75,8 @@ typedef struct ShareMemBucket {
     uint32_t flags;
     FileId fileId;
     int32_t fileBlockIndex;
-    int32_t connId;
+    int32_t writeOrEvictActiveId;
+    int32_t readActives[10];
 
     bool isFreeBucket() { return (flags & 0x00000003) == 0 ? true : false; };
     bool isActiveBucket() { return (flags & 0x00000003) == 1 ? true : false; };
@@ -83,37 +87,53 @@ typedef struct ShareMemBucket {
     void setBucketUsed() { flags = (flags & BucketTypeMask) | 0x00000002; };
     void setBucketEvicting() { flags = (flags | 0x80000000);};
     void setBucketEvictFinish() { flags = (flags & 0x7FFFFFFF);};
+
+    void reset() {
+        fileId.reset();
+        fileBlockIndex = InvalidBlockId;
+        writeOrEvictActiveId = InvalidActiveId;
+        for (short i=0; i<10; i++){
+            readActives[i] = InvalidActiveId;
+        }
+    };
 } ShareMemBucket;
 
-typedef struct ShareMemConn {
+typedef struct ShareMemActiveStatus {
     int pid;
     int32_t flags;
     FileId fileId;
     int32_t fileBlockIndex;
 
-    void setConnEvicting() { flags |= 0x00000001; };
-    void setConnReading() { flags |= 0x00000002; };
-    void unsetConnEvicting() { flags &= 0xFFFFFFFE; };
-    void unsetConnReading() { flags |= 0xFFFFFFFD; };
-} ShareMemConn;
+    void setEvicting() { flags |= 0x00000001; };
+    void setReading() { flags |= 0x00000002; };
+    void unsetEvicting() { flags &= 0xFFFFFFFE; };
+    void unsetReading() { flags |= 0xFFFFFFFD; };
+
+    void reset() {
+        pid = InvalidPid;
+        flags=0;
+        fileId.reset();
+        fileBlockIndex = InvalidBlockId;
+    };
+} ShareMemActiveStatus;
 
 class SharedMemoryContext {
 public:
-    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD);
+    SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD, bool reset);
 
-    int regist(int pid);
-    int unregist(int connId, int pid);
+    int regist(int pid, FileId fileId);
+    int unregist(int activeId, int pid);
 
     int calcDynamicQuotaNum();
 
-    std::vector<int32_t> acquireFreeBlock(int connId, int num);
+    std::vector<int32_t> acquireFreeBlock(int activeId, int num);
     void releaseBlocks(std::vector<Block> &blocks);
     void inactivateBlocks(std::vector<Block> &blocks, FileId fileId);
 
     /* evict logic related APIs*/
-    std::vector<int32_t> markEvicting(int connId, int num);
-    ShareMemBucket* evictBlockStart(int32_t bucketId, int connId);
-    void evictBlockFinish(int32_t bucketId, int connId);
+    std::vector<int32_t> markEvicting(int activeId, int num);
+    ShareMemBucket* evictBlockStart(int32_t bucketId, int activeId);
+    void evictBlockFinish(int32_t bucketId, int activeId);
 
 
     void reset();
@@ -126,7 +146,7 @@ public:
     int32_t getEvictingBucketNum();
 
     std::string &getWorkDir();
-    int32_t getNumMaxConn();
+    int32_t getNumMaxActiveStatus();
 
     ~SharedMemoryContext();
 
@@ -138,7 +158,7 @@ private:
     int mLockFD;
     ShareMemHeader *header;
     ShareMemBucket *buckets;
-    ShareMemConn *conns;
+    ShareMemActiveStatus *activeStatus;
 };
 
 }

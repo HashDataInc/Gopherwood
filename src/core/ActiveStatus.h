@@ -36,7 +36,6 @@ namespace Internal {
 class ActiveStatus {
 public:
     ActiveStatus(FileId fileId,
-                 int32_t connId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
     int64_t getPosition();
@@ -54,6 +53,10 @@ public:
     ~ActiveStatus();
 
 private:
+    void registInSharedMem();
+
+    void unregistInSharedMem();
+
     void adjustActiveBlock(int curBlockInd);
 
     Block getCurBlock();
@@ -70,7 +73,7 @@ private:
 
     /* Fields */
     FileId mFileId;
-    int32_t mConnId;
+    int32_t mActiveId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, Block>> mLRUCache;

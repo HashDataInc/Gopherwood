@@ -42,41 +42,25 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
     shared_ptr<shared_memory_object> shm;
     shared_ptr<mapped_region> region;
 
+    /* get shared memory mutex. NOTES: This is the only place lock shared memory
+     * out side of SharedMemoryContext class*/
+    lockf(lockFD, F_LOCK, 0);
+
     /* TODO: remove this line !*/
-    shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
+//    shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
     /* try to open the shared memory */
     shm = openSharedMemory(Configuration::SHARED_MEMORY_NAME.c_str(), &shmExist);
 
     /* create the Shared Memory if not exists */
     if (!shmExist) {
-        /* get mutex */
-        lockf(lockFD, F_LOCK, 0);
 
         /* create Shared Memory */
         shm = createSharedMemory(Configuration::SHARED_MEMORY_NAME.c_str());
         int size = sizeof(ShareMemHeader) +
                    Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket) +
-                   Configuration::MAX_CONNECTION * sizeof(ShareMemConn);
+                   Configuration::MAX_CONNECTION * sizeof(ShareMemActiveStatus);
         shm->truncate(size);
-        offset_t size1;
-        shm->get_size(size1);
         region = shared_ptr<mapped_region>(new mapped_region(*shm, read_write));
-
-        /* Init Shared Memory */
-        void *addr = region->get_address();
-        ShareMemHeader *header = static_cast<ShareMemHeader *>(addr);
-        header->enter();
-        header->reset(Configuration::NUMBER_OF_BLOCKS, Configuration::MAX_CONNECTION);
-        LOG(INFO, "[SharedMemoryManager::buildSharedMemoryContext] num free bucket %d, "
-                "num active buckets %d, num used buckets %d ",
-                header->numFreeBuckets, header->numActiveBuckets, header->numUsedBuckets);
-        memset((char *) addr + sizeof(ShareMemHeader), 0,
-               Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket) +
-               Configuration::MAX_CONNECTION * sizeof(ShareMemConn));
-        header->exit();
-
-        /* release mutex */
-        lockf(lockFD, F_ULOCK, 0);
     } else {
         try {
             region = shared_ptr<mapped_region>(new mapped_region(*shm, read_write));
@@ -94,12 +78,16 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
         }
     }
 
-    ctx = shared_ptr<SharedMemoryContext>(new SharedMemoryContext(workDir, region, lockFD));
+    ctx = shared_ptr<SharedMemoryContext>(new SharedMemoryContext(workDir, region, lockFD, !shmExist));
 
     /* TODO: Rebuild Shared Memory status from existing manifest logs */
     if (!shmExist) {
         rebuildShmFromManifest(ctx);
     }
+
+    /* release shared memory mutex */
+    lockf(lockFD, F_ULOCK, 0);
+
     LOG(INFO, "End SharedMemoryManager::buildSharedMemoryContext");
     return ctx;
 }

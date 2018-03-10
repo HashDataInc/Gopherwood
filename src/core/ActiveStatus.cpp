@@ -20,6 +20,8 @@
  * limitations under the License.
  */
 #include "common/Configuration.h"
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
 #include "common/Logger.h"
 #include "core/ActiveStatus.h"
 
@@ -33,8 +35,9 @@ namespace Internal {
 #define SHARED_MEM_BEGIN    mSharedMemoryContext->lock();
 #define SHARED_MEM_END      mSharedMemoryContext->unlock();
 
-ActiveStatus::ActiveStatus(FileId fileId, int32_t connId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
-        mFileId(fileId), mConnId(connId), mSharedMemoryContext(sharedMemoryContext) {
+ActiveStatus::ActiveStatus(FileId fileId, shared_ptr<SharedMemoryContext> sharedMemoryContext) :
+        mFileId(fileId), mSharedMemoryContext(sharedMemoryContext) {
+    registInSharedMem();
     mNumBlocks = 0;
     mPos = 0;
     mEof = 0;
@@ -42,6 +45,35 @@ ActiveStatus::ActiveStatus(FileId fileId, int32_t connId, shared_ptr<SharedMemor
 
     mManifest = shared_ptr<Manifest>(new Manifest(getManifestFileName(mFileId)));
     mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::CUR_QUOTA_SIZE));
+}
+
+void ActiveStatus::registInSharedMem(){
+    mSharedMemoryContext->lock();
+    mActiveId = mSharedMemoryContext->regist(getpid(), mFileId);
+    if (mActiveId == -1){
+        THROW(GopherwoodSharedMemException,
+              "[ActiveStatus::registInSharedMem] Exceed max connection limitation %d",
+              mSharedMemoryContext->getNumMaxActiveStatus());
+    }
+    LOG(INFO, "[ActiveStatus::registInSharedMem] Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
+    mSharedMemoryContext->unlock();
+}
+
+void ActiveStatus::unregistInSharedMem() {
+    if(mActiveId == -1)
+        return;
+
+    mSharedMemoryContext->lock();
+    int rc = mSharedMemoryContext->unregist(mActiveId, getpid());
+    if (rc != 0){
+        mSharedMemoryContext->unlock();
+        THROW(GopherwoodSharedMemException,
+              "[ActiveStatus::registInSharedMem] connection info mismatch with SharedMem ActiveId=%d, PID=%d",
+              mActiveId, getpid());
+    }
+    LOG(INFO, "[ActiveStatus::registInSharedMem] Unregistered successfully, ActiveID=%d, PID=%d", mActiveId,getpid());
+    mActiveId = -1;
+    mSharedMemoryContext->unlock();
 }
 
 int64_t ActiveStatus::getPosition() {
@@ -178,8 +210,8 @@ void ActiveStatus::acquireNewBlocks() {
             numToEvict = 0;
         }
 
-        newBlocks = mSharedMemoryContext->acquireFreeBlock(mConnId, numAcqurieFree);
-        evictBuckets = mSharedMemoryContext->markEvicting(mConnId, numToEvict);
+        newBlocks = mSharedMemoryContext->acquireFreeBlock(mActiveId, numAcqurieFree);
+        evictBuckets = mSharedMemoryContext->markEvicting(mActiveId, numToEvict);
     }
     SHARED_MEM_END
 
@@ -195,9 +227,9 @@ void ActiveStatus::acquireNewBlocks() {
     for (uint32_t i=0; i<evictBuckets.size(); i++){
         int bucketId = evictBuckets[i];
         SHARED_MEM_BEGIN
-        ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mConnId);
+        ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mActiveId);
         /* TODO: evict the block */
-        mSharedMemoryContext->evictBlockFinish(bucketId, mConnId);
+        mSharedMemoryContext->evictBlockFinish(bucketId, mActiveId);
         Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
         blocksForLog.push_back(newBlock);
         mPreAllocatedBlocks.push_back(newBlock);
@@ -275,6 +307,7 @@ std::string ActiveStatus::getManifestFileName(FileId fileId) {
 }
 
 ActiveStatus::~ActiveStatus() {
+    unregistInSharedMem();
 
 }
 

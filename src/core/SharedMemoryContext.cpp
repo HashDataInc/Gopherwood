@@ -29,51 +29,75 @@
 namespace Gopherwood {
 namespace Internal {
 
-SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD) :
+SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD, bool reset) :
         workDir(dir), mShareMem(region), mLockFD(lockFD) {
     void *addr = region->get_address();
     header = static_cast<ShareMemHeader *>(addr);
     buckets = static_cast<ShareMemBucket *>((void *) ((char *) addr + sizeof(ShareMemHeader)));
-    conns = static_cast<ShareMemConn *>((void *) ((char *) addr + sizeof(ShareMemHeader) +
+    activeStatus = static_cast<ShareMemActiveStatus *>((void *) ((char *) addr + sizeof(ShareMemHeader) +
                 sizeof(ShareMemBucket)*header->numBuckets));
-}
 
-/* returning array index + 1 to simplify SharedMemory format.
- * Otherwise, we need to travers and set all ShareMemBucket
- * connId to -1. */
-int SharedMemoryContext::regist(int pid) {
-    for (int i=0; i<header->numMaxConn; i++){
-        if (conns[i].pid == 0){
-            conns[i].pid = pid;
-            return i+1;
+    /* Init Shared Memory */
+    if (reset) {
+        header->reset(Configuration::NUMBER_OF_BLOCKS, Configuration::MAX_CONNECTION);
+        memset((char *) addr + sizeof(ShareMemHeader), 0,
+               Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket) +
+               Configuration::MAX_CONNECTION * sizeof(ShareMemActiveStatus));
+        for (int i=0; i<header->numBuckets; i++) {
+            buckets[i].reset();
+        }
+        for (int i=0; i<header->numMaxActiveStatus; i++) {
+            activeStatus[i].reset();
         }
     }
-    return -1;
-}
-
-int SharedMemoryContext::unregist(int connId, int pid){
-    if (connId < 1 || connId > header->numMaxConn){
-        return -1;
-    }
-    if (conns[connId-1].pid == pid){
-        conns[connId-1].pid = 0;
-        return 0;
-    }
-    return -1;
+    printStatistics();
 }
 
 void SharedMemoryContext::reset() {
     std::memset(mShareMem->get_address(), 0, mShareMem->get_size());
 }
 
-std::vector<int32_t> SharedMemoryContext::acquireFreeBlock(int connId, int num) {
+void SharedMemoryContext::lock() {
+    lockf(mLockFD, F_LOCK, 0);
+    header->enter();
+}
+
+void SharedMemoryContext::unlock() {
+    header->exit();
+    lockf(mLockFD, F_ULOCK, 0);
+}
+
+int SharedMemoryContext::regist(int pid, FileId fileId) {
+    for (int i=0; i<header->numMaxActiveStatus; i++){
+        if (activeStatus[i].pid == InvalidPid){
+            activeStatus[i].pid = pid;
+            activeStatus[i].fileId = fileId;
+            activeStatus[i].fileBlockIndex = InvalidBlockId;
+            return i;
+        }
+    }
+    return -1;
+}
+
+int SharedMemoryContext::unregist(int activeId, int pid){
+    if (activeId < 1 || activeId > header->numMaxActiveStatus){
+        return -1;
+    }
+    if (activeStatus[activeId].pid == pid){
+        activeStatus[activeId].reset();
+        return 0;
+    }
+    return -1;
+}
+
+std::vector<int32_t> SharedMemoryContext::acquireFreeBlock(int activeId, int num) {
     std::vector<int32_t> res;
     int count = num;
 
     /* pick up from free buckets */
     for (int32_t i = 0; i < header->numBuckets; i++) {
         if (buckets[i].isFreeBucket()) {
-            buckets[i].connId = connId;
+            buckets[i].writeOrEvictActiveId = activeId;
             buckets[i].setBucketActive();
             res.push_back(i);
             /* update statistics */
@@ -98,7 +122,7 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBlock(int connId, int num) 
     return res;
 }
 
-std::vector<int32_t> SharedMemoryContext::markEvicting(int connId, int num){
+std::vector<int32_t> SharedMemoryContext::markEvicting(int activeId, int num){
     std::vector<int32_t> res;
     int count = num;
 
@@ -106,7 +130,7 @@ std::vector<int32_t> SharedMemoryContext::markEvicting(int connId, int num){
     for (int32_t i = 0; i < header->numBuckets; i++) {
         if (buckets[i].isUsedBucket() && !buckets[i].isEvictingBucket()) {
             buckets[i].setBucketEvicting();
-            buckets[i].connId = connId;
+            buckets[i].writeOrEvictActiveId = activeId;
             res.push_back(i);
             /* update statistics */
             count--;
@@ -123,27 +147,27 @@ std::vector<int32_t> SharedMemoryContext::markEvicting(int connId, int num){
     return res;
 }
 
-ShareMemBucket* SharedMemoryContext::evictBlockStart(int32_t bucketId, int connId){
+ShareMemBucket* SharedMemoryContext::evictBlockStart(int32_t bucketId, int activeId){
     assert(bucketId >0 && bucketId<header->numBuckets);
     assert(buckets[bucketId].isEvictingBucket());
-    assert(buckets[bucketId].connId == connId);
+    assert(buckets[bucketId].writeOrEvictActiveId == activeId);
 
-    conns[connId-1].fileId = buckets[bucketId].fileId;
-    conns[connId-1].fileBlockIndex = buckets[bucketId].fileBlockIndex;
-    conns[connId-1].setConnEvicting();
+    /* mark activestatus evict info  */
+    activeStatus[activeId].fileBlockIndex = buckets[bucketId].fileBlockIndex;
+    activeStatus[activeId].setEvicting();
 
     return &buckets[bucketId];
 }
 
 /* NOTES: when calling this function, the bucket should be add to preAllocateArray in time! */
-void SharedMemoryContext::evictBlockFinish(int32_t bucketId, int connId) {
-    conns[connId-1].fileId.reset();
-    conns[connId-1].fileBlockIndex = 0;
-    conns[connId-1].unsetConnEvicting();
+void SharedMemoryContext::evictBlockFinish(int32_t bucketId, int activeId) {
+    /* reset activestatus evict info  */
+    activeStatus[activeId].fileBlockIndex = InvalidBlockId;
+    activeStatus[activeId].unsetEvicting();
 
-    buckets[bucketId].fileId.reset();
-    buckets[bucketId].fileBlockIndex = 0;
-    buckets[bucketId].connId = connId;
+    /* clear bucket info */
+    buckets[bucketId].reset();
+    buckets[bucketId].writeOrEvictActiveId = activeId;
     buckets[bucketId].setBucketActive();
     header->numActiveBuckets++;
     header->numEvictingBuckets--;
@@ -153,13 +177,12 @@ void SharedMemoryContext::evictBlockFinish(int32_t bucketId, int connId) {
 }
 
 /* Transit Bucket State from 1 to 0 */
+/* TODO: Remove activestatus mark, if all removed then release this bucket */
 void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
     for (uint32_t i=0; i<blocks.size(); i++) {
         int32_t bucketId = blocks[i].bucketId;
         if (buckets[bucketId].isActiveBucket()){
-            buckets[bucketId].fileId.reset();
-            buckets[bucketId].fileBlockIndex = 0;
-            buckets[bucketId].connId = 0;
+            buckets[bucketId].reset();
             buckets[bucketId].setBucketFree();
             /* update statistics */
             header->numActiveBuckets--;
@@ -176,13 +199,15 @@ void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
 }
 
 /* Transit Bucket State from 1 to 2 */
+/* TODO: Remove activestatus mark, if all removed then inactivate this bucket */
 void SharedMemoryContext::inactivateBlocks(std::vector<Block> &blocks, FileId fileId){
     for (uint32_t i=0; i<blocks.size(); i++) {
         Block b = blocks[i];
         if (buckets[b.bucketId].isActiveBucket()){
             buckets[b.bucketId].fileId = fileId;
             buckets[b.bucketId].fileBlockIndex = b.blockId;
-            buckets[b.bucketId].connId = 0;
+            buckets[b.bucketId].writeOrEvictActiveId = InvalidActiveId;
+            /* TODO: reset all read activeId to 0 */
             buckets[b.bucketId].setBucketFree();
             /* update statistics */
             header->numActiveBuckets--;
@@ -201,22 +226,13 @@ int SharedMemoryContext::calcDynamicQuotaNum() {
     return Configuration::CUR_QUOTA_SIZE;
 }
 
-void SharedMemoryContext::lock() {
-    lockf(mLockFD, F_LOCK, 0);
-    header->enter();
-}
-
-void SharedMemoryContext::unlock() {
-    header->exit();
-    lockf(mLockFD, F_ULOCK, 0);
-}
 
 std::string &SharedMemoryContext::getWorkDir() {
     return workDir;
 }
 
-int32_t SharedMemoryContext::getNumMaxConn(){
-    return header->numMaxConn;
+int32_t SharedMemoryContext::getNumMaxActiveStatus(){
+    return header->numMaxActiveStatus;
 }
 
 int32_t SharedMemoryContext::getFreeBucketNum(){

@@ -28,38 +28,7 @@ namespace Internal {
 
 ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext) :
         mSharedMemoryContext(sharedMemoryContext) {
-    registInSharedMem();
 }
-
-void ActiveStatusContext::registInSharedMem(){
-    mSharedMemoryContext->lock();
-    mConnId = mSharedMemoryContext->regist(getpid());
-    if (mConnId == -1){
-        THROW(GopherwoodSharedMemException,
-              "[ActiveStatusContext::registInSharedMem] Exceed max connection limitation %d",
-              mSharedMemoryContext->getNumMaxConn());
-    }
-    LOG(INFO, "[ActiveStatusContext::registInSharedMem] Registered successfully, ConnID=%d, PID=%d", mConnId, getpid());
-    mSharedMemoryContext->unlock();
-}
-
-void ActiveStatusContext::unregistInSharedMem() {
-    if(mConnId == -1)
-        return;
-
-    mSharedMemoryContext->lock();
-    int rc = mSharedMemoryContext->unregist(mConnId, getpid());
-    if (rc != 0){
-        mSharedMemoryContext->unlock();
-        THROW(GopherwoodSharedMemException,
-              "[ActiveStatusContext::registInSharedMem] connection info mismatch with SharedMem ConnId=%d, PID=%d",
-              mConnId, getpid());
-    }
-    LOG(INFO, "[ActiveStatusContext::registInSharedMem] Unregistered successfully, ConnID=%d, PID=%d", mConnId,getpid());
-    mConnId = -1;
-    mSharedMemoryContext->unlock();
-}
-
 
 shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId) {
     unordered_map<std::string, shared_ptr<ActiveStatus>>::iterator item =
@@ -71,13 +40,12 @@ shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId)
 }
 
 shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId) {
-    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mConnId, mSharedMemoryContext));
+    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mSharedMemoryContext));
     mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;
 }
 
 ActiveStatusContext::~ActiveStatusContext() {
-    unregistInSharedMem();
 }
 
 }
