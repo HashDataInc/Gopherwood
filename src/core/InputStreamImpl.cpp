@@ -272,7 +272,7 @@ namespace Gopherwood {
             LOG(INFO, "InputStreamImpl::checkStatus. theEOFOffset=%d", theEOFOffset);
 
             if (theEOFOffset == 0) {
-                LOG(INFO, "the file do not contain any one bucket");
+                LOG(INFO, "InputStreamImpl::checkStatus. the file do not contain any one bucket");
                 return 0;
             }
             if (status->getBlockIdVector().size() == 0) {

@@ -6,7 +6,7 @@
 namespace Gopherwood {
 
     namespace Internal {
-        int64_t SIZE_OF_BLOCK = 4 * 1024 * 1024; //the size of the bucket size
+        int64_t SIZE_OF_BLOCK = 1 * 32 * 1024; //the size of the bucket size
 
         char *BUCKET_PATH_FILE_NAME = "/ssdfile/ssdkv/gopherwood";
 
