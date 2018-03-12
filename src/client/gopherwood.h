@@ -42,6 +42,7 @@ extern "C" {
 #define ESYNC           101     //GopherwoodSyncException
 #define EINVALIDPARM    102     //GopherwoodInvalidParmException
 #define ESHRMEM         103     //GopherwoodSharedMemException
+#define ENOTIMPL        104     //GopherwoodNotImplException
 
 
 /*******************************************

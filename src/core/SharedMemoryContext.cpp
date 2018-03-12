@@ -80,7 +80,7 @@ int SharedMemoryContext::regist(int pid, FileId fileId) {
 }
 
 int SharedMemoryContext::unregist(int activeId, int pid){
-    if (activeId < 1 || activeId > header->numMaxActiveStatus){
+    if (activeId < 0 || activeId >= header->numMaxActiveStatus){
         return -1;
     }
     if (activeStatus[activeId].pid == pid){

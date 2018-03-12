@@ -83,11 +83,6 @@ private:
 static void handleException(const Gopherwood::exception_ptr &error) {
     try {
         std::string buffer;
-        LOG(
-                Gopherwood::Internal::LOG_ERROR,
-                "Handle Exception: %s",
-                Gopherwood::Internal::GetExceptionDetail(error, buffer));
-
         Gopherwood::rethrow_exception(error);
     } catch (const Gopherwood::GopherwoodInvalidParmException &) {
         std::string buffer;
@@ -96,6 +91,13 @@ static void handleException(const Gopherwood::exception_ptr &error) {
                 "Handle Gopherwood Invalid Parameter Exception: %s",
                 Gopherwood::Internal::GetExceptionDetail(error, buffer));
         errno = EINVALIDPARM;
+    } catch (const Gopherwood::GopherwoodNotImplException &) {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Handle Gopherwood Function Not Implemented Exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+        errno = ESHRMEM;
     } catch (const Gopherwood::GopherwoodSharedMemException &) {
         std::string buffer;
         LOG(
@@ -219,6 +221,8 @@ int32_t gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length) 
 int gwCloseFile(gopherwoodFS fs, gwFile file) {
     try {
         file->getFile().close();
+        delete file;
+        file = NULL;
         return 0;
     } catch (...) {
         SetLastException(Gopherwood::current_exception());

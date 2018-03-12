@@ -38,25 +38,25 @@ typedef struct Block {
     bool isLocal;
     uint8_t state;
 
-    Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s) :
-            bucketId(theBucketId),
-            blockId(theBlockId),
-            isLocal(local),
-            state(s) {};
-
+    Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s);
     std::string toLogFormat();
 
 } Block;
 
 #define BLOCK_RECORD_REMOTE     0x8000
-#define BLOCK_RECORD_ACTIVE     0x8001
-#define BLOCK_RECORD_USED       0x8002
+
+#define BLOCK_RECORD_TYPE_MASK  0x0003
+#define BLOCK_RECORD_FREE       0x0000
+#define BLOCK_RECORD_ACTIVE     0x0001
+#define BLOCK_RECORD_USED       0x0002
 
 typedef struct BlockRecord {
     uint16_t rFlags;
     uint16_t rPadding;
     int32_t rBucketId;
     int32_t rBlockId;
+
+    Block toBlockFormat();
 } BlockRecord;
 
 typedef struct BlockInfo {

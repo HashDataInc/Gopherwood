@@ -78,10 +78,10 @@ void ActiveStatus::unregistInSharedMem() {
     if (rc != 0){
         mSharedMemoryContext->unlock();
         THROW(GopherwoodSharedMemException,
-              "[ActiveStatus::registInSharedMem] connection info mismatch with SharedMem ActiveId=%d, PID=%d",
+              "[ActiveStatus::unregistInSharedMem] connection info mismatch with SharedMem ActiveId=%d, PID=%d",
               mActiveId, getpid());
     }
-    LOG(INFO, "[ActiveStatus::registInSharedMem] Unregistered successfully, ActiveID=%d, PID=%d", mActiveId,getpid());
+    LOG(INFO, "[ActiveStatus::unregistInSharedMem] Unregistered successfully, ActiveID=%d, PID=%d", mActiveId,getpid());
     mActiveId = -1;
     mSharedMemoryContext->unlock();
 }
@@ -309,7 +309,7 @@ void ActiveStatus::flush() {
 }
 
 /* truncate existing Manifest file and flush latest block status to it */
-void ActiveStatus::archive() {
+void ActiveStatus::close() {
     MANIFEST_LOG_BEGIN
 
     /* get blocks to inactivate */
@@ -329,11 +329,11 @@ void ActiveStatus::archive() {
     mManifest->logFullStatus(mBlockArray);
 
     MANIFEST_LOG_END
+
+    unregistInSharedMem();
 }
 
 ActiveStatus::~ActiveStatus() {
-    unregistInSharedMem();
-
 }
 
 }

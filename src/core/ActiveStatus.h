@@ -47,7 +47,7 @@ public:
     void        setPosition(int64_t pos);
 
     void flush();
-    void archive();
+    void close();
 
     ~ActiveStatus();
 

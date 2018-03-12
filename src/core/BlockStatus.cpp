@@ -27,18 +27,25 @@
 namespace Gopherwood {
 namespace Internal {
 
+
+Block::Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s) :
+    bucketId(theBucketId), blockId(theBlockId), isLocal(local), state(s) {
+
+}
+
 std::string Block::toLogFormat() {
     std::string res("");
     BlockRecord record;
 
     /* build flags */
     record.rFlags = 0;
-    if (isLocal == LocalBlock) {
+    if (isLocal == RemoteBlock) {
         record.rFlags |= BLOCK_RECORD_REMOTE;
     }
     switch (state) {
         /* No need to set bucket status free, since it's 0 */
         case BUCKET_FREE:
+            record.rFlags |= BLOCK_RECORD_FREE;
             break;
         case BUCKET_ACTIVE:
             record.rFlags |= BLOCK_RECORD_ACTIVE;
@@ -61,6 +68,27 @@ std::string Block::toLogFormat() {
     res.append(buf, sizeof(buf));
 
     return res;
+}
+
+Block BlockRecord::toBlockFormat() {
+    uint8_t state;
+
+    bool isLocal = rFlags & BLOCK_RECORD_REMOTE ? RemoteBlock : LocalBlock;
+    int type = rFlags & BLOCK_RECORD_TYPE_MASK;
+
+    switch(type){
+        case BLOCK_RECORD_FREE:
+            state = BUCKET_FREE;
+            break;
+        case BLOCK_RECORD_ACTIVE:
+            state = BUCKET_ACTIVE;
+            break;
+        case BLOCK_RECORD_USED:
+            state = BUCKET_USED;
+            break;
+    }
+
+    return Block(rBucketId, rBlockId, isLocal, state);
 }
 
 }

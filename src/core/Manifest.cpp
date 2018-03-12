@@ -30,10 +30,13 @@
 namespace Gopherwood {
 namespace Internal {
 
+int64_t Manifest::BUFFER_SIZE = 512;
+
 Manifest::Manifest(std::string path) :
         mFilePath(path), mFD(-1) {
     mfOpen();
     mfSeek(0, SEEK_SET);
+    mBuffer = (char *)malloc(BUFFER_SIZE);
 }
 
 void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
@@ -77,8 +80,44 @@ void Manifest::logFullStatus(std::vector<Block> &blocks) {
 
 RecordHeader Manifest::fetchOneLogRecord(std::vector<Block> &blocks) {
     RecordHeader header;
-    /* TODO:*/
-    header.type = RecordType::invalidLog;
+    int64_t bytesRead;
+
+    /* get log size and eyecatcher */
+    bytesRead = mfRead(mBuffer, 10);
+    if (bytesRead == 0){
+        header.type = RecordType::invalidLog;
+        return header;
+    }
+
+    int64_t recLength = *(int64_t*)mBuffer;
+    uint16_t eyecatcher = *(uint16_t*)(mBuffer+8);
+    if (recLength > BUFFER_SIZE) {
+        THROW(GopherwoodNotImplException,
+              "[Manifest::fetchOneLogRecord] recLength should not exceed buffer size.");
+    }
+    if (bytesRead == -1 ||
+        bytesRead != 10 ||
+        eyecatcher != MANIFEST_RECORD_EYECATCHER){
+        THROW(GopherwoodException, "[Manifest::fetchOneLogRecord] read log error.");
+    }
+
+    /* read the whole log record to buffer */
+    bytesRead = mfRead(mBuffer+10, recLength-10);
+    if (bytesRead != recLength-10) {
+        THROW(GopherwoodException, "[Manifest::fetchOneLogRecord] read log error.");
+    }
+
+    /* build log header and block info */
+    header = *(RecordHeader*)mBuffer;
+    uint32_t numBlocks = 0;
+    BlockRecord* blockRecord = (BlockRecord*)(mBuffer + sizeof(RecordHeader));
+    while (numBlocks < header.numBlocks){
+        Block block = blockRecord->toBlockFormat();
+        blocks.push_back(block);
+        blockRecord++;
+        numBlocks++;
+    }
+
     return header;
 }
 
@@ -136,12 +175,16 @@ void Manifest::mfSeek(int64_t offset, int flag) {
 
 void Manifest::mfWrite(std::string &record) {
     int len = write(mFD, record.c_str(), record.size());
-    if (len == -1 || len != record.size()) {
+    if (len == -1 || len != (int)record.size()) {
         THROW(GopherwoodIOException,
               "[Manifest::mfWrite] write failed %s.",
               mFilePath.c_str());
     }
     mPos += len;
+}
+
+inline int64_t Manifest::mfRead(char* buffer, int64_t size) {
+    return read(mFD, buffer, size);
 }
 
 void Manifest::mfTruncate() {

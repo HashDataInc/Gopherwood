@@ -106,12 +106,15 @@ public:
     ~Manifest();
 
 private:
+    static int64_t BUFFER_SIZE;
+
     std::string serializeManifestLog(std::vector<Block> &blocks, RecordType type, RecOpaque opaque);
 
     /* file operations */
     inline void mfOpen();
     inline void mfSeek(int64_t offset, int flag);
     inline void mfWrite(std::string &record);
+    inline int64_t mfRead(char* buffer, int64_t size);
     inline void mfTruncate();
     inline void mfClose();
 
@@ -119,6 +122,7 @@ private:
     std::string mFilePath;
     int mFD;
     int64_t mPos;
+    char *mBuffer;
 
 };
 

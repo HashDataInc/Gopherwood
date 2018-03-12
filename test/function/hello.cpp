@@ -23,16 +23,18 @@ int main(int argc, char *argv[])
     fs =  gwCreateContext(workDir, &config);
 
     gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
-
     gwWrite(fs, file, input, sizeof(input));
-
     gwSeek(fs, file, 10, SEEK_SET);
-
     int len = gwRead(fs, file, buffer, 20);
     buffer[len] = '\0';
+    printf("Read From Gopherwood the first time %s \n", buffer);
+    gwCloseFile(fs, file);
 
-    printf("Read From Gopherwood %s", buffer);
-
+    gwFile file1 = gwOpenFile(fs, "/test1", GW_RDONLY);
+    gwSeek(fs, file, 10, SEEK_SET);
+    len = gwRead(fs, file, buffer, 20);
+    buffer[len] = '\0';
+    printf("Read From Gopherwood the second time %s \n", buffer);
     gwCloseFile(fs, file);
 
     gwDestroyContext(fs);

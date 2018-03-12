@@ -62,6 +62,16 @@ public:
     }
 };
 
+class GopherwoodNotImplException: public GopherwoodException {
+public:
+    GopherwoodNotImplException(const std::string &arg, const char *file, int line, const char *stack) :
+            GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodNotImplException() throw () {
+    }
+};
+
 class GopherwoodSyncException: public GopherwoodException {
 public:
     GopherwoodSyncException(const std::string &arg, const char *file, int line, const char *stack) :

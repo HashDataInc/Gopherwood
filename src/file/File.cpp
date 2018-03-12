@@ -74,7 +74,7 @@ void File::seek(int64_t pos, int mode) {
 }
 
 void File::close() {
-    mStatus->archive();
+    mStatus->close();
 
     if (mOutStream){
         mOutStream->close();
