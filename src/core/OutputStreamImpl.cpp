@@ -346,13 +346,16 @@ namespace Gopherwood {
             if (cursorIndex < status->getBlockIdVector().size()) {
                 this->cursorBucketID = status->getBlockIdVector()[cursorIndex];
             }
+            this->cursorOffset = 0;
+
             //1. set the last bucket
             status->setLastBucket(cursorBucketID);
             status->setLastBucketIndex(cursorIndex);
+            status->setEndOffsetOfBucket(cursorOffset);
             LOG(INFO, "OutputStreamImpl::seekToNextBlock after. cursorBucketID=%d, last bucket id = %d", cursorBucketID,
                 status->getLastBucket());
 
-            this->cursorOffset = 0;
+
             //2. seek the offset of the bucket file
             this->filesystem->fsSeek(cursorBucketID * SIZE_OF_BLOCK + cursorOffset, SEEK_SET);
         }
