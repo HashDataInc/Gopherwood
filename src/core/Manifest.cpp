@@ -33,6 +33,7 @@ namespace Internal {
 Manifest::Manifest(std::string path) :
         mFilePath(path), mFD(-1) {
     mfOpen();
+    mfSeek(0, SEEK_SET);
 }
 
 void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
@@ -44,7 +45,7 @@ void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
     std::string logRecord = serializeManifestLog(blocks, RecordType::acquireNewBlock, opaque);
 
     /* flush to log */
-    mfAppend(logRecord);
+    mfWrite(logRecord);
 }
 
 void Manifest::logExtendBlock(std::vector<Block> &blocks) {
@@ -56,7 +57,7 @@ void Manifest::logExtendBlock(std::vector<Block> &blocks) {
     std::string logRecord = serializeManifestLog(blocks, RecordType::assignBlock, opaque);
 
     /* flush to log */
-    mfAppend(logRecord);
+    mfWrite(logRecord);
 }
 
 void Manifest::logFullStatus(std::vector<Block> &blocks) {
@@ -71,7 +72,14 @@ void Manifest::logFullStatus(std::vector<Block> &blocks) {
     std::string logRecord = serializeManifestLog(blocks, RecordType::fullStatus, opaque);
 
     /* flush to log */
-    mfAppend(logRecord);
+    mfWrite(logRecord);
+}
+
+RecordHeader Manifest::fetchOneLogRecord(std::vector<Block> &blocks) {
+    RecordHeader header;
+    /* TODO:*/
+    header.type = RecordType::invalidLog;
+    return header;
 }
 
 void Manifest::flush() {
@@ -105,7 +113,7 @@ std::string Manifest::serializeManifestLog(std::vector<Block> &blocks, RecordTyp
 
     logRecord = ss.str();
     if (logRecord.size() != header.recordLength) {
-        THROW(GopherwoodException,
+        THROW(GopherwoodIOException,
               "[Manifest::serializeManifestLog] Broken log record, expect_size=%lu, actual_size=%lu",
               header.recordLength, logRecord.size());
     }
@@ -113,11 +121,6 @@ std::string Manifest::serializeManifestLog(std::vector<Block> &blocks, RecordTyp
 
     return logRecord;
 }
-
-void Manifest::catchUpLog() {
-    /* TODO: unimplemented */
-}
-
 
 /************************************************************
  *      Support Functions For Manifest File Operations      *
@@ -127,18 +130,23 @@ void Manifest::mfOpen() {
     mFD = open(mFilePath.c_str(), flags, 0644);
 }
 
-void Manifest::mfSeekEnd() {
-    lseek(mFD, 0, SEEK_END);
+void Manifest::mfSeek(int64_t offset, int flag) {
+    mPos = lseek(mFD, offset, flag);
 }
 
-void Manifest::mfAppend(std::string &record) {
-    mfSeekEnd();
-    write(mFD, record.c_str(), record.size());
+void Manifest::mfWrite(std::string &record) {
+    int len = write(mFD, record.c_str(), record.size());
+    if (len == -1 || len != record.size()) {
+        THROW(GopherwoodIOException,
+              "[Manifest::mfWrite] write failed %s.",
+              mFilePath.c_str());
+    }
+    mPos += len;
 }
 
 void Manifest::mfTruncate() {
     ftruncate(mFD, 0);
-    lseek(mFD, 0, SEEK_SET);
+    mfSeek(0, SEEK_SET);
 }
 
 void Manifest::lock() {

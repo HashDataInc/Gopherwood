@@ -51,7 +51,8 @@ enum RecordType {
     evictBlock = 6,
     /* the file have been closed and the FileStatus
      * are collected and merged. */
-    fullStatus = 7
+    fullStatus = 7,
+    invalidLog = 100
 };
 
 struct Common {
@@ -91,12 +92,10 @@ public:
     Manifest(std::string path);
 
     void logAcquireNewBlock(std::vector<Block> &blocks);
-
     void logExtendBlock(std::vector<Block> &blocks);
-
     void logFullStatus(std::vector<Block> &blocks);
 
-    void catchUpLog();
+    RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);
 
     void flush();
 
@@ -109,18 +108,17 @@ public:
 private:
     std::string serializeManifestLog(std::vector<Block> &blocks, RecordType type, RecOpaque opaque);
 
+    /* file operations */
     inline void mfOpen();
-
-    inline void mfSeekEnd();
-
-    inline void mfAppend(std::string &record);
-
+    inline void mfSeek(int64_t offset, int flag);
+    inline void mfWrite(std::string &record);
     inline void mfTruncate();
-
     inline void mfClose();
 
+    /* fields */
     std::string mFilePath;
     int mFD;
+    int64_t mPos;
 
 };
 

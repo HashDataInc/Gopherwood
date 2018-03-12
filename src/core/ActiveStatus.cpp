@@ -28,8 +28,7 @@
 namespace Gopherwood {
 namespace Internal {
 
-#define MANIFEST_LOG_BEGIN  mManifest->lock(); \
-                            mManifest->catchUpLog();
+#define MANIFEST_LOG_BEGIN  mManifest->lock();
 #define MANIFEST_LOG_END    mManifest->unlock();
 
 #define SHARED_MEM_BEGIN    mSharedMemoryContext->lock();
@@ -54,6 +53,8 @@ ActiveStatus::ActiveStatus(FileId fileId,
     }
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
     mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::CUR_QUOTA_SIZE));
+    /* catch up logs */
+    catchUpManifestLogs();
 }
 
 void ActiveStatus::registInSharedMem(){
@@ -125,6 +126,13 @@ Block ActiveStatus::getCurBlock() {
 
 int64_t ActiveStatus::getCurBlockOffset() {
     return mPos % mBlockSize;
+}
+
+std::string ActiveStatus::getManifestFileName(FileId fileId) {
+    std::stringstream ss;
+    ss << mSharedMemoryContext->getWorkDir() << Configuration::MANIFEST_FOLDER << '/' << mFileId.hashcode << '-'
+       << mFileId.collisionId;
+    return ss.str();
 }
 
 bool ActiveStatus::needNewBlock(int curBlockInd) {
@@ -280,6 +288,21 @@ void ActiveStatus::extendOneBlock() {
     MANIFEST_LOG_END
 }
 
+void ActiveStatus::catchUpManifestLogs() {
+    std::vector<Block> blocks;
+    while(true){
+        RecordHeader header = mManifest->fetchOneLogRecord(blocks);
+        if (header.type == RecordType::invalidLog){
+            break;
+        }
+        /* replay the log */
+        switch (header.type) {
+            case RecordType::inactiveBlock:
+                break;
+        }
+    }
+}
+
 /* flush cached Manifest logs to disk */
 void ActiveStatus::flush() {
 
@@ -306,13 +329,6 @@ void ActiveStatus::archive() {
     mManifest->logFullStatus(mBlockArray);
 
     MANIFEST_LOG_END
-}
-
-std::string ActiveStatus::getManifestFileName(FileId fileId) {
-    std::stringstream ss;
-    ss << mSharedMemoryContext->getWorkDir() << Configuration::MANIFEST_FOLDER << '/' << mFileId.hashcode << '-'
-       << mFileId.collisionId;
-    return ss.str();
 }
 
 ActiveStatus::~ActiveStatus() {

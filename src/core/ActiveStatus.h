@@ -40,38 +40,31 @@ public:
                  bool isCreate
     );
 
-    int64_t getPosition();
-
-    void setPosition(int64_t pos);
-
-    int64_t getEof();
-
-    BlockInfo getCurBlockInfo();
+    /* Getter and setters */
+    BlockInfo   getCurBlockInfo();
+    int64_t     getEof();
+    int64_t     getPosition();
+    void        setPosition(int64_t pos);
 
     void flush();
-
     void archive();
 
     ~ActiveStatus();
 
 private:
     void registInSharedMem();
-
     void unregistInSharedMem();
 
-    void adjustActiveBlock(int curBlockInd);
-
-    Block getCurBlock();
-
-    int64_t getCurBlockOffset();
-
-    bool needNewBlock(int curBlockInd);
-
-    void acquireNewBlocks();
-
-    void extendOneBlock();
-
+    Block       getCurBlock();
+    int64_t     getCurBlockOffset();
     std::string getManifestFileName(FileId fileId);
+
+    /* active status block manipulations */
+    void catchUpManifestLogs();
+    void adjustActiveBlock(int curBlockInd);
+    bool needNewBlock(int curBlockInd);
+    void acquireNewBlocks();
+    void extendOneBlock();
 
     /* Fields */
     FileId mFileId;
