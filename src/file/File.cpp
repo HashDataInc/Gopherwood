@@ -36,12 +36,7 @@ File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<Active
         mOutStream = NULL;
     }
 
-    if ((flags & GW_RDONLY) || (flags & GW_RDWR)) {
-        mInStream = shared_ptr<InputStream>(new InputStream(localFD, status));
-    }
-    else{
-        mInStream = NULL;
-    }
+    mInStream = shared_ptr<InputStream>(new InputStream(localFD, status));
 }
 
 void File::read(char *buffer, int64_t length) {

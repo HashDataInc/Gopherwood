@@ -56,21 +56,26 @@ enum RecordType {
 };
 
 struct Common {
-    int32_t padding;
+    int64_t padding;
 };
 
 struct AcquireNewBlock {
-    int32_t padding;
+    int64_t padding;
 };
 
 struct ExtendBlock {
-    int32_t padding;
+    int64_t padding;
+};
+
+struct FullStatus {
+    int64_t eof;
 };
 
 typedef union RecOpaque {
     Common  common;
     AcquireNewBlock acquireNewBlock;
     ExtendBlock  extendBlock;
+    FullStatus fullStatus;
 } RecOpaque;
 
 /* this is a random prime number to check log record integrity */
@@ -93,7 +98,7 @@ public:
 
     void logAcquireNewBlock(std::vector<Block> &blocks);
     void logExtendBlock(std::vector<Block> &blocks);
-    void logFullStatus(std::vector<Block> &blocks);
+    void logFullStatus(std::vector<Block> &blocks, RecOpaque opaque);
 
     RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);
 

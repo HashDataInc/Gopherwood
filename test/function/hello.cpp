@@ -31,11 +31,11 @@ int main(int argc, char *argv[])
     gwCloseFile(fs, file);
 
     gwFile file1 = gwOpenFile(fs, "/test1", GW_RDONLY);
-    gwSeek(fs, file, 10, SEEK_SET);
-    len = gwRead(fs, file, buffer, 20);
+    gwSeek(fs, file1, 10, SEEK_SET);
+    len = gwRead(fs, file1, buffer, 20);
     buffer[len] = '\0';
     printf("Read From Gopherwood the second time %s \n", buffer);
-    gwCloseFile(fs, file);
+    gwCloseFile(fs, file1);
 
     gwDestroyContext(fs);
 

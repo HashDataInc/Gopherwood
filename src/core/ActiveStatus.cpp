@@ -290,11 +290,16 @@ void ActiveStatus::extendOneBlock() {
 
 void ActiveStatus::catchUpManifestLogs() {
     std::vector<Block> blocks;
+
+    MANIFEST_LOG_BEGIN
     while(true){
         RecordHeader header = mManifest->fetchOneLogRecord(blocks);
         if (header.type == RecordType::invalidLog){
             break;
         }
+        /* integrety checks */
+        assert(header.numBlocks == blocks.size());
+
         /* replay the log */
         switch (header.type) {
             case RecordType::inactiveBlock:
@@ -304,17 +309,20 @@ void ActiveStatus::catchUpManifestLogs() {
                 LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got acquireNewBlock log record with %lu blocks.", blocks.size());
                 break;
             case RecordType::fullStatus:
-                LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got fullStatus log record with %lu blocks.", blocks.size());
+                LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got fullStatus log record with %lu blocks. EOF=%lu", blocks.size(), header.opaque.fullStatus.eof);
+                for(uint32_t i=0; i<blocks.size(); i++){
+                    mBlockArray.push_back(blocks[i]);
+                }
+                mEof = header.opaque.fullStatus.eof;
                 break;
-
         }
         blocks.clear();
     }
+    MANIFEST_LOG_END
 }
 
 /* flush cached Manifest logs to disk */
 void ActiveStatus::flush() {
-
 }
 
 /* truncate existing Manifest file and flush latest block status to it */
@@ -335,7 +343,9 @@ void ActiveStatus::close() {
     SHARED_MEM_END
 
     /* truncate existing Manifest file and flush latest block status to it */
-    mManifest->logFullStatus(mBlockArray);
+    RecOpaque opaque;
+    opaque.fullStatus.eof = mEof;
+    mManifest->logFullStatus(mBlockArray, opaque);
 
     MANIFEST_LOG_END
 

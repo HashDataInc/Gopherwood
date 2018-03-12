@@ -63,13 +63,9 @@ void Manifest::logExtendBlock(std::vector<Block> &blocks) {
     mfWrite(logRecord);
 }
 
-void Manifest::logFullStatus(std::vector<Block> &blocks) {
+void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
     /* truncate existing Manifest file */
     mfTruncate();
-
-    /* build Acquire New Block Opaque */
-    RecOpaque opaque;
-    opaque.common.padding = 0;
 
     /* build log record */
     std::string logRecord = serializeManifestLog(blocks, RecordType::fullStatus, opaque);
