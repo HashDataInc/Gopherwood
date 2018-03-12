@@ -979,12 +979,12 @@ namespace Gopherwood {
                     if (index > lastBlockIndex) {
                         emptyBlockVector.push_back(tmpBlockID);
                         LOG(INFO,
-                            "FileSystemImpl::closeFile. the evict block is empty, and the blockID =%d, lastBlock =%d.",
+                            "FileSystemImpl::releaseOrInactiveLRUCache. the evict block is empty, and the blockID =%d, lastBlock =%d.",
                             tmpBlockID, status->getLastBucket());
                     } else {
                         fullBlockVector.push_back(tmpBlockID);
                         LOG(INFO,
-                            "FileSystemImpl::closeFile. the evict block is full, and the blockID =%d, lastBlock =%d.",
+                            "FileSystemImpl::releaseOrInactiveLRUCache. the evict block is full, and the blockID =%d, lastBlock =%d.",
                             tmpBlockID, status->getLastBucket());
                     }
                 }
