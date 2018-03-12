@@ -58,7 +58,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
 }
 
 void ActiveStatus::registInSharedMem(){
-    mSharedMemoryContext->lock();
+    SHARED_MEM_BEGIN
     mActiveId = mSharedMemoryContext->regist(getpid(), mFileId);
     if (mActiveId == -1){
         THROW(GopherwoodSharedMemException,
@@ -66,14 +66,14 @@ void ActiveStatus::registInSharedMem(){
               mSharedMemoryContext->getNumMaxActiveStatus());
     }
     LOG(INFO, "[ActiveStatus::registInSharedMem] Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
-    mSharedMemoryContext->unlock();
+    SHARED_MEM_END
 }
 
 void ActiveStatus::unregistInSharedMem() {
     if(mActiveId == -1)
         return;
 
-    mSharedMemoryContext->lock();
+    SHARED_MEM_BEGIN
     int rc = mSharedMemoryContext->unregist(mActiveId, getpid());
     if (rc != 0){
         mSharedMemoryContext->unlock();
@@ -83,7 +83,7 @@ void ActiveStatus::unregistInSharedMem() {
     }
     LOG(INFO, "[ActiveStatus::unregistInSharedMem] Unregistered successfully, ActiveID=%d, PID=%d", mActiveId,getpid());
     mActiveId = -1;
-    mSharedMemoryContext->unlock();
+    SHARED_MEM_END
 }
 
 int64_t ActiveStatus::getPosition() {
@@ -298,8 +298,17 @@ void ActiveStatus::catchUpManifestLogs() {
         /* replay the log */
         switch (header.type) {
             case RecordType::inactiveBlock:
+                LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got inactiveBlock log record with %lu blocks.", blocks.size());
                 break;
+            case RecordType::acquireNewBlock:
+                LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got acquireNewBlock log record with %lu blocks.", blocks.size());
+                break;
+            case RecordType::fullStatus:
+                LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got fullStatus log record with %lu blocks.", blocks.size());
+                break;
+
         }
+        blocks.clear();
     }
 }
 

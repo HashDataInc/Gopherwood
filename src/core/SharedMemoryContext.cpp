@@ -29,13 +29,30 @@
 namespace Gopherwood {
 namespace Internal {
 
+void ShareMemHeader::enter() {
+    if (flags != 0x00) {
+        THROW(GopherwoodSharedMemException,
+              "[ShareMemHeader::enter] Shared Memory Dirty");
+    }
+    flags |= 0x01;
+}
+
+void ShareMemHeader::exit() {
+    flags &= 0xFE;
+    if (flags != 0x00) {
+        THROW(GopherwoodSharedMemException,
+              "[ShareMemHeader::exit] Shared Memory Dirty");
+    }
+}
+
 SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD, bool reset) :
         workDir(dir), mShareMem(region), mLockFD(lockFD) {
     void *addr = region->get_address();
+
     header = static_cast<ShareMemHeader *>(addr);
     buckets = static_cast<ShareMemBucket *>((void *) ((char *) addr + sizeof(ShareMemHeader)));
     activeStatus = static_cast<ShareMemActiveStatus *>((void *) ((char *) addr + sizeof(ShareMemHeader) +
-                sizeof(ShareMemBucket)*header->numBuckets));
+                            Configuration::NUMBER_OF_BLOCKS*sizeof(ShareMemBucket)));
 
     /* Init Shared Memory */
     if (reset) {
@@ -73,6 +90,7 @@ int SharedMemoryContext::regist(int pid, FileId fileId) {
             activeStatus[i].pid = pid;
             activeStatus[i].fileId = fileId;
             activeStatus[i].fileBlockIndex = InvalidBlockId;
+            LOG(INFO, "[SharedMemoryContext::regist] activeId %d, pid=%d", i, activeStatus[i].pid);
             return i;
         }
     }
@@ -80,9 +98,11 @@ int SharedMemoryContext::regist(int pid, FileId fileId) {
 }
 
 int SharedMemoryContext::unregist(int activeId, int pid){
+    LOG(INFO, "[SharedMemoryContext::unregist] Start activeId = %d, pid = %d", activeId, pid);
     if (activeId < 0 || activeId >= header->numMaxActiveStatus){
         return -1;
     }
+    LOG(INFO, "[SharedMemoryContext::unregist] activeStatus[activeId].pid=%d", activeStatus[activeId].pid);
     if (activeStatus[activeId].pid == pid){
         activeStatus[activeId].reset();
         return 0;

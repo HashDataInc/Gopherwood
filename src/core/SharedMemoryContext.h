@@ -52,9 +52,9 @@ typedef struct ShareMemHeader {
     int32_t numEvictingBuckets;
     int32_t numMaxActiveStatus;
 
-    inline void enter() { flags |= 0x01; };
+    inline void enter();
 
-    inline void exit() { flags &= 0xFE; };
+    inline void exit();
 
     void reset(int32_t totalBucketNum, int32_t maxConn) {
         flags = 0;
@@ -82,7 +82,7 @@ typedef struct ShareMemBucket {
     bool isActiveBucket() { return (flags & 0x00000003) == 1 ? true : false; };
     bool isUsedBucket() { return (flags & 0x00000003) == 2 ? true : false; };
     bool isEvictingBucket() {return (flags & 0x80000000);};
-    void setBucketFree() { flags = 0; };
+    void setBucketFree() { flags = (flags & BucketTypeMask) | 0x00000000;};
     void setBucketActive() {flags = (flags & BucketTypeMask) | 0x00000001; };
     void setBucketUsed() { flags = (flags & BucketTypeMask) | 0x00000002; };
     void setBucketEvicting() { flags = (flags | 0x80000000);};
