@@ -154,7 +154,7 @@ namespace Gopherwood {
                         cursorOffset = remainSize;
                         remainSize -= remainSize;
                         haveWriteSize += remainSize;
-                        if (remainSize == SIZE_OF_BLOCK) {
+                        if (remainSize == 0) {
                             seekToNextBlock();
                         } else {
                             //3. set the endOffsetOfBucket
@@ -211,7 +211,9 @@ namespace Gopherwood {
         int64_t OutputStreamImpl::seek(int64_t pos) {
             int64_t retOffset = checkStatus(pos);
             try {
-                if (retOffset > 0) {
+                int blockIDSize = status->getBlockIdVector().size();
+
+                if ((blockIDSize > 0 && retOffset >= 0) || (retOffset > 0)) {
                     seekInternal(pos);
                 }
             } catch (...) {
