@@ -30,7 +30,10 @@ namespace Gopherwood {
             }
             status = filesystem->getFileStatus(fileName);
             //3. default seek the offset to zero when read.
-//            seek(0);
+            if (status->getBlockIdVector().size() > 0) {
+                seek(0);
+            }
+
         }
 
         InputStreamImpl::~InputStreamImpl() {
@@ -214,7 +217,10 @@ namespace Gopherwood {
         int64_t InputStreamImpl::seek(int64_t pos) {
             int64_t retOffset = checkStatus(pos);
             try {
-                if (retOffset > 0) {
+
+                int blockIDSize = status->getBlockIdVector().size();
+
+                if ((blockIDSize > 0 && retOffset >= 0) || (retOffset > 0)) {
                     seekInternal(pos);
                 }
             } catch (...) {
