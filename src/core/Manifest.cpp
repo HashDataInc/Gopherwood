@@ -152,7 +152,7 @@ std::string Manifest::serializeManifestLog(std::vector<Block> &blocks, RecordTyp
               "[Manifest::serializeManifestLog] Broken log record, expect_size=%lu, actual_size=%lu",
               header.recordLength, logRecord.size());
     }
-    LOG(INFO, "[Manifest::serializeManifestLog] new log record, type=%d, length=%lu", type, header.recordLength);
+    LOG(INFO, "[Manifest] new log record, type=%d, length=%lu", type, header.recordLength);
 
     return logRecord;
 }

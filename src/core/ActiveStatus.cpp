@@ -68,7 +68,7 @@ void ActiveStatus::registInSharedMem(){
               "[ActiveStatus::registInSharedMem] Exceed max connection limitation %d",
               mSharedMemoryContext->getNumMaxActiveStatus());
     }
-    LOG(INFO, "[ActiveStatus::registInSharedMem] Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
+    LOG(INFO, "[ActiveStatus] Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
     SHARED_MEM_END
 }
 
@@ -83,7 +83,7 @@ void ActiveStatus::unregistInSharedMem() {
               "[ActiveStatus::unregistInSharedMem] connection info mismatch with SharedMem ActiveId=%d, PID=%d",
               mActiveId, getpid());
     }
-    LOG(INFO, "[ActiveStatus::unregistInSharedMem] Unregistered successfully, ActiveID=%d, PID=%d", mActiveId,getpid());
+    LOG(INFO, "[ActiveStatus] Unregistered successfully, ActiveID=%d, PID=%d", mActiveId,getpid());
     mActiveId = -1;
 }
 
@@ -189,7 +189,7 @@ void ActiveStatus::acquireNewBlocks() {
     int numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
     int numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
     int numAvailable = numFreeBuckets + numUsedBuckets;
-    LOG(INFO, "[ActiveStatus::acquireNewBlocks] current quota is %u, num availables is %d.",
+    LOG(INFO, "[ActiveStatus] current quota is %u, num availables is %d.",
         quota, numAvailable);
 
     /************************************************
@@ -247,7 +247,7 @@ void ActiveStatus::acquireNewBlocks() {
 
     /* add free buckets to preAllocatedBlocks */
     for (std::vector<int32_t>::size_type i = 0; i < newBlocks.size(); i++) {
-        LOG(INFO, "[ActiveStatus::acquireNewBlocks] add block %d.", newBlocks[i]);
+        LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBlocks[i]);
         Block newBlock(newBlocks[i],
                        InvalidBlockId,
                        LocalBlock,
@@ -261,10 +261,11 @@ void ActiveStatus::acquireNewBlocks() {
     for (uint32_t i=0; i<evictBuckets.size(); i++){
         int bucketId = evictBuckets[i];
         SHARED_MEM_BEGIN
-        ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mActiveId);
+        //ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mActiveId);
         /* TODO: evict the block */
         mSharedMemoryContext->evictBlockFinish(bucketId, mActiveId, mIsWrite);
         Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
+        LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBlocks[i]);
         blocksForLog.push_back(newBlock);
         mPreAllocatedBlocks.push_back(newBlock);
         SHARED_MEM_END
@@ -335,13 +336,13 @@ void ActiveStatus::catchUpManifestLogs() {
         /* replay the log */
         switch (header.type) {
             case RecordType::inactiveBlock:
-                LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got inactiveBlock log record with %lu blocks.", blocks.size());
+                LOG(INFO, "[ActiveStatus] got inactiveBlock log record with %lu blocks.", blocks.size());
                 break;
             case RecordType::acquireNewBlock:
-                LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got acquireNewBlock log record with %lu blocks.", blocks.size());
+                LOG(INFO, "[ActiveStatus] got acquireNewBlock log record with %lu blocks.", blocks.size());
                 break;
             case RecordType::fullStatus:
-                LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got fullStatus log record with %lu blocks. EOF=%lu", blocks.size(), header.opaque.fullStatus.eof);
+                LOG(INFO, "[ActiveStatus] got fullStatus log record with %lu blocks. EOF=%lu", blocks.size(), header.opaque.fullStatus.eof);
                 for(uint32_t i=0; i<blocks.size(); i++){
                     mBlockArray.push_back(blocks[i]);
                     mNumBlocks ++;

@@ -159,7 +159,7 @@ int SharedMemoryContext::regist(int pid, FileId fileId) {
             activeStatus[i].pid = pid;
             activeStatus[i].fileId = fileId;
             activeStatus[i].fileBlockIndex = InvalidBlockId;
-            LOG(INFO, "[SharedMemoryContext::regist] activeId %d, pid=%d", i, activeStatus[i].pid);
+            LOG(INFO, "[SharedMemoryContext] activeId %d, pid=%d", i, activeStatus[i].pid);
             return i;
         }
     }
@@ -167,11 +167,11 @@ int SharedMemoryContext::regist(int pid, FileId fileId) {
 }
 
 int SharedMemoryContext::unregist(int activeId, int pid){
-    LOG(INFO, "[SharedMemoryContext::unregist] Start activeId = %d, pid = %d", activeId, pid);
+    LOG(INFO, "[SharedMemoryContext] Start activeId = %d, pid = %d", activeId, pid);
     if (activeId < 0 || activeId >= header->numMaxActiveStatus){
         return -1;
     }
-    LOG(INFO, "[SharedMemoryContext::unregist] activeStatus[activeId].pid=%d", activeStatus[activeId].pid);
+    LOG(INFO, "[SharedMemoryContext] activeStatus[activeId].pid=%d", activeStatus[activeId].pid);
     if (activeStatus[activeId].pid == pid){
         activeStatus[activeId].reset();
         return 0;
@@ -185,7 +185,7 @@ bool SharedMemoryContext::isLastActiveStatusOfFile(FileId fileId){
             return false;
         }
     }
-    LOG(INFO, "[SharedMemoryContext::isLastActiveStatusOfFile] Is last active status of file %lu-%u",
+    LOG(INFO, "[SharedMemoryContext] Is last active status of file %lu-%u",
     fileId.hashcode, fileId.collisionId);
     return true;
 }
@@ -221,7 +221,7 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBlock(int activeId, int num
               count);
     }
 
-    LOG(INFO, "[SharedMemoryContext::acquireBlock] acquired %lu blocks.", res.size());
+    LOG(INFO, "[SharedMemoryContext] acquired %lu blocks.", res.size());
     printStatistics();
     return res;
 }
@@ -250,7 +250,7 @@ std::vector<int32_t> SharedMemoryContext::markEvicting(int activeId, int num){
             }
         }
     }
-    LOG(INFO, "[SharedMemoryContext::markEvicting] evicting %lu blocks.", res.size());
+    LOG(INFO, "[SharedMemoryContext] evicting %lu blocks.", res.size());
     printStatistics();
     return res;
 }
@@ -284,7 +284,7 @@ void SharedMemoryContext::evictBlockFinish(int32_t bucketId, int activeId, int i
     header->numActiveBuckets++;
     header->numEvictingBuckets--;
 
-    LOG(INFO, "[SharedMemoryContext::evictBlockFinish] Bucket %d evict finished.", bucketId);
+    LOG(INFO, "[SharedMemoryContext] Bucket %d evict finished.", bucketId);
     printStatistics();
 }
 
@@ -306,7 +306,7 @@ void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
                     bucketId);
         }
     }
-    LOG(INFO, "[SharedMemoryContext::releaseBlocks] released %lu blocks.", blocks.size());
+    LOG(INFO, "[SharedMemoryContext] released %lu blocks.", blocks.size());
     printStatistics();
 }
 
@@ -324,16 +324,15 @@ bool SharedMemoryContext::activateBlock(FileId fileId, Block& block, int activeI
         );
     }
 
-    printf("status of bucket %d is %d\n", bucketId, buckets[bucketId].flags);
     if (buckets[bucketId].isUsedBucket()) {
         buckets[bucketId].setBucketActive();
-        LOG(INFO, "[SharedMemoryContext::activateBlock] bucket %d activated. state %d", bucketId, buckets[bucketId].flags);
+        LOG(INFO, "[SharedMemoryContext] bucket %d activated. state %d", bucketId, buckets[bucketId].flags);
         if (isWrite) {
             buckets[bucketId].markWrite(activeId);
-            LOG(INFO, "[SharedMemoryContext::activateBlock] write activeId %d, bucketId %d", activeId, bucketId);
+            LOG(INFO, "[SharedMemoryContext] write activeId %d, bucketId %d", activeId, bucketId);
         }else{
             buckets[bucketId].markRead(activeId);
-            LOG(INFO, "[SharedMemoryContext::activateBlock] read activeId %d, bucketId %d", activeId, bucketId);
+            LOG(INFO, "[SharedMemoryContext] read activeId %d, bucketId %d", activeId, bucketId);
         }
         header->numUsedBuckets--;
         header->numActiveBuckets++;
@@ -362,7 +361,6 @@ std::vector<Block> SharedMemoryContext::inactivateBlocks(std::vector<Block> &blo
     std::vector<Block> res;
     for (uint32_t i=0; i<blocks.size(); i++) {
         Block b = blocks[i];
-        printf("block status %d is %d\n", b.bucketId,buckets[b.bucketId].flags);
         if (buckets[b.bucketId].isActiveBucket()){
             buckets[b.bucketId].fileId = fileId;
             buckets[b.bucketId].fileBlockIndex = b.blockId;
@@ -386,7 +384,7 @@ std::vector<Block> SharedMemoryContext::inactivateBlocks(std::vector<Block> &blo
                   b.bucketId);
         }
     }
-    LOG(INFO, "[SharedMemoryContext::inactivateBlocks] inactivated %lu blocks.", blocks.size());
+    LOG(INFO, "[SharedMemoryContext] inactivated %lu blocks.", blocks.size());
     printStatistics();
     return res;
 }
@@ -421,7 +419,7 @@ int32_t SharedMemoryContext::getEvictingBucketNum(){
 }
 
 void SharedMemoryContext::printStatistics() {
-    LOG(INFO, "[SharedMemoryContext::printStatistics] free %d, active %d, used %d, evicting %d",
+    LOG(INFO, "[SharedMemoryContext] free %d, active %d, used %d, evicting %d",
         header->numFreeBuckets, header->numActiveBuckets, header->numUsedBuckets, header->numEvictingBuckets);
 }
 
