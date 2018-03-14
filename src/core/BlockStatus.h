@@ -37,8 +37,9 @@ typedef struct Block {
     int32_t blockId;
     bool isLocal;
     uint8_t state;
+    bool isMyActive;
 
-    Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s);
+    Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s, bool myActive);
     std::string toLogFormat();
 
 } Block;

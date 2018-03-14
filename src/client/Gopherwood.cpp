@@ -165,13 +165,14 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
     File* file;
 
     try {
+        bool isWrite = (flags & GW_RDWR) || (flags & GW_WRONLY);
         if (flags & GW_CREAT)
         {
-            file = fs->getFilesystem().CreateFile(fileName, flags);
+            file = fs->getFilesystem().CreateFile(fileName, flags, isWrite);
         }
         else
         {
-            file = fs->getFilesystem().OpenFile(fileName, flags);
+            file = fs->getFilesystem().OpenFile(fileName, flags, isWrite);
         }
 
         retVal = new GWFileInternalWrapper(file);

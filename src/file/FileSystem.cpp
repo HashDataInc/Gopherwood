@@ -77,25 +77,25 @@ FileId FileSystem::makeFileId(const std::string filePath)
     return id;
 }
 
-File* FileSystem::CreateFile(const char *fileName, int flags)
+File* FileSystem::CreateFile(const char *fileName, int flags, bool isWrite)
 {
     FileId fileId;
     shared_ptr<ActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
-    status = mActiveStatusContext->initFileActiveStatus(fileId);
+    status = mActiveStatusContext->initFileActiveStatus(fileId, isWrite);
 
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status);
 }
 
-File* FileSystem::OpenFile(const char *fileName, int flags)
+File* FileSystem::OpenFile(const char *fileName, int flags, bool isWrite)
 {
     FileId fileId;
     shared_ptr<ActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
-    status = mActiveStatusContext->openFileActiveStatus(fileId);
+    status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite);
 
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status);

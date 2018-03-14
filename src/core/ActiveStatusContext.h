@@ -39,9 +39,9 @@ public:
 
     shared_ptr<ActiveStatus> getFileActiveStatus(FileId fileId);
 
-    shared_ptr<ActiveStatus> initFileActiveStatus(FileId fileId);
+    shared_ptr<ActiveStatus> initFileActiveStatus(FileId fileId, bool isWrite);
 
-    shared_ptr<ActiveStatus> openFileActiveStatus(FileId fileId);
+    shared_ptr<ActiveStatus> openFileActiveStatus(FileId fileId, bool isWrite);
 
     ~ActiveStatusContext();
 

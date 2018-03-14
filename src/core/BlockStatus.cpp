@@ -27,9 +27,8 @@
 namespace Gopherwood {
 namespace Internal {
 
-
-Block::Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s) :
-    bucketId(theBucketId), blockId(theBlockId), isLocal(local), state(s) {
+Block::Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s, bool myActive) :
+    bucketId(theBucketId), blockId(theBlockId), isLocal(local), state(s), isMyActive(myActive) {
 
 }
 
@@ -54,10 +53,9 @@ std::string Block::toLogFormat() {
             record.rFlags |= BLOCK_RECORD_USED;
             break;
         default:
-            THROW(
-                    GopherwoodException,
-                    "[Block::toLogFormat] Unrecognized BlockState %d",
-                    state);
+            THROW(GopherwoodException,
+                  "[Block::toLogFormat] Unrecognized BlockState %d",
+                  state);
     }
 
     record.rBucketId = bucketId;
@@ -71,7 +69,7 @@ std::string Block::toLogFormat() {
 }
 
 Block BlockRecord::toBlockFormat() {
-    uint8_t state;
+    uint8_t state = BUCKET_FREE;
 
     bool isLocal = rFlags & BLOCK_RECORD_REMOTE ? RemoteBlock : LocalBlock;
     int type = rFlags & BLOCK_RECORD_TYPE_MASK;
@@ -86,9 +84,13 @@ Block BlockRecord::toBlockFormat() {
         case BLOCK_RECORD_USED:
             state = BUCKET_USED;
             break;
+        default:
+            THROW(GopherwoodException,
+                  "[Block::toBlockFormat] Unrecognized BlockRecordState %d",
+                  state);
     }
 
-    return Block(rBucketId, rBlockId, isLocal, state);
+    return Block(rBucketId, rBlockId, isLocal, state, false);
 }
 
 }

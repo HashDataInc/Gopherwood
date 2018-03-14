@@ -71,13 +71,16 @@ typedef struct ShareMemHeader {
  * bit 0~1:     Bucket type 0/1/2
  * bit 31:      Evicting bucket will set this bit to 1
  * */
+#define SMBUCKET_MAX_CONCURRENT_OPEN 10
 typedef struct ShareMemBucket {
     uint32_t flags;
     FileId fileId;
     int32_t fileBlockIndex;
-    int32_t writeOrEvictActiveId;
-    int32_t readActives[10];
+    int32_t writeActiveId;
+    int32_t evictActiveId;
+    int32_t readActives[SMBUCKET_MAX_CONCURRENT_OPEN];
 
+    /* getter/setter */
     bool isFreeBucket() { return (flags & 0x00000003) == 0 ? true : false; };
     bool isActiveBucket() { return (flags & 0x00000003) == 1 ? true : false; };
     bool isUsedBucket() { return (flags & 0x00000003) == 2 ? true : false; };
@@ -88,14 +91,12 @@ typedef struct ShareMemBucket {
     void setBucketEvicting() { flags = (flags | 0x80000000);};
     void setBucketEvictFinish() { flags = (flags & 0x7FFFFFFF);};
 
-    void reset() {
-        fileId.reset();
-        fileBlockIndex = InvalidBlockId;
-        writeOrEvictActiveId = InvalidActiveId;
-        for (short i=0; i<10; i++){
-            readActives[i] = InvalidActiveId;
-        }
-    };
+    void reset();
+    void markWrite(int activeId);
+    void markRead(int activeId);
+    void unmarkWrite(int activeId);
+    void unmarkRead(int activeId);
+    bool noActiveReadWrite();
 } ShareMemBucket;
 
 typedef struct ShareMemActiveStatus {
@@ -125,15 +126,17 @@ public:
     int unregist(int activeId, int pid);
 
     int calcDynamicQuotaNum();
+    bool isLastActiveStatusOfFile(FileId fileId);
 
-    std::vector<int32_t> acquireFreeBlock(int activeId, int num);
+    std::vector<int32_t> acquireFreeBlock(int activeId, int num, bool isWrite);
     void releaseBlocks(std::vector<Block> &blocks);
-    void inactivateBlocks(std::vector<Block> &blocks, FileId fileId);
+    bool activateBlock(FileId fileId, Block& block, int activeId, bool isWrite);
+    std::vector<Block> inactivateBlocks(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite);
 
     /* evict logic related APIs*/
     std::vector<int32_t> markEvicting(int activeId, int num);
     ShareMemBucket* evictBlockStart(int32_t bucketId, int activeId);
-    void evictBlockFinish(int32_t bucketId, int activeId);
+    void evictBlockFinish(int32_t bucketId, int activeId, int isWrite);
 
 
     void reset();

@@ -37,7 +37,8 @@ class ActiveStatus {
 public:
     ActiveStatus(FileId fileId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext,
-                 bool isCreate
+                 bool isCreate,
+                 bool isWrite
     );
 
     /* Getter and setters */
@@ -62,9 +63,9 @@ private:
     /* active status block manipulations */
     void catchUpManifestLogs();
     void adjustActiveBlock(int curBlockInd);
-    bool needNewBlock(int curBlockInd);
     void acquireNewBlocks();
     void extendOneBlock();
+    void activateBlock(int blockInd);
 
     /* Fields */
     FileId mFileId;
@@ -73,6 +74,7 @@ private:
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, Block>> mLRUCache;
 
+    bool mIsWrite;
     int64_t mPos;
     int64_t mEof;
     int32_t mNumBlocks;

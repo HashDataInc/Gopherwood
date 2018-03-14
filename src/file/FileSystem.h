@@ -40,9 +40,9 @@ public:
 
     FileSystem(const char *workDir);
 
-    File* CreateFile(const char *fileName, int flags);
+    File* CreateFile(const char *fileName, int flags, bool isWrite);
 
-    File* OpenFile(const char *fileName, int flags);
+    File* OpenFile(const char *fileName, int flags, bool isWrite);
 
     ~FileSystem();
 

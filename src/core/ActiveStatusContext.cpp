@@ -39,14 +39,22 @@ shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId)
     return NULL;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId) {
-    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mSharedMemoryContext, true));
+shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId, bool isWrite) {
+    shared_ptr<ActiveStatus> activeStatus =
+            shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
+                                                      mSharedMemoryContext,
+                                                      true, /* isCreate*/
+                                                      isWrite));
     mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId) {
-    shared_ptr<ActiveStatus> activeStatus = shared_ptr<ActiveStatus>(new ActiveStatus(fileId, mSharedMemoryContext, false));
+shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId, bool isWrite) {
+    shared_ptr<ActiveStatus> activeStatus =
+            shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
+                                                      mSharedMemoryContext,
+                                                      false, /* isCreate*/
+                                                      isWrite));
     mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;
 }

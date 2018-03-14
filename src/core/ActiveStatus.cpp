@@ -36,8 +36,11 @@ namespace Internal {
 
 ActiveStatus::ActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
-                           bool isCreate) :
-        mFileId(fileId), mSharedMemoryContext(sharedMemoryContext) {
+                           bool isCreate,
+                           bool isWrite) :
+        mFileId(fileId),
+        mSharedMemoryContext(sharedMemoryContext),
+        mIsWrite(isWrite){
     registInSharedMem();
     mNumBlocks = 0;
     mPos = 0;
@@ -73,7 +76,6 @@ void ActiveStatus::unregistInSharedMem() {
     if(mActiveId == -1)
         return;
 
-    SHARED_MEM_BEGIN
     int rc = mSharedMemoryContext->unregist(mActiveId, getpid());
     if (rc != 0){
         mSharedMemoryContext->unlock();
@@ -83,7 +85,6 @@ void ActiveStatus::unregistInSharedMem() {
     }
     LOG(INFO, "[ActiveStatus::unregistInSharedMem] Unregistered successfully, ActiveID=%d, PID=%d", mActiveId,getpid());
     mActiveId = -1;
-    SHARED_MEM_END
 }
 
 int64_t ActiveStatus::getPosition() {
@@ -107,9 +108,8 @@ int64_t ActiveStatus::getEof() {
 BlockInfo ActiveStatus::getCurBlockInfo() {
     int curBlockIndex = mPos / mBlockSize;
 
-    if (needNewBlock(curBlockIndex)) {
-        adjustActiveBlock(curBlockIndex);
-    }
+    /* adjust the active block status */
+    adjustActiveBlock(curBlockIndex);
 
     /* build the block info */
     BlockInfo info;
@@ -135,17 +135,30 @@ std::string ActiveStatus::getManifestFileName(FileId fileId) {
     return ss.str();
 }
 
-bool ActiveStatus::needNewBlock(int curBlockInd) {
-    return (mNumBlocks <= 0 ||                              // empty file
-            curBlockInd >= mNumBlocks ||                    // append more data
+void ActiveStatus::adjustActiveBlock(int curBlockInd) {
+
+    if (mNumBlocks <= 0 ||                              // empty file   v
+            curBlockInd >= mNumBlocks ||                    // append more data  v
+            !mBlockArray[curBlockInd].isMyActive ||         // not my active block
             !mBlockArray[curBlockInd].isLocal ||            // block been evicted
             (mBlockArray[curBlockInd].isLocal &&            // block in used(2) state
              mBlockArray[curBlockInd].state == BUCKET_USED));
-}
 
-void ActiveStatus::adjustActiveBlock(int curBlockInd) {
     if (curBlockInd + 1 > mNumBlocks) {
         extendOneBlock();
+    }
+    /* need to mark the block to my active block */
+    else if (!mBlockArray[curBlockInd].isMyActive){
+
+        if(!mBlockArray[curBlockInd].isLocal) {
+
+        }else if(mBlockArray[curBlockInd].state == BUCKET_USED) {
+            activateBlock(curBlockInd);
+        }else if(mBlockArray[curBlockInd].state == BUCKET_ACTIVE &&
+                 !mBlockArray[curBlockInd].isMyActive){
+            activateBlock(curBlockInd);
+        }
+
     }
 }
 
@@ -227,7 +240,7 @@ void ActiveStatus::acquireNewBlocks() {
             numToEvict = 0;
         }
 
-        newBlocks = mSharedMemoryContext->acquireFreeBlock(mActiveId, numAcqurieFree);
+        newBlocks = mSharedMemoryContext->acquireFreeBlock(mActiveId, numAcqurieFree, mIsWrite);
         evictBuckets = mSharedMemoryContext->markEvicting(mActiveId, numToEvict);
     }
     SHARED_MEM_END
@@ -235,7 +248,11 @@ void ActiveStatus::acquireNewBlocks() {
     /* add free buckets to preAllocatedBlocks */
     for (std::vector<int32_t>::size_type i = 0; i < newBlocks.size(); i++) {
         LOG(INFO, "[ActiveStatus::acquireNewBlocks] add block %d.", newBlocks[i]);
-        Block newBlock(newBlocks[i], InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
+        Block newBlock(newBlocks[i],
+                       InvalidBlockId,
+                       LocalBlock,
+                       BUCKET_ACTIVE,
+                       true);/*is my active block*/
         blocksForLog.push_back(newBlock);
         mPreAllocatedBlocks.push_back(newBlock);
     }
@@ -246,8 +263,8 @@ void ActiveStatus::acquireNewBlocks() {
         SHARED_MEM_BEGIN
         ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mActiveId);
         /* TODO: evict the block */
-        mSharedMemoryContext->evictBlockFinish(bucketId, mActiveId);
-        Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
+        mSharedMemoryContext->evictBlockFinish(bucketId, mActiveId, mIsWrite);
+        Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
         blocksForLog.push_back(newBlock);
         mPreAllocatedBlocks.push_back(newBlock);
         SHARED_MEM_END
@@ -288,6 +305,21 @@ void ActiveStatus::extendOneBlock() {
     MANIFEST_LOG_END
 }
 
+void ActiveStatus::activateBlock(int blockInd){
+    SHARED_MEM_BEGIN
+    /* TODO: catch up log inside shared mem */
+
+    /* activate the block */
+    bool activated = mSharedMemoryContext->activateBlock(mFileId, mBlockArray[blockInd], mActiveId, mIsWrite);
+    mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd]);
+
+    /* the block is activated by me */
+    if (activated){
+        //mManifest-> TODO: log inactivate blocks
+    }
+    SHARED_MEM_END
+}
+
 void ActiveStatus::catchUpManifestLogs() {
     std::vector<Block> blocks;
 
@@ -312,6 +344,7 @@ void ActiveStatus::catchUpManifestLogs() {
                 LOG(INFO, "[ActiveStatus::catchUpManifestLogs] got fullStatus log record with %lu blocks. EOF=%lu", blocks.size(), header.opaque.fullStatus.eof);
                 for(uint32_t i=0; i<blocks.size(); i++){
                     mBlockArray.push_back(blocks[i]);
+                    mNumBlocks ++;
                 }
                 mEof = header.opaque.fullStatus.eof;
                 break;
@@ -327,29 +360,38 @@ void ActiveStatus::flush() {
 
 /* truncate existing Manifest file and flush latest block status to it */
 void ActiveStatus::close() {
+    SHARED_MEM_BEGIN
     MANIFEST_LOG_BEGIN
 
     /* get blocks to inactivate */
     std::vector<int> activeBlockIds = mLRUCache->getAllKeyObject();
     std::vector<Block> activeBlocks;
     for (uint32_t i = 0; i < activeBlockIds.size(); i++) {
-        activeBlocks.push_back(mBlockArray[i]);
+        activeBlocks.push_back(mBlockArray[activeBlockIds[i]]);
     }
 
     /* release all preAllocatedBlocks & active buckets */
-    SHARED_MEM_BEGIN
     mSharedMemoryContext->releaseBlocks(mPreAllocatedBlocks);
-    mSharedMemoryContext->inactivateBlocks(activeBlocks, mFileId);
-    SHARED_MEM_END
+    std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBlocks(activeBlocks, mFileId, mActiveId, mIsWrite);
 
-    /* truncate existing Manifest file and flush latest block status to it */
-    RecOpaque opaque;
-    opaque.fullStatus.eof = mEof;
-    mManifest->logFullStatus(mBlockArray, opaque);
-
-    MANIFEST_LOG_END
+    /* TODO: log inactivate blocks */
+    //mManifest->log
 
     unregistInSharedMem();
+
+    if (mSharedMemoryContext->isLastActiveStatusOfFile(mFileId)){
+        /* truncate existing Manifest file and flush latest block status to it */
+        RecOpaque opaque;
+        opaque.fullStatus.eof = mEof;
+        mManifest->logFullStatus(mBlockArray, opaque);
+    }
+
+    /* clear LRU & blockArray */
+    mBlockArray.clear();
+    /* TODO: clear mLRUCache */
+
+    MANIFEST_LOG_END
+    SHARED_MEM_END
 }
 
 ActiveStatus::~ActiveStatus() {

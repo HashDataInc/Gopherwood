@@ -48,6 +48,15 @@ struct FileId {
         std::string res = ss.str();
         return res;
     }
+
+    bool operator==(const FileId& rhs) const {
+        if (hashcode != rhs.hashcode ||
+            collisionId != rhs.collisionId) {
+            return false;
+        } else {
+            return true;
+        }
+    }
 };
 
 
