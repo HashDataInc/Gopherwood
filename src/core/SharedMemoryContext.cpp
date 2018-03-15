@@ -94,6 +94,9 @@ int SharedMemoryContext::unregist(int activeId, int pid){
     return -1;
 }
 
+/* Check if all ActiveStatus of a given FileId are unregisted.
+ * This is called by ActiveStatus close, manifest log will be truncated if
+ * this function returns true */
 bool SharedMemoryContext::isLastActiveStatusOfFile(FileId fileId){
     for (int i=0; i<Configuration::MAX_CONNECTION; i ++){
         if (activeStatus[i].fileId == fileId){
@@ -105,7 +108,8 @@ bool SharedMemoryContext::isLastActiveStatusOfFile(FileId fileId){
     return true;
 }
 
-std::vector<int32_t> SharedMemoryContext::acquireFreeBlock(int activeId, int num, FileId fileId, bool isWrite) {
+/* Activate a number of Free Buckets (0->1)*/
+std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int num, FileId fileId, bool isWrite) {
     std::vector<int32_t> res;
     int count = num;
 
@@ -142,7 +146,14 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBlock(int activeId, int num
     return res;
 }
 
-std::vector<int32_t> SharedMemoryContext::markEvicting(int activeId, int num){
+/* When activate buckets from Used Buckets(2->1), we need to evict the data first.
+ * The steps are:
+ * 1. markEvicting -- make sure no other ActiveStatus can evict same bucket
+ * 2. evictBlockStart -- set the evicting ActiveStatus status in SharedMem.
+ *             This will mark write/read blockId to inform other activestatus
+ *             of same File
+ * 3. evictBlockFinish -- finally reset evicting ActiveStatus and activate the bucket */
+std::vector<int32_t> SharedMemoryContext::markBucketEvicting(int activeId, int num){
     std::vector<int32_t> res;
     int count = num;
 
@@ -171,7 +182,7 @@ std::vector<int32_t> SharedMemoryContext::markEvicting(int activeId, int num){
     return res;
 }
 
-ShareMemBucket* SharedMemoryContext::evictBlockStart(int32_t bucketId, int activeId){
+ShareMemBucket* SharedMemoryContext::evictBucketStart(int32_t bucketId, int activeId){
     assert(bucketId >0 && bucketId<header->numBuckets);
     assert(buckets[bucketId].isEvictingBucket());
     assert(buckets[bucketId].evictActiveId == activeId);
@@ -183,8 +194,7 @@ ShareMemBucket* SharedMemoryContext::evictBlockStart(int32_t bucketId, int activ
     return &buckets[bucketId];
 }
 
-/* NOTES: when calling this function, the bucket should be add to preAllocateArray in time! */
-void SharedMemoryContext::evictBlockFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite) {
+void SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite) {
     /* reset activestatus evict info  */
     activeStatus[activeId].fileBlockIndex = InvalidBlockId;
     activeStatus[activeId].unsetEvicting();
@@ -208,7 +218,7 @@ void SharedMemoryContext::evictBlockFinish(int32_t bucketId, int activeId, FileI
 
 /* Transit Bucket State from 1 to 0 */
 /* TODO: Remove activestatus mark, if all removed then release this bucket */
-void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
+void SharedMemoryContext::releaseBuckets(std::vector<Block> &blocks) {
     for (uint32_t i=0; i<blocks.size(); i++) {
         int32_t bucketId = blocks[i].bucketId;
         if (buckets[bucketId].isActiveBucket()){
@@ -228,8 +238,8 @@ void SharedMemoryContext::releaseBlocks(std::vector<Block> &blocks) {
     printStatistics();
 }
 
-/* activate a block from status 2 to 1, add the current activeId into the bucket status */
-bool SharedMemoryContext::activateBlock(FileId fileId, Block& block, int activeId, bool isWrite) {
+/* Activate a block from status 2 to 1. No need to evict because it's just the same File */
+bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int activeId, bool isWrite) {
     int32_t bucketId = block.bucketId;
     if (buckets[bucketId].fileId.hashcode != fileId.hashcode ||
         buckets[bucketId].fileId.collisionId != fileId.collisionId ||
@@ -275,7 +285,7 @@ bool SharedMemoryContext::activateBlock(FileId fileId, Block& block, int activeI
 }
 
 /* Transit Bucket State from 1 to 2 */
-std::vector<Block> SharedMemoryContext::inactivateBlocks(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite){
+std::vector<Block> SharedMemoryContext::inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite){
     std::vector<Block> res;
     for (uint32_t i=0; i<blocks.size(); i++) {
         Block b = blocks[i];

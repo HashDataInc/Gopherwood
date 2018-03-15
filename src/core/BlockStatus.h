@@ -32,16 +32,22 @@ namespace Internal {
 #define LocalBlock      true
 #define RemoteBlock     false
 
+/* The in-memory file block info */
 typedef struct Block {
+    /* The bucket id in local cache space */
     int32_t bucketId;
+    /* The block id of Gopherwood File */
     int32_t blockId;
+    /* Ture if current block is in OSS */
     bool isLocal;
+    /* Current bucket status of this block, only
+     * meaningful when block is in local cache space */
     uint8_t state;
+    /* Ture if the File already got the authority to manipulate this block  */
     bool isMyActive;
 
     Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s, bool myActive);
     std::string toLogFormat();
-
 } Block;
 
 #define BLOCK_RECORD_REMOTE     0x8000
@@ -51,10 +57,16 @@ typedef struct Block {
 #define BLOCK_RECORD_ACTIVE     0x0001
 #define BLOCK_RECORD_USED       0x0002
 
+/* The Block info for Manifest Log format */
 typedef struct BlockRecord {
+    /* Compact format of block status
+     * 0~1 bits: Bucket type if the block is in local cache space
+     * 15  bit : Mark the block is in OSS or in local cache space*/
     uint16_t rFlags;
     uint16_t rPadding;
+    /* The bucket id in local cache space */
     int32_t rBucketId;
+    /* The block id of Gopherwood File */
     int32_t rBlockId;
 
     Block toBlockFormat();

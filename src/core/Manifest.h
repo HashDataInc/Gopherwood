@@ -52,6 +52,7 @@ enum RecordType {
     /* the file have been closed and the FileStatus
      * are collected and merged. */
     fullStatus = 7,
+    /* Update the file EOF when flush API is called */
     updateEof = 8,
     invalidLog = 100
 };
@@ -76,6 +77,7 @@ struct UpdateEof {
     int64_t eof;
 };
 
+/* The Manifest Log data field for different log types */
 typedef union RecOpaque {
     Common  common;
     AcquireNewBlock acquireNewBlock;
@@ -87,12 +89,18 @@ typedef union RecOpaque {
 /* this is a random prime number to check log record integrity */
 #define MANIFEST_RECORD_EYECATCHER 0xCAED
 
+/* A Manifest Log contains a RecordHeader and a number of BlockRecords */
 struct RecordHeader {
+    /* The total length of header and blocks */
     uint64_t recordLength;
+    /* The safe guard of each log record */
     uint16_t eyecatcher;
+    /* Log Record Type */
     uint8_t type;
     uint8_t flags;
+    /* Number of blocks in this log record */
     uint32_t numBlocks;
+    /* The data for each type of log records */
     RecOpaque opaque;
 
     std::string toLogFormat();
@@ -122,7 +130,7 @@ private:
 
     std::string serializeManifestLog(std::vector<Block> &blocks, RecordType type, RecOpaque opaque);
 
-    /* file operations */
+    /******************** File Operations ********************/
     inline void mfOpen();
     inline void mfSeek(int64_t offset, int flag);
     inline void mfWrite(std::string &record);
@@ -130,12 +138,11 @@ private:
     inline void mfTruncate();
     inline void mfClose();
 
-    /* fields */
+    /******************** Fields ********************/
     std::string mFilePath;
     int mFD;
     int64_t mPos;
     char *mBuffer;
-
 };
 
 }

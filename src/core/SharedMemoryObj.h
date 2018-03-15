@@ -41,12 +41,17 @@ namespace Internal {
 typedef struct ShareMemHeader {
     uint8_t flags;
     char padding[3];
+
+    /* num buckets */
     int32_t numBuckets;
+    /* num max ActiveStatus instances */
+    int32_t numMaxActiveStatus;
+
+    /* Bucket Statistics */
     int32_t numFreeBuckets;
     int32_t numActiveBuckets;
     int32_t numUsedBuckets;
     int32_t numEvictingBuckets;
-    int32_t numMaxActiveStatus;
 
     void enter();
 
@@ -55,11 +60,11 @@ typedef struct ShareMemHeader {
     void reset(int32_t totalBucketNum, int32_t maxConn) {
         flags = 0;
         numBuckets = totalBucketNum;
+        numMaxActiveStatus = maxConn;
         numFreeBuckets = totalBucketNum;
         numActiveBuckets = 0;
         numUsedBuckets = 0;
         numEvictingBuckets = 0;
-        numMaxActiveStatus = maxConn;
     };
 } ShareMemHeader;
 
@@ -95,6 +100,13 @@ typedef struct ShareMemBucket {
     bool noActiveReadWrite();
 } ShareMemBucket;
 
+/* This field is to support multiple-read and protect single-wirte
+ * Each ActiveStatus will regist here when constructing, and set the
+ * evicting/loading status to let others know the overall status.
+ * Operations are:
+ * 1. Check whether all ActiveStatus of a File is closed
+ * 2. Check the evicting ActiveStatus pid
+ * 3. Check the loading status(from OSS) of a file block */
 typedef struct ShareMemActiveStatus {
     int pid;
     int32_t flags;

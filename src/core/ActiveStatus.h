@@ -33,6 +33,20 @@
 namespace Gopherwood {
 namespace Internal {
 
+/**
+ * ActiveStatus
+ *
+ * @desc An ActiveStatus instance maintains file block status. Three main
+ * function of this class are:
+ * 1. Communicate with Shared Memory to acquire/release local buckets
+ * 2. Maintain Manifest Log to syncronize file status with Shared Memory status
+ * 3. Provide the file/block status to OutputStream/InputStream
+ * @BlockArray The array to save all block status
+ * @PreAllocatedBlocks To eliminate the Share Memory contention issue, each time
+ * it need to acquire new buckets, a number of buckets will be pre-allocated.
+ * @SharedMemoryContext The filesystem level Shared Memory instance to control
+ * bucket operations.
+ */
 class ActiveStatus {
 public:
     ActiveStatus(FileId fileId,
@@ -41,11 +55,13 @@ public:
                  bool isWrite
     );
 
-    /* Getter and setters */
-    BlockInfo   getCurBlockInfo();
+    /*********** Getter and setters ***********/
     int64_t     getEof();
     int64_t     getPosition();
     void        setPosition(int64_t pos);
+
+    /**** The main entry point to adjust block status ****/
+    BlockInfo   getCurBlockInfo();
 
     void flush();
     void close();
@@ -60,14 +76,14 @@ private:
     int64_t     getCurBlockOffset();
     std::string getManifestFileName(FileId fileId);
 
-    /* active status block manipulations */
+    /***** active status block manipulations *****/
     void catchUpManifestLogs();
     void adjustActiveBlock(int curBlockInd);
     void acquireNewBlocks();
     void extendOneBlock();
     void activateBlock(int blockInd);
 
-    /* Fields */
+    /****************** Fields *******************/
     FileId mFileId;
     int32_t mActiveId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
@@ -81,8 +97,7 @@ private:
     int64_t mBlockSize;
 
     std::vector<Block> mBlockArray;
-    std::vector<Block> mPreAllocatedBlocks;
-
+    std::vector<Block> mPreAllocatedBuckets;
 };
 
 

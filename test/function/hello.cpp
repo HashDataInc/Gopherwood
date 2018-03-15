@@ -24,6 +24,8 @@ int main(int argc, char *argv[])
 
     gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
     gwWrite(fs, file, input, sizeof(input));
+    gwFlush(fs, file);
+
     gwSeek(fs, file, 10, SEEK_SET);
     int len = gwRead(fs, file, buffer, 20);
     buffer[len] = '\0';

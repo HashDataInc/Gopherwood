@@ -28,6 +28,8 @@
 namespace Gopherwood {
 namespace Internal {
 
+/* [IMPORTANT] Usually you need to acquire Shared Memory lock
+ * before acquire Manifest Lock */
 #define MANIFEST_LOG_BEGIN  mManifest->lock();
 #define MANIFEST_LOG_END    mManifest->unlock();
 
@@ -60,6 +62,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
     catchUpManifestLogs();
 }
 
+/* Shared Memroy activeStatus field will maintain all connected files */
 void ActiveStatus::registInSharedMem(){
     SHARED_MEM_BEGIN
     mActiveId = mSharedMemoryContext->regist(getpid(), mFileId);
@@ -102,24 +105,6 @@ int64_t ActiveStatus::getEof() {
     return mEof;
 }
 
-/* This is the main entry point of adjusting active status. When calling this function, it means
- * out/in stream wants to access this block. Thus we need to see if active status should be
- * adjusted. */
-BlockInfo ActiveStatus::getCurBlockInfo() {
-    int curBlockIndex = mPos / mBlockSize;
-
-    /* adjust the active block status */
-    adjustActiveBlock(curBlockIndex);
-
-    /* build the block info */
-    BlockInfo info;
-    Block block = getCurBlock();
-    info.id = block.bucketId;
-    info.isLocal = block.isLocal;
-    info.offset = getCurBlockOffset();
-    return info;
-}
-
 Block ActiveStatus::getCurBlock() {
     return mBlockArray[mPos / mBlockSize];
 }
@@ -133,6 +118,25 @@ std::string ActiveStatus::getManifestFileName(FileId fileId) {
     ss << mSharedMemoryContext->getWorkDir() << Configuration::MANIFEST_FOLDER << '/' << mFileId.hashcode << '-'
        << mFileId.collisionId;
     return ss.str();
+}
+
+
+/* [IMPORTANT] This is the main entry point of adjusting active status. OutpuStream/InputStream
+ * will call this function to write/read to multi blocks. When mPos reaches block not activated
+ * by current file instance, ActiveStatus will adjust the block status.*/
+BlockInfo ActiveStatus::getCurBlockInfo() {
+    int curBlockIndex = mPos / mBlockSize;
+
+    /* adjust the active block status */
+    adjustActiveBlock(curBlockIndex);
+
+    /* build the block info */
+    BlockInfo info;
+    Block block = getCurBlock();
+    info.id = block.bucketId;
+    info.isLocal = block.isLocal;
+    info.offset = getCurBlockOffset();
+    return info;
 }
 
 void ActiveStatus::adjustActiveBlock(int curBlockInd) {
@@ -232,8 +236,8 @@ void ActiveStatus::acquireNewBlocks() {
             numToEvict = 0;
         }
 
-        newBlocks = mSharedMemoryContext->acquireFreeBlock(mActiveId, numAcqurieFree, mFileId, mIsWrite);
-        evictBuckets = mSharedMemoryContext->markEvicting(mActiveId, numToEvict);
+        newBlocks = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
+        evictBuckets = mSharedMemoryContext->markBucketEvicting(mActiveId, numToEvict);
     }
     SHARED_MEM_END
 
@@ -246,22 +250,22 @@ void ActiveStatus::acquireNewBlocks() {
                        BUCKET_ACTIVE,
                        true);/*is my active block*/
         blocksForLog.push_back(newBlock);
-        mPreAllocatedBlocks.push_back(newBlock);
+        mPreAllocatedBuckets.push_back(newBlock);
     }
 
     /* add evict buckets to preAllocatedBlocks */
     for (uint32_t i=0; i<evictBuckets.size(); i++){
         int bucketId = evictBuckets[i];
         SHARED_MEM_BEGIN
-        ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mActiveId);
+        ShareMemBucket* smBucket = mSharedMemoryContext->evictBucketStart(bucketId, mActiveId);
         LOG(INFO, "[ActiveStatus] Start evicting File %s, blockId %d",
             smBucket->fileId.toString().c_str(), smBucket->fileBlockIndex);
         /* TODO: evict the block */
-        mSharedMemoryContext->evictBlockFinish(bucketId, mActiveId, mFileId, mIsWrite);
+        mSharedMemoryContext->evictBucketFinish(bucketId, mActiveId, mFileId, mIsWrite);
         Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
         LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBlocks[i]);
         blocksForLog.push_back(newBlock);
-        mPreAllocatedBlocks.push_back(newBlock);
+        mPreAllocatedBuckets.push_back(newBlock);
         SHARED_MEM_END
     }
 
@@ -271,17 +275,18 @@ void ActiveStatus::acquireNewBlocks() {
     MANIFEST_LOG_END
 }
 
-/* get block from pre-allocated blocks */
+/* Extend the file to create a new block, the block will get bucket from the
+ * pre allocated bucket array */
 void ActiveStatus::extendOneBlock() {
     std::vector<Block> blocksModified;
 
-    if (mPreAllocatedBlocks.size() == 0) {
+    if (mPreAllocatedBuckets.size() == 0) {
         acquireNewBlocks();
     }
 
     /* build the block */
-    Block b = mPreAllocatedBlocks.back();
-    mPreAllocatedBlocks.pop_back();
+    Block b = mPreAllocatedBuckets.back();
+    mPreAllocatedBuckets.pop_back();
     b.blockId = mNumBlocks;
 
     /* add to block array */
@@ -295,7 +300,7 @@ void ActiveStatus::extendOneBlock() {
     blocksModified.push_back(b);
 
     SHARED_MEM_BEGIN
-    /* update file info to sharedmemory */
+    /* update file info to shared memory */
     mSharedMemoryContext->updateActiveFileInfo(blocksModified, mFileId);
     /* Manifest Log */
     MANIFEST_LOG_BEGIN
@@ -306,12 +311,13 @@ void ActiveStatus::extendOneBlock() {
     SHARED_MEM_END
 }
 
+/* activate a block if it's not been marked */
 void ActiveStatus::activateBlock(int blockInd){
     SHARED_MEM_BEGIN
     /* TODO: catch up log inside shared mem */
 
     /* activate the block */
-    bool activated = mSharedMemoryContext->activateBlock(mFileId, mBlockArray[blockInd], mActiveId, mIsWrite);
+    bool activated = mSharedMemoryContext->activateBucket(mFileId, mBlockArray[blockInd], mActiveId, mIsWrite);
     mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd]);
 
     /* the block is activated by me */
@@ -344,8 +350,8 @@ void ActiveStatus::close() {
     }
 
     /* release all preAllocatedBlocks & active buckets */
-    mSharedMemoryContext->releaseBlocks(mPreAllocatedBlocks);
-    std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBlocks(activeBlocks, mFileId, mActiveId, mIsWrite);
+    mSharedMemoryContext->releaseBuckets(mPreAllocatedBuckets);
+    std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBuckets(activeBlocks, mFileId, mActiveId, mIsWrite);
 
     /* TODO: log inactivate blocks */
     //mManifest->log
