@@ -51,13 +51,20 @@ void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
     mfWrite(logRecord);
 }
 
-void Manifest::logExtendBlock(std::vector<Block> &blocks) {
-    /* build Acquire New Block Opaque */
-    RecOpaque opaque;
-    opaque.extendBlock.padding = 0;
+void Manifest::logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque) {
+    /* build log record */
+    std::string logRecord = serializeManifestLog(blocks, RecordType::extendBlock, opaque);
+
+    /* flush to log */
+    mfWrite(logRecord);
+}
+
+void Manifest::logUpdateEof(RecOpaque opaque) {
+    /* Empty vector */
+    std::vector<Block> blocks;
 
     /* build log record */
-    std::string logRecord = serializeManifestLog(blocks, RecordType::assignBlock, opaque);
+    std::string logRecord = serializeManifestLog(blocks, RecordType::updateEof, opaque);
 
     /* flush to log */
     mfWrite(logRecord);

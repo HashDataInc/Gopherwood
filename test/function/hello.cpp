@@ -28,14 +28,17 @@ int main(int argc, char *argv[])
     int len = gwRead(fs, file, buffer, 20);
     buffer[len] = '\0';
     printf("Read From Gopherwood the first time %s \n", buffer);
-    gwCloseFile(fs, file);
+    buffer[0] = '\0';
 
     gwFile file1 = gwOpenFile(fs, "/test1", GW_RDONLY);
+
     gwSeek(fs, file1, 10, SEEK_SET);
     len = gwRead(fs, file1, buffer, 20);
     buffer[len] = '\0';
     printf("Read From Gopherwood the second time %s \n", buffer);
+
     gwCloseFile(fs, file1);
+    gwCloseFile(fs, file);
 
     gwDestroyContext(fs);
 

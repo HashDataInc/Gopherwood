@@ -97,7 +97,7 @@ static void handleException(const Gopherwood::exception_ptr &error) {
                 Gopherwood::Internal::LOG_ERROR,
                 "Handle Gopherwood Function Not Implemented Exception: %s",
                 Gopherwood::Internal::GetExceptionDetail(error, buffer));
-        errno = ESHRMEM;
+        errno = ENOTIMPL;
     } catch (const Gopherwood::GopherwoodSharedMemException &) {
         std::string buffer;
         LOG(
@@ -219,6 +219,18 @@ int32_t gwWrite(gopherwoodFS fs, gwFile file, const void *buffer, tSize length) 
     return -1;
 }
 
+int gwFlush(gopherwoodFS fs, gwFile file) {
+    try {
+        file->getFile().flush();
+        return 0;
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+
+    return -1;
+}
+
 int gwCloseFile(gopherwoodFS fs, gwFile file) {
     try {
         file->getFile().close();
@@ -233,7 +245,7 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
     return -1;
 }
 
-int gwDeleteFile(gopherwoodFS fs, gwFile file) {
+int gwDeleteFile(gopherwoodFS fs, char *filePath) {
     return -1;
 }
 

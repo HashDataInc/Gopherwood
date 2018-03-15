@@ -28,7 +28,7 @@ namespace Gopherwood {
 namespace Internal {
 
 File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status) :
-        id(id), name(fileName), flags(flags), localFD(fd), mStatus(status) {
+        id(id), name(fileName), mFlags(flags), localFD(fd), mStatus(status) {
     if ((flags & GW_WRONLY) || (flags & GW_RDWR)){
         mOutStream = shared_ptr<OutputStream>(new OutputStream(localFD, status));
     }
@@ -45,6 +45,14 @@ void File::read(char *buffer, int64_t length) {
 
 void File::write(const char *buffer, int64_t length) {
     mOutStream->write(buffer, length);
+}
+
+void File::flush() {
+    if ((mFlags & OPEN_TYPE_MASK) == GW_RDONLY){
+        THROW(GopherwoodInvalidParmException, "[File] Can not flush a read only file.");
+    }
+    mOutStream->flush();
+    mStatus->flush();
 }
 
 void File::seek(int64_t pos, int mode) {

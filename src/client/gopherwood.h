@@ -132,24 +132,18 @@ int gwFlush(gopherwoodFS fs, gwFile file);
  *
  * @param   fs          The configured filesystem handle.
  * @param   fileName    The file name.
- * @param   flags       an | of bits/fcntl.h file flags -
- *          supported flags are O_RDONLY, O_WRONLY (meaning create or overwrite i.e., implies O_TRUNCAT),
- *          O_WRONLY|O_APPEND and O_SYNC. Other flags are generally ignored other than (O_RDWR || (O_EXCL & O_CREAT)) which return NULL and set errno equal ENOTSUP.
- * @param   bufferSize  Size of buffer for read/write - pass 0 if you want
- *          to use the default configured values.
+ * @param   flags
+
  * @return  Returns the handle to the open file or NULL on error.
  */
 gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags);
 
 /**
  * gwSeek - Seek to given offset in file.
- * This works only for files opened in read-only mode.
  * @param file The file handle.
  * @param desiredPos Offset into the file to seek into.
  * @return Returns 0 on success, -1 on error.
  */
-//TODO  in this implement, only the read-only mode can seek the file,
-//      write mode are not allowed.
 int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int mode);
 
 /**
@@ -170,12 +164,9 @@ int gwCloseFile(gopherwoodFS fs, gwFile file);
  *
  * @param   fs      The configured filesystem handle.
  * @param   path    The path of the file.
- * @param   recursive   if path is a directory and set to
- *          non-zero, the directory is deleted else throws an exception. In
- *          case of a file the recursive argument is irrelevant.
  * @return Returns 0 on success, -1 on error.
  */
-int gwDeleteFile(gopherwoodFS fs, gwFile file);
+int gwDeleteFile(gopherwoodFS fs, char *filePath);
 
 /**
  * gwDestroyContext - free Gopherwood Context resources.

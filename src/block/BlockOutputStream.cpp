@@ -69,7 +69,11 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length)
 
 void BlockOutputStream::flush()
 {
-
+    if (mBlockInfo.isLocal){
+        mLocalWriter->flush();
+    } else{
+        /* TODO: Remote flush */
+    }
 }
 
 int64_t BlockOutputStream::getLocalSpaceOffset(){

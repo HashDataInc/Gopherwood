@@ -128,15 +128,16 @@ public:
     int calcDynamicQuotaNum();
     bool isLastActiveStatusOfFile(FileId fileId);
 
-    std::vector<int32_t> acquireFreeBlock(int activeId, int num, bool isWrite);
+    std::vector<int32_t> acquireFreeBlock(int activeId, int num, FileId fileId, bool isWrite);
     void releaseBlocks(std::vector<Block> &blocks);
     bool activateBlock(FileId fileId, Block& block, int activeId, bool isWrite);
     std::vector<Block> inactivateBlocks(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite);
+    void updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId);
 
     /* evict logic related APIs*/
     std::vector<int32_t> markEvicting(int activeId, int num);
     ShareMemBucket* evictBlockStart(int32_t bucketId, int activeId);
-    void evictBlockFinish(int32_t bucketId, int activeId, int isWrite);
+    void evictBlockFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite);
 
 
     void reset();

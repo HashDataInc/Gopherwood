@@ -37,6 +37,8 @@ public:
 
     int writeLocal(const char* buffer, int64_t length);
 
+    void flush();
+
     inline int64_t getCurOffset(){
         return mOffset;
     };

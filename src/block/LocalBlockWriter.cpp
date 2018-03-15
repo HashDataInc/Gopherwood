@@ -39,6 +39,10 @@ int LocalBlockWriter::writeLocal(const char* buffer, int64_t length) {
     return res;
 }
 
+void LocalBlockWriter::flush(){
+    fsync(mLocalSpaceFD);
+}
+
 LocalBlockWriter::~LocalBlockWriter() {
 
 }

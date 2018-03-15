@@ -136,14 +136,6 @@ std::string ActiveStatus::getManifestFileName(FileId fileId) {
 }
 
 void ActiveStatus::adjustActiveBlock(int curBlockInd) {
-
-    if (mNumBlocks <= 0 ||                              // empty file   v
-            curBlockInd >= mNumBlocks ||                    // append more data  v
-            !mBlockArray[curBlockInd].isMyActive ||         // not my active block
-            !mBlockArray[curBlockInd].isLocal ||            // block been evicted
-            (mBlockArray[curBlockInd].isLocal &&            // block in used(2) state
-             mBlockArray[curBlockInd].state == BUCKET_USED));
-
     if (curBlockInd + 1 > mNumBlocks) {
         extendOneBlock();
     }
@@ -240,7 +232,7 @@ void ActiveStatus::acquireNewBlocks() {
             numToEvict = 0;
         }
 
-        newBlocks = mSharedMemoryContext->acquireFreeBlock(mActiveId, numAcqurieFree, mIsWrite);
+        newBlocks = mSharedMemoryContext->acquireFreeBlock(mActiveId, numAcqurieFree, mFileId, mIsWrite);
         evictBuckets = mSharedMemoryContext->markEvicting(mActiveId, numToEvict);
     }
     SHARED_MEM_END
@@ -261,9 +253,11 @@ void ActiveStatus::acquireNewBlocks() {
     for (uint32_t i=0; i<evictBuckets.size(); i++){
         int bucketId = evictBuckets[i];
         SHARED_MEM_BEGIN
-        //ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mActiveId);
+        ShareMemBucket* smBucket = mSharedMemoryContext->evictBlockStart(bucketId, mActiveId);
+        LOG(INFO, "[ActiveStatus] Start evicting File %s, blockId %d",
+            smBucket->fileId.toString().c_str(), smBucket->fileBlockIndex);
         /* TODO: evict the block */
-        mSharedMemoryContext->evictBlockFinish(bucketId, mActiveId, mIsWrite);
+        mSharedMemoryContext->evictBlockFinish(bucketId, mActiveId, mFileId, mIsWrite);
         Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
         LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBlocks[i]);
         blocksForLog.push_back(newBlock);
@@ -279,7 +273,7 @@ void ActiveStatus::acquireNewBlocks() {
 
 /* get block from pre-allocated blocks */
 void ActiveStatus::extendOneBlock() {
-    std::vector<Block> blocksForLog;
+    std::vector<Block> blocksModified;
 
     if (mPreAllocatedBlocks.size() == 0) {
         acquireNewBlocks();
@@ -298,12 +292,18 @@ void ActiveStatus::extendOneBlock() {
     mLRUCache->put(b.blockId, b);
 
     /* prepare for log */
-    blocksForLog.push_back(b);
+    blocksModified.push_back(b);
 
+    SHARED_MEM_BEGIN
+    /* update file info to sharedmemory */
+    mSharedMemoryContext->updateActiveFileInfo(blocksModified, mFileId);
     /* Manifest Log */
     MANIFEST_LOG_BEGIN
-    mManifest->logExtendBlock(blocksForLog);
+    RecOpaque opaque;
+    opaque.extendBlock.eof = mEof;
+    mManifest->logExtendBlock(blocksModified, opaque);
     MANIFEST_LOG_END
+    SHARED_MEM_END
 }
 
 void ActiveStatus::activateBlock(int blockInd){
@@ -321,42 +321,14 @@ void ActiveStatus::activateBlock(int blockInd){
     SHARED_MEM_END
 }
 
-void ActiveStatus::catchUpManifestLogs() {
-    std::vector<Block> blocks;
-
-    MANIFEST_LOG_BEGIN
-    while(true){
-        RecordHeader header = mManifest->fetchOneLogRecord(blocks);
-        if (header.type == RecordType::invalidLog){
-            break;
-        }
-        /* integrety checks */
-        assert(header.numBlocks == blocks.size());
-
-        /* replay the log */
-        switch (header.type) {
-            case RecordType::inactiveBlock:
-                LOG(INFO, "[ActiveStatus] got inactiveBlock log record with %lu blocks.", blocks.size());
-                break;
-            case RecordType::acquireNewBlock:
-                LOG(INFO, "[ActiveStatus] got acquireNewBlock log record with %lu blocks.", blocks.size());
-                break;
-            case RecordType::fullStatus:
-                LOG(INFO, "[ActiveStatus] got fullStatus log record with %lu blocks. EOF=%lu", blocks.size(), header.opaque.fullStatus.eof);
-                for(uint32_t i=0; i<blocks.size(); i++){
-                    mBlockArray.push_back(blocks[i]);
-                    mNumBlocks ++;
-                }
-                mEof = header.opaque.fullStatus.eof;
-                break;
-        }
-        blocks.clear();
-    }
-    MANIFEST_LOG_END
-}
-
-/* flush cached Manifest logs to disk */
+/* flush cached Manifest logs to disk
+ * TODO: Currently all log record are flushed immediately, we just add UpdateEof log */
 void ActiveStatus::flush() {
+    MANIFEST_LOG_BEGIN
+    RecOpaque opaque;
+    opaque.updateEof.eof = mEof;
+    mManifest->logUpdateEof(opaque);
+    MANIFEST_LOG_END
 }
 
 /* truncate existing Manifest file and flush latest block status to it */
@@ -393,6 +365,58 @@ void ActiveStatus::close() {
 
     MANIFEST_LOG_END
     SHARED_MEM_END
+}
+
+void ActiveStatus::catchUpManifestLogs() {
+    std::vector<Block> blocks;
+
+    MANIFEST_LOG_BEGIN
+    while(true){
+        RecordHeader header = mManifest->fetchOneLogRecord(blocks);
+        if (header.type == RecordType::invalidLog){
+            break;
+        }
+        /* integrety checks */
+        assert(header.numBlocks == blocks.size());
+
+        /* replay the log */
+        switch (header.type) {
+            case RecordType::inactiveBlock:
+                LOG(INFO, "[ActiveStatus] got inactiveBlock log record with %lu blocks.", blocks.size());
+                break;
+            case RecordType::acquireNewBlock:
+                if (mIsWrite){
+                    LOG(INFO, "[ActiveStatus] got acquireNewBlock log record with %lu blocks.", blocks.size());
+                    /* TODO: Apply this log*/
+                }
+                break;
+            case RecordType::extendBlock:
+                LOG(INFO, "[ActiveStatus] got assignBlock log record with %lu blocks.", blocks.size());
+                assert(header.numBlocks == 1);
+                mBlockArray.push_back(blocks[0]);
+                mNumBlocks++;
+                mEof = header.opaque.extendBlock.eof;
+                break;
+            case RecordType::fullStatus:
+                LOG(INFO, "[ActiveStatus] got fullStatus log record with %lu blocks. EOF=%lu", blocks.size(), header.opaque.fullStatus.eof);
+                for(uint32_t i=0; i<blocks.size(); i++){
+                    mBlockArray.push_back(blocks[i]);
+                    mNumBlocks++;
+                }
+                mEof = header.opaque.fullStatus.eof;
+                break;
+            case RecordType::updateEof:
+                assert(header.numBlocks == 0);
+                mEof = header.opaque.updateEof.eof;
+                break;
+            default:
+                THROW(GopherwoodNotImplException,
+                      "[ActiveStatus] Log type %d not implemented when catching up logs.",
+                      header.type);
+        }
+        blocks.clear();
+    }
+    MANIFEST_LOG_END
 }
 
 ActiveStatus::~ActiveStatus() {

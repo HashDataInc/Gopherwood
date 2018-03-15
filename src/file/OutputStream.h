@@ -36,6 +36,8 @@ public:
 
     void write(const char *buffer, int64_t length);
 
+    void flush();
+
     void close();
 
     ~OutputStream();

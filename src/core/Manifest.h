@@ -45,13 +45,14 @@ enum RecordType {
      * transit Shared Memory state from 1 to 0 */
     blockUpdate = 4,
     /* assign a block to local bucket */
-    assignBlock = 5,
+    extendBlock = 5,
     /* evict a block from local space to OSS
      * transit Shared Memory state from 2 to 0 */
     evictBlock = 6,
     /* the file have been closed and the FileStatus
      * are collected and merged. */
     fullStatus = 7,
+    updateEof = 8,
     invalidLog = 100
 };
 
@@ -64,10 +65,14 @@ struct AcquireNewBlock {
 };
 
 struct ExtendBlock {
-    int64_t padding;
+    int64_t eof;
 };
 
 struct FullStatus {
+    int64_t eof;
+};
+
+struct UpdateEof {
     int64_t eof;
 };
 
@@ -76,6 +81,7 @@ typedef union RecOpaque {
     AcquireNewBlock acquireNewBlock;
     ExtendBlock  extendBlock;
     FullStatus fullStatus;
+    UpdateEof updateEof;
 } RecOpaque;
 
 /* this is a random prime number to check log record integrity */
@@ -97,8 +103,9 @@ public:
     Manifest(std::string path);
 
     void logAcquireNewBlock(std::vector<Block> &blocks);
-    void logExtendBlock(std::vector<Block> &blocks);
+    void logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque);
     void logFullStatus(std::vector<Block> &blocks, RecOpaque opaque);
+    void logUpdateEof(RecOpaque opaque);
 
     RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);
 

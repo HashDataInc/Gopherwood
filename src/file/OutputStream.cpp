@@ -33,7 +33,6 @@ OutputStream::OutputStream(int fd, shared_ptr<ActiveStatus> status) :
 }
 
 void OutputStream::updateBlockStream(){
-    /* TODO: Implement this once we make BlockOutput stream a buffered stream */
     mBlockOutputStream->flush();
 
     /* Update the BlockInfo of the BlockOutputStream */
@@ -82,6 +81,10 @@ void OutputStream::write(const char *buffer, int64_t length) {
         mPos += written;
         mStatus->setPosition(mPos);
     }
+}
+
+void OutputStream::flush(){
+    mBlockOutputStream->flush();
 }
 
 void OutputStream::close() {

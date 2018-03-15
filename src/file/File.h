@@ -32,6 +32,7 @@
 namespace Gopherwood {
 namespace Internal {
 
+#define OPEN_TYPE_MASK 0x00000003
 class File {
 public:
     File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status);
@@ -39,6 +40,8 @@ public:
     void read(char *buffer, int64_t length);
 
     void write(const char *buffer, int64_t length);
+
+    void flush();
 
     void seek(int64_t pos, int mode);
 
@@ -49,7 +52,7 @@ public:
 private:
     FileId id;
     std::string name;
-    int flags;
+    int mFlags;
     int localFD;
     shared_ptr<ActiveStatus> mStatus;
     shared_ptr<OutputStream> mOutStream;
