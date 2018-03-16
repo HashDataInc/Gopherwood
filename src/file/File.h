@@ -47,6 +47,8 @@ public:
 
     void close();
 
+    int64_t remainingLength();
+
     ~File();
 
 private:

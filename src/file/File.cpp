@@ -40,7 +40,16 @@ File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<Active
 }
 
 int64_t File::read(char *buffer, int64_t length) {
-    return mInStream->read(buffer, length);
+    int64_t bytesRead = length < remainingLength() ? length : remainingLength();
+    if(bytesRead < 0){
+        //TODO. exception error.
+        THROW(GopherwoodIOException,"[File] the remaining length is less than 0, error occurred.");
+    }else if(bytesRead == 0){
+        return 0;
+    }
+
+    mInStream->read(buffer, bytesRead);
+    return bytesRead;
 }
 
 void File::write(const char *buffer, int64_t length) {
@@ -86,6 +95,10 @@ void File::close() {
     if (mInStream){
         mInStream->close();
     }
+}
+
+int64_t File::remainingLength(){
+    return mStatus->getEof()-mStatus->getPosition();
 }
 
 File::~File() {

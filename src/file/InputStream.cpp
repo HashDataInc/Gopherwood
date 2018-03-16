@@ -38,7 +38,7 @@ void InputStream::updateBlockStream(){
     mBlockInputStream->setBlockInfo(mStatus->getCurBlockInfo());
 }
 
-int64_t InputStream::read(char *buffer, int64_t length) {
+void InputStream::read(char *buffer, int64_t length) {
     int64_t bytesToRead = length;
     int64_t bytesRead = 0;
     bool needUpdate = false;
@@ -69,17 +69,12 @@ int64_t InputStream::read(char *buffer, int64_t length) {
             needUpdate = true;
         }
 
-        if(read <= 0){
-            break;
-        }
-
         /* update statistics */
         bytesToRead -= read;
         bytesRead += read;
         mPos += read;
         mStatus->setPosition(mPos);
     }
-    return bytesRead;
 }
 
 void InputStream::close() {
