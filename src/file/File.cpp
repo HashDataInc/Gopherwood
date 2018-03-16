@@ -39,8 +39,8 @@ File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<Active
     mInStream = shared_ptr<InputStream>(new InputStream(localFD, status));
 }
 
-void File::read(char *buffer, int64_t length) {
-    mInStream->read(buffer, length);
+int64_t File::read(char *buffer, int64_t length) {
+    return mInStream->read(buffer, length);
 }
 
 void File::write(const char *buffer, int64_t length) {

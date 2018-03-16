@@ -34,7 +34,7 @@ class InputStream {
 public:
     InputStream(int fd, shared_ptr<ActiveStatus> status);
 
-    void read(char *buffer, int64_t length);
+    int64_t read(char *buffer, int64_t length);
 
     void close();
 
