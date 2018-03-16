@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(src/
         build/src
-        /usr/local/Cellar/boost/1.66.0/include)
+        /usr/local/Cellar/boost/1.66.0/include
+        /usr/local/include)
 
 set(SOURCE_FILES
         build/src/platform.h
@@ -82,8 +83,6 @@ set(SOURCE_FILES
         src/common/Thread.cpp
         src/common/Thread.h
         src/common/Unordered.h
-        src/common/XmlConfig.cpp
-        src/common/XmlConfig.h
         src/core/SharedMemoryContext.cpp
         src/core/SharedMemoryContext.h
         src/core/SharedMemoryManager.cpp
@@ -94,12 +93,6 @@ set(SOURCE_FILES
         src/network/Syscall.h
         src/network/TcpSocket.cpp
         src/network/TcpSocket.h
-        src/port/PortPosix.cpp
-        src/port/PortPosix.h
-        src/util/Cleanable.h
-        src/util/Coding.cpp
-        src/util/Coding.h
-        src/util/Slice.h
         test/function/TestFileStatus.cpp
         test/function/TestFileSystem.cpp
         test/function/TestGWAPI.cpp
@@ -108,6 +101,35 @@ set(SOURCE_FILES
         test/function/TestReadWriteSeek.cpp
         test/function/TestSharedMemoryManager.cpp
         src/file/InputStream.h
-        src/file/InputStream.cpp)
+        src/file/InputStream.cpp
+        src/file/OutputStream.h
+        src/file/OutputStream.cpp
+        src/file/File.h
+        src/file/FileId.h
+        src/file/File.cpp
+        src/core/ActiveStatus.cpp
+        src/core/ActiveStatus.h
+        src/core/ActiveStatusContext.h
+        src/core/ActiveStatusContext.cpp
+        src/block/BlockOutputStream.cpp
+        src/block/BlockOutputStream.h
+        src/block/LocalBlockWriter.h
+        src/block/LocalBlockWriter.cpp
+        src/block/OssBlockWriter.h
+        src/block/OssBlockWriter.cpp
+        src/block/LocalBlockReader.h
+        src/block/LocalBlockReader.cpp
+        src/block/OssBlockReader.h
+        src/block/OssBlockReader.cpp
+        test/function/hello.cpp
+        src/core/BlockStatus.h
+        src/core/Manifest.h
+        src/core/Manifest.cpp
+        src/core/BlockStatus.cpp
+        src/core/BlockStatus.cpp
+        src/block/BlockInputStream.h
+        src/block/BlockInputStream.cpp
+        src/core/SharedMemoryObj.h
+        src/core/SharedMemoryObj.cpp)
 
 add_executable(gopherwood ${SOURCE_FILES})
