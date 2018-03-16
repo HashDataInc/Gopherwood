@@ -39,8 +39,14 @@ File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<Active
     mInStream = shared_ptr<InputStream>(new InputStream(localFD, status));
 }
 
-void File::read(char *buffer, int64_t length) {
-    mInStream->read(buffer, length);
+int64_t File::read(char *buffer, int64_t length) {
+    int64_t bytesToRead = length < remaining() ? length : remaining();
+    if(bytesToRead == 0){
+        return 0;
+    }
+
+    mInStream->read(buffer, bytesToRead);
+    return bytesToRead;
 }
 
 void File::write(const char *buffer, int64_t length) {
@@ -86,6 +92,11 @@ void File::close() {
     if (mInStream){
         mInStream->close();
     }
+}
+
+int64_t File::remaining(){
+    assert(mStatus->getEof() >= mStatus->getPosition());
+    return mStatus->getEof() - mStatus->getPosition();
 }
 
 File::~File() {
