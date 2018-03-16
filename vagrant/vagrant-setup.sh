@@ -33,14 +33,5 @@ sudo yum -y install \
 	libyaml-devel \
 	protobuf \
 
-#build QingStor-C-SDK
-
-cd ~
-git clone https://github.com/jianlirong/QingStor-C-SDK.git
-cd QingStor-C-SDK
-mkdir build
-cd build
-../bootstrap --prefix=/usr/local
-make
-sudo make install
+#add liboss dependency
 

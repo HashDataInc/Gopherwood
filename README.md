@@ -18,7 +18,7 @@ To build Gopherwood, the following libraries are needed.
     
     cmake (2.8+)                    http://www.cmake.org/
     boost (tested on 1.53+)         http://www.boost.org/
-    libqingstor                     https://github.com/jianlirong/QingStor-C-SDK
+    liboss                          binary integrated in project, will open source later
 To run tests, the following libraries are needed.
     
     gtest (tested on 1.7.0)         already integrated in the source code
