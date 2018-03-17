@@ -21,18 +21,20 @@
  */
 #ifndef GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H
 #define GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H
+
 #include "platform.h"
+#include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
 
 class OssBlockWriter {
 public:
-    OssBlockWriter();
+    OssBlockWriter(context ossCtx);
 
     ~OssBlockWriter();
 private:
-
+    context mOssContext;
 };
 
 }

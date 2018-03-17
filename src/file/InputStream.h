@@ -27,12 +27,14 @@
 #include "block/BlockInputStream.h"
 #include "common/Memory.h"
 #include "core/ActiveStatus.h"
+#include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
+
 class InputStream {
 public:
-    InputStream(int fd, shared_ptr<ActiveStatus> status);
+    InputStream(int fd, shared_ptr<ActiveStatus> status, context ossCtx);
 
     void read(char *buffer, int64_t length);
 

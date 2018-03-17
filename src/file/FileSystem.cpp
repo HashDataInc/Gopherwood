@@ -21,6 +21,8 @@
  */
 #include "FileSystem.h"
 #include "common/Configuration.h"
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
 #include "common/Hash.h"
 
 namespace Gopherwood {
@@ -60,6 +62,9 @@ FileSystem::FileSystem(const char *workDir) :
 
     mSharedMemoryContext = SharedMemoryManager::getInstance()->buildSharedMemoryContext(workDir, lockFile);
     mActiveStatusContext = shared_ptr<ActiveStatusContext>(new ActiveStatusContext(mSharedMemoryContext));
+
+    /* init liboss context */
+    initOssContext();
 }
 
 FileId FileSystem::makeFileId(const std::string filePath)
@@ -77,6 +82,31 @@ FileId FileSystem::makeFileId(const std::string filePath)
     return id;
 }
 
+void FileSystem::initOssContext() {
+    /* TODO: Dynamically inject these parms */
+    std::string object_stor_type = "QS";
+    std::string liboss_zone = "pek3a";
+    std::string liboss_appid = "";
+    std::string liboss_access_key_id = "UITUBKOLLATHRMDBIMYC";
+    std::string liboss_secret_access_key = "PHxFQ0qA9hWRsvYM0OKPCW6VZxW6PYb9AZ2zZMXF";
+    int64_t liboss_write_buffer = 8 << 20;
+    int64_t liboss_read_buffer = 32 << 20;
+
+    mOssContext = ossInitContext(
+            object_stor_type.c_str(),
+            liboss_zone.c_str(),
+            liboss_appid.c_str(),
+            liboss_access_key_id.c_str(),
+            liboss_secret_access_key.c_str(),
+            liboss_write_buffer,
+            liboss_read_buffer);
+
+    if (mOssContext == NULL){
+        THROW(GopherwoodInvalidParmException,
+              "[FileSystem] OSS context initialization failed!");
+    }
+}
+
 File* FileSystem::CreateFile(const char *fileName, int flags, bool isWrite)
 {
     FileId fileId;
@@ -87,7 +117,7 @@ File* FileSystem::CreateFile(const char *fileName, int flags, bool isWrite)
 
     LOG(INFO, "[FileSystem] Creating file %s", fileId.toString().c_str());
     std::string name(fileName);
-    return new File(fileId, name, flags, mLocalSpaceFile, status);
+    return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
 }
 
 File* FileSystem::OpenFile(const char *fileName, int flags, bool isWrite)
@@ -100,7 +130,7 @@ File* FileSystem::OpenFile(const char *fileName, int flags, bool isWrite)
 
     LOG(INFO, "[FileSystem] Opening file %s", fileId.toString().c_str());
     std::string name(fileName);
-    return new File(fileId, name, flags, mLocalSpaceFile, status);
+    return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
 }
 
 FileSystem::~FileSystem() {

@@ -26,16 +26,17 @@
 namespace Gopherwood {
 namespace Internal {
 
-BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd)
+BlockOutputStream::BlockOutputStream(int fd, context ossCtx) : mLocalSpaceFD(fd)
 {
     mLocalWriter = shared_ptr<LocalBlockWriter>(new LocalBlockWriter(fd));
+    mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(ossCtx));
     mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
 }
 
 void BlockOutputStream::setBlockInfo(BlockInfo info)
 {
     LOG(INFO, "[BlockOutputStream] Set BlockInfo, new blockId=%d, new blockOffset=%ld, %s",
-        info.id, info.offset, info.isLocal?"local":"remote");
+        info.blockId, info.offset, info.isLocal?"local":"remote");
     mBlockInfo = info;
 }
 
@@ -55,7 +56,7 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length)
             mLocalWriter->seek(getLocalSpaceOffset());
         }
         LOG(INFO, "[BlockOutputStream] Write to local space, blockId=%d, offset=%ld, length=%ld",
-            mBlockInfo.id, mBlockInfo.offset, length);
+            mBlockInfo.blockId, mBlockInfo.offset, length);
         written = mLocalWriter->writeLocal(buffer, length);
     } else{
         /* Write to OSS */
@@ -77,7 +78,7 @@ void BlockOutputStream::flush()
 }
 
 int64_t BlockOutputStream::getLocalSpaceOffset(){
-    return mBlockInfo.id * mBlockSize + mBlockInfo.offset;
+    return mBlockInfo.blockId * mBlockSize + mBlockInfo.offset;
 }
 
 BlockOutputStream::~BlockOutputStream() {

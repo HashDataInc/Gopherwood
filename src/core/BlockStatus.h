@@ -24,6 +24,7 @@
 
 #include "platform.h"
 #include "common/Memory.h"
+#include "file/FileId.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -72,8 +73,11 @@ typedef struct BlockRecord {
     Block toBlockFormat();
 } BlockRecord;
 
+#define InvalidBlockOffset -1
+
 typedef struct BlockInfo {
-    int32_t id;
+    FileId fileId;
+    int32_t blockId;
     int64_t offset;
     bool isLocal;
 } BlockInfo;

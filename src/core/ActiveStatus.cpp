@@ -133,7 +133,8 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
     /* build the block info */
     BlockInfo info;
     Block block = getCurBlock();
-    info.id = block.bucketId;
+    info.fileId = mFileId;
+    info.blockId = block.bucketId;
     info.isLocal = block.isLocal;
     info.offset = getCurBlockOffset();
     return info;
@@ -256,11 +257,18 @@ void ActiveStatus::acquireNewBlocks() {
     /* add evict buckets to preAllocatedBlocks */
     for (uint32_t i=0; i<evictBuckets.size(); i++){
         int bucketId = evictBuckets[i];
+        /* Mark the evict/load status of current ActiveStatus in SharedMem  */
         SHARED_MEM_BEGIN
-        ShareMemBucket* smBucket = mSharedMemoryContext->evictBucketStart(bucketId, mActiveId);
+        BlockInfo blockInfo = mSharedMemoryContext->evictBucketStart(bucketId, mActiveId);
+        SHARED_MEM_END
         LOG(INFO, "[ActiveStatus] Start evicting File %s, blockId %d",
-            smBucket->fileId.toString().c_str(), smBucket->fileBlockIndex);
-        /* TODO: evict the block */
+            blockInfo.fileId.toString().c_str(), blockInfo.blockId);
+
+        /* evict the block */
+
+
+        /* Set block evict finished and and activate the block */
+        SHARED_MEM_BEGIN
         mSharedMemoryContext->evictBucketFinish(bucketId, mActiveId, mFileId, mIsWrite);
         Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
         LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBlocks[i]);

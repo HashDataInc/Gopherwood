@@ -25,14 +25,16 @@
 #include "platform.h"
 
 #include "block/LocalBlockReader.h"
+#include "block/OssBlockReader.h"
 #include "core/ActiveStatus.h"
 #include "common/Memory.h"
+#include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
 class BlockInputStream {
 public:
-    BlockInputStream(int fd);
+    BlockInputStream(int fd, context ossCtx);
 
     void setBlockInfo(BlockInfo info);
 
@@ -50,6 +52,7 @@ private:
     int64_t mBlockSize;
     BlockInfo mBlockInfo;
     shared_ptr<LocalBlockReader> mLocalReader;
+    shared_ptr<OssBlockReader> mOssReader;
 };
 
 }

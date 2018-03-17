@@ -19,3 +19,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "block/OssBlockWriter.h"
+
+namespace Gopherwood {
+namespace Internal {
+
+OssBlockWriter::OssBlockWriter(context ossCtx) :
+        mOssContext(ossCtx) {
+}
+
+OssBlockWriter::~OssBlockWriter(){
+}
+
+}
+}

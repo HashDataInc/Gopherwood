@@ -112,6 +112,13 @@ static void handleException(const Gopherwood::exception_ptr &error) {
                 "Handle Gopherwood Sync Exception: %s",
                 Gopherwood::Internal::GetExceptionDetail(error, buffer));
         errno = ESYNC;
+    } catch (const Gopherwood::GopherwoodOSSException &) {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Handle Gopherwood OSS Exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+        errno = ESYNC;
     } catch (const Gopherwood::GopherwoodException &) {
         std::string buffer;
         LOG(

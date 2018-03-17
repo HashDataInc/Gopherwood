@@ -124,6 +124,16 @@ public:
     }
 };
 
+class GopherwoodOSSException: public GopherwoodException {
+public:
+    GopherwoodOSSException(const std::string &arg, const char *file, int line, const char *stack) :
+            GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodOSSException() throw () {
+    }
+};
+
 class GopherwoodEndOfStream: public GopherwoodIOException {
 public:
     GopherwoodEndOfStream(const std::string & arg, const char * file, int line, const char * stack) :

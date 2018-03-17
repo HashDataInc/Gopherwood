@@ -24,6 +24,7 @@
 
 #include "platform.h"
 #include "common/Memory.h"
+#include "core/BlockStatus.h"
 #include "core/SharedMemoryObj.h"
 
 #include <boost/interprocess/mapped_region.hpp>
@@ -64,7 +65,7 @@ public:
 
     /* evict logic related APIs*/
     std::vector<int32_t> markBucketEvicting(int activeId, int num);
-    ShareMemBucket* evictBucketStart(int32_t bucketId, int activeId);
+    BlockInfo evictBucketStart(int32_t bucketId, int activeId);
     void evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite);
 
 

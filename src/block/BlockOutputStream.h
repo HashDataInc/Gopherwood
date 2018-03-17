@@ -27,12 +27,14 @@
 #include "block/LocalBlockWriter.h"
 #include "core/ActiveStatus.h"
 #include "common/Memory.h"
+#include "oss/oss.h"
+#include "OssBlockWriter.h"
 
 namespace Gopherwood {
 namespace Internal {
 class BlockOutputStream {
 public:
-    BlockOutputStream(int fd);
+    BlockOutputStream(int fd, context ossCtx);
 
     void setBlockInfo(BlockInfo info);
 
@@ -51,6 +53,7 @@ private:
     BlockInfo mBlockInfo;
 
     shared_ptr<LocalBlockWriter> mLocalWriter;
+    shared_ptr<OssBlockWriter> mOssWriter;
 };
 
 }

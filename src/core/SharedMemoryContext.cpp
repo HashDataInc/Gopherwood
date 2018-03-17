@@ -182,16 +182,22 @@ std::vector<int32_t> SharedMemoryContext::markBucketEvicting(int activeId, int n
     return res;
 }
 
-ShareMemBucket* SharedMemoryContext::evictBucketStart(int32_t bucketId, int activeId){
+BlockInfo SharedMemoryContext::evictBucketStart(int32_t bucketId, int activeId){
     assert(bucketId >0 && bucketId<header->numBuckets);
     assert(buckets[bucketId].isEvictingBucket());
     assert(buckets[bucketId].evictActiveId == activeId);
+    BlockInfo info;
 
     /* mark activestatus evict info  */
     activeStatus[activeId].fileBlockIndex = buckets[bucketId].fileBlockIndex;
     activeStatus[activeId].setEvicting();
 
-    return &buckets[bucketId];
+    info.fileId = buckets[bucketId].fileId;
+    info.blockId = buckets[bucketId].fileBlockIndex;
+    info.isLocal = true;
+    info.offset = InvalidBlockOffset;
+
+    return info;
 }
 
 void SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite) {

@@ -23,17 +23,18 @@
 #define GOPHERWOOD_BLOCK_OSSBLOCKREADER_H
 
 #include "platform.h"
+#include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
 
 class OssBlockReader {
 public:
-    OssBlockReader();
+    OssBlockReader(context ossCtx);
 
     ~OssBlockReader();
 private:
-
+    context mOssContext;
 };
 
 }

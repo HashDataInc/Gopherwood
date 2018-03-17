@@ -28,6 +28,7 @@
 #include "common/Memory.h"
 #include "file/OutputStream.h"
 #include "file/InputStream.h"
+#include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -35,7 +36,7 @@ namespace Internal {
 #define OPEN_TYPE_MASK 0x00000003
 class File {
 public:
-    File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status);
+    File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status, context ossCtx);
 
     int64_t read(char *buffer, int64_t length);
 

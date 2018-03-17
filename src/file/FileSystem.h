@@ -30,6 +30,7 @@
 #include "core/SharedMemoryManager.h"
 #include "core/SharedMemoryContext.h"
 #include "file/File.h"
+#include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -49,10 +50,13 @@ public:
 private:
     FileId makeFileId(const std::string filePath);
 
+    void initOssContext();
+
     int32_t mLocalSpaceFile = -1;
     const char* workDir;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<ActiveStatusContext> mActiveStatusContext;
+    context mOssContext;
 };
 
 }

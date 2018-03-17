@@ -27,12 +27,13 @@
 #include "block/BlockOutputStream.h"
 #include "common/Memory.h"
 #include "core/ActiveStatus.h"
+#include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
 class OutputStream {
 public:
-    OutputStream(int fd, shared_ptr<ActiveStatus> status);
+    OutputStream(int fd, shared_ptr<ActiveStatus> status, context ossCtx);
 
     void write(const char *buffer, int64_t length);
 

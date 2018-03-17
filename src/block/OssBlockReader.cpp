@@ -19,3 +19,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "block/OssBlockReader.h"
+
+namespace Gopherwood {
+namespace Internal {
+
+OssBlockReader::OssBlockReader(context ossCtx) :
+        mOssContext(ossCtx) {
+}
+
+OssBlockReader::~OssBlockReader(){
+}
+
+}
+}
