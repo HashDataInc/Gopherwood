@@ -19,11 +19,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "common/ExceptionInternal.h"
+#include "common/Exception.h"
 #include "FileSystem.h"
 #include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Hash.h"
+#include "client/gopherwood.h"
+#include "core/ActiveStatus.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -131,6 +135,35 @@ File* FileSystem::OpenFile(const char *fileName, int flags, bool isWrite)
     LOG(INFO, "[FileSystem] Opening file %s", fileId.toString().c_str());
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
+}
+
+int FileSystem::deleteFile(const char *fileName){
+    FileId fileId;
+    shared_ptr<ActiveStatus> status;
+
+    fileId = makeFileId(std::string(fileName));
+
+    if(mActiveStatusContext->getFileActiveStatus(fileId) != NULL){
+        THROW(GopherwoodException, "[FileSystem] Can not delete the file being used which name is  %s.",fileName);
+        return -1;
+    }
+
+    status = mActiveStatusContext->openFileActiveStatus(fileId, true);
+    LOG(INFO, "[FileSystem] Delete file %s", fileId.toString().c_str());
+
+    /* release the shared memory status and the manifest file*/
+    status->remove();
+
+    /* remove the active status from the context*/
+    mActiveStatusContext->deleteActiveStatus(fileId);
+
+    return 1;
+
+}
+
+void FileSystem::eraseActiveFileStatus(FileId fileId){
+    /* remove the active status from the context*/
+    mActiveStatusContext->deleteActiveStatus(fileId);
 }
 
 FileSystem::~FileSystem() {

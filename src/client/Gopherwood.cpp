@@ -240,7 +240,9 @@ int gwFlush(gopherwoodFS fs, gwFile file) {
 
 int gwCloseFile(gopherwoodFS fs, gwFile file) {
     try {
+
         file->getFile().close();
+        fs->getFilesystem().eraseActiveFileStatus(file->getFile().getFileName());
         delete file;
         file = NULL;
         return 0;
@@ -252,8 +254,8 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
     return -1;
 }
 
-int gwDeleteFile(gopherwoodFS fs, char *filePath) {
-    return -1;
+int gwDeleteFile(gopherwoodFS fs, char *fileName) {
+    return fs->getFilesystem().deleteFile(fileName);
 }
 
 int gwDestroyContext(gopherwoodFS fs) {

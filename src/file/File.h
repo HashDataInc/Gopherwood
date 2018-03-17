@@ -50,6 +50,8 @@ public:
 
     int64_t remaining();
 
+    FileId getFileName();
+
     ~File();
 
 private:

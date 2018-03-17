@@ -115,8 +115,10 @@ typedef struct ShareMemActiveStatus {
 
     void setEvicting() { flags |= 0x00000001; };
     void setReading() { flags |= 0x00000002; };
+    void setDeleting() {flags |= 0x00000004;};
     void unsetEvicting() { flags &= 0xFFFFFFFE; };
     void unsetReading() { flags |= 0xFFFFFFFD; };
+    void unsetDeleting(){flags &= 0xFFFFFFFB;};
 
     void reset() {
         pid = InvalidPid;

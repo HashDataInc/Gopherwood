@@ -65,6 +65,7 @@ public:
 
     void flush();
     void close();
+    void remove();
 
     ~ActiveStatus();
 

@@ -203,6 +203,12 @@ void Manifest::unlock() {
     lockf(mFD, F_ULOCK, 0);
 }
 
+void Manifest::remove(){
+    std::stringstream ss;
+    ss << "exec rm -r " << mFilePath ;
+    system(ss.str().c_str());
+}
+
 void Manifest::mfClose() {
     close(mFD);
     mFD = -1;

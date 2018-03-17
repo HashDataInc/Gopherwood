@@ -99,6 +99,10 @@ int64_t File::remaining(){
     return mStatus->getEof() - mStatus->getPosition();
 }
 
+FileId File::getFileName(){
+    return id;
+}
+
 File::~File() {
 }
 

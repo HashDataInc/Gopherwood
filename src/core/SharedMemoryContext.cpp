@@ -323,6 +323,29 @@ std::vector<Block> SharedMemoryContext::inactivateBuckets(std::vector<Block> &bl
     return res;
 }
 
+/* Transit Bucket State from 1 to 0 */
+std::vector<Block> SharedMemoryContext::deleteBuckets(std::vector<Block> &blocks){
+    std::vector<Block> res;
+    for (uint32_t i=0; i<blocks.size(); i++) {
+        int32_t bucketId = blocks[i].bucketId;
+        if (buckets[bucketId].isUsedBucket()){
+            buckets[bucketId].reset();
+            buckets[bucketId].setBucketFree();
+            /* update statistics */
+            header->numUsedBuckets--;
+            header->numFreeBuckets++;
+        } else{
+            THROW(
+                    GopherwoodSharedMemException,
+                    "[SharedMemoryContext::deleteBuckets] state of bucket %d is not Used",
+                    bucketId);
+        }
+    }
+    LOG(INFO, "[SharedMemoryContext] deleteBuckets %lu blocks.", blocks.size());
+    printStatistics();
+    return res;
+}
+
 void SharedMemoryContext::updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId){
     for (uint32_t i=0; i<blocks.size(); i++) {
         Block b = blocks[i];

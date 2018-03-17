@@ -123,6 +123,8 @@ public:
 
     void unlock();
 
+    void remove();
+
     ~Manifest();
 
 private:

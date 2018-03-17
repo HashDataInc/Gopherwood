@@ -381,6 +381,30 @@ void ActiveStatus::close() {
     SHARED_MEM_END
 }
 
+/* delete the existing Manifest file and release the bucket of the file */
+void ActiveStatus::remove(){
+    SHARED_MEM_BEGIN
+    MANIFEST_LOG_BEGIN
+
+    /* release all preAllocatedBlocks & active buckets */
+    mSharedMemoryContext->releaseBuckets(mPreAllocatedBuckets);
+
+    /* release the used buckets*/
+    mSharedMemoryContext->deleteBuckets(mBlockArray);
+
+    unregistInSharedMem();
+
+    /* delete the mainfest file*/
+    mManifest->remove();
+
+    /* clear LRU & blockArray */
+    mBlockArray.clear();
+    /* TODO: clear mLRUCache */
+
+    MANIFEST_LOG_END
+    SHARED_MEM_END
+}
+
 void ActiveStatus::catchUpManifestLogs() {
     std::vector<Block> blocks;
 
