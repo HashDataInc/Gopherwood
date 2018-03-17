@@ -45,7 +45,7 @@ public:
 
     File* OpenFile(const char *fileName, int flags, bool isWrite);
 
-    void removeActiveFileStatus(FileId fileId);
+    void CloseFile(File& file);
 
     ~FileSystem();
 

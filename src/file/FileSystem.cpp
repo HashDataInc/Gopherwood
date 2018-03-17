@@ -133,8 +133,8 @@ File* FileSystem::OpenFile(const char *fileName, int flags, bool isWrite)
     return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
 }
 
-void FileSystem::removeActiveFileStatus(FileId fileId){
-    mActiveStatusContext->removeActiveStatus(fileId);
+void FileSystem::CloseFile(File& file) {
+    file.close();
 }
 
 FileSystem::~FileSystem() {

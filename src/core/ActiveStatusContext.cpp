@@ -30,22 +30,12 @@ ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedM
         mSharedMemoryContext(sharedMemoryContext) {
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::getFileActiveStatus(FileId fileId) {
-    unordered_map<std::string, shared_ptr<ActiveStatus>>::iterator item =
-            mActiveStatusMap.find(fileId.toString());
-    if (item != mActiveStatusMap.end()) {
-        return item->second;
-    }
-    return NULL;
-}
-
 shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId, bool isWrite) {
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       true, /* isCreate*/
                                                       isWrite));
-    mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;
 }
 
@@ -55,16 +45,7 @@ shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId
                                                       mSharedMemoryContext,
                                                       false, /* isCreate*/
                                                       isWrite));
-    mActiveStatusMap.insert(make_pair(fileId.toString(), activeStatus));
     return activeStatus;
-}
-
-void ActiveStatusContext::removeActiveStatus(FileId fileId){
-    if(getFileActiveStatus(fileId) == NULL){
-        THROW(GopherwoodException, "[ActiveStatusContext::removeActiveStatus]. the context do not contain the active file status");
-        return ;
-    }
-    mActiveStatusMap.erase(fileId.toString());
 }
 
 ActiveStatusContext::~ActiveStatusContext() {

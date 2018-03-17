@@ -118,7 +118,7 @@ static void handleException(const Gopherwood::exception_ptr &error) {
                 Gopherwood::Internal::LOG_ERROR,
                 "Handle Gopherwood OSS Exception: %s",
                 Gopherwood::Internal::GetExceptionDetail(error, buffer));
-        errno = ESYNC;
+        errno = EOSS;
     } catch (const Gopherwood::GopherwoodException &) {
         std::string buffer;
         LOG(
@@ -240,8 +240,7 @@ int gwFlush(gopherwoodFS fs, gwFile file) {
 
 int gwCloseFile(gopherwoodFS fs, gwFile file) {
     try {
-        file->getFile().close();
-        fs->getFilesystem().removeActiveFileStatus(file->getFile().getFileName());
+        fs->getFilesystem().CloseFile(file->getFile());
         delete file;
         file = NULL;
         return 0;
