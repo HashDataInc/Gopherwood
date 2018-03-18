@@ -19,7 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "FileSystem.h"
+#include "file/FileSystem.h"
 #include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
@@ -135,6 +135,19 @@ File* FileSystem::OpenFile(const char *fileName, int flags, bool isWrite)
 
 void FileSystem::CloseFile(File& file) {
     file.close();
+}
+
+void FileSystem::DeleteFile(const char *fileName){
+    FileId delFileId = makeFileId(std::string(fileName));
+    shared_ptr<ActiveStatus> status;
+
+    /* open file with delete type */
+    status = mActiveStatusContext->deleteFileActiveStatus(delFileId);
+
+    /* call activeStatus destroy */
+    status->destroy();
+
+    status.reset();
 }
 
 FileSystem::~FileSystem() {

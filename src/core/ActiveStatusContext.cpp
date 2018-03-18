@@ -31,20 +31,33 @@ ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedM
 }
 
 shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId, bool isWrite) {
+    ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
+
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       true, /* isCreate*/
-                                                      isWrite));
+                                                      type));
     return activeStatus;
 }
 
 shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId, bool isWrite) {
+    ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
+
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       false, /* isCreate*/
-                                                      isWrite));
+                                                      type));
+    return activeStatus;
+}
+
+shared_ptr<ActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId fileId){
+    shared_ptr<ActiveStatus> activeStatus =
+            shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
+                                                      mSharedMemoryContext,
+                                                      false, /* isCreate*/
+                                                      ActiveStatusType::deleteFile));
     return activeStatus;
 }
 

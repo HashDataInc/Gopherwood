@@ -33,6 +33,20 @@
 namespace Gopherwood {
 namespace Internal {
 
+/* [IMPORTANT] Usually you need to acquire Shared Memory lock
+ * before acquire Manifest Lock */
+#define MANIFEST_LOG_BEGIN  mManifest->lock();
+#define MANIFEST_LOG_END    mManifest->unlock();
+
+#define SHARED_MEM_BEGIN    mSharedMemoryContext->lock();
+#define SHARED_MEM_END      mSharedMemoryContext->unlock();
+
+enum ActiveStatusType{
+    writeFile = 1,
+    readFile = 2,
+    deleteFile = 3
+};
+
 /**
  * ActiveStatus
  *
@@ -52,7 +66,7 @@ public:
     ActiveStatus(FileId fileId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext,
                  bool isCreate,
-                 bool isWrite
+                 ActiveStatusType type
     );
 
     /*********** Getter and setters ***********/
@@ -65,6 +79,7 @@ public:
 
     void flush();
     void close();
+    void destroy();
 
     ~ActiveStatus();
 
@@ -91,6 +106,7 @@ private:
     shared_ptr<LRUCache<int, Block>> mLRUCache;
 
     bool mIsWrite;
+    bool mIsDelete;
     int64_t mPos;
     int64_t mEof;
     int32_t mNumBlocks;

@@ -47,6 +47,8 @@ public:
 
     void CloseFile(File& file);
 
+    void DeleteFile(const char *fileName);
+
     ~FileSystem();
 
 private:

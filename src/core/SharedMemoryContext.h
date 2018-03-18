@@ -51,11 +51,11 @@ public:
     SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD, bool reset);
 
     /* Regist/Unregist an ActiveStatus instance */
-    int regist(int pid, FileId fileId);
+    int regist(int pid, FileId fileId, bool isWrite, bool isDelete);
     int unregist(int activeId, int pid);
 
     int calcDynamicQuotaNum();
-    bool isLastActiveStatusOfFile(FileId fileId);
+    bool isFileOpening(FileId fileId);
 
     std::vector<int32_t> acquireFreeBucket(int activeId, int num, FileId fileId, bool isWrite);
     void releaseBuckets(std::vector<Block> &blocks);

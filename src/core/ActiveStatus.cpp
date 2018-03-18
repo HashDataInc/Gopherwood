@@ -28,21 +28,15 @@
 namespace Gopherwood {
 namespace Internal {
 
-/* [IMPORTANT] Usually you need to acquire Shared Memory lock
- * before acquire Manifest Lock */
-#define MANIFEST_LOG_BEGIN  mManifest->lock();
-#define MANIFEST_LOG_END    mManifest->unlock();
-
-#define SHARED_MEM_BEGIN    mSharedMemoryContext->lock();
-#define SHARED_MEM_END      mSharedMemoryContext->unlock();
-
 ActiveStatus::ActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
                            bool isCreate,
-                           bool isWrite) :
+                           ActiveStatusType type) :
         mFileId(fileId),
-        mSharedMemoryContext(sharedMemoryContext),
-        mIsWrite(isWrite){
+        mSharedMemoryContext(sharedMemoryContext){
+    mIsWrite = (type == ActiveStatusType::writeFile);
+    mIsDelete = (type == ActiveStatusType::deleteFile);
+
     registInSharedMem();
     mNumBlocks = 0;
     mPos = 0;
@@ -65,7 +59,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
 /* Shared Memroy activeStatus field will maintain all connected files */
 void ActiveStatus::registInSharedMem(){
     SHARED_MEM_BEGIN
-    mActiveId = mSharedMemoryContext->regist(getpid(), mFileId);
+    mActiveId = mSharedMemoryContext->regist(getpid(), mFileId, mIsWrite, mIsDelete);
     if (mActiveId == -1){
         THROW(GopherwoodSharedMemException,
               "[ActiveStatus::registInSharedMem] Exceed max connection limitation %d",
@@ -366,7 +360,7 @@ void ActiveStatus::close() {
 
     unregistInSharedMem();
 
-    if (mSharedMemoryContext->isLastActiveStatusOfFile(mFileId)){
+    if (!mSharedMemoryContext->isFileOpening(mFileId)){
         /* truncate existing Manifest file and flush latest block status to it */
         RecOpaque opaque;
         opaque.fullStatus.eof = mEof;
@@ -379,6 +373,43 @@ void ActiveStatus::close() {
 
     MANIFEST_LOG_END
     SHARED_MEM_END
+}
+
+/* The delete file ActiveStatus already locked the Manifest log by
+ * regist machanism, thus we don't need to worry about Manifest log
+ * update contention here. */
+void ActiveStatus::destroy() {
+    std::vector<Block> localBlocks;
+    std::vector<Block> remoteBlocks;
+
+    /* check all blocks are not in active status */
+    for (uint32_t i=0; i<mBlockArray.size(); i++){
+        if(mBlockArray[i].isLocal && mBlockArray[i].state == BUCKET_USED){
+            localBlocks.push_back(mBlockArray[i]);
+        }
+        else if(mBlockArray[i].isLocal && mBlockArray[i].state == BUCKET_ACTIVE){
+            THROW(GopherwoodException,
+                  "[ActiveStatus] File %s still using active bucket %d",
+                  mFileId.toString().c_str(), mBlockArray[i].bucketId);
+        }
+        else if (!mBlockArray[i].isLocal){
+            remoteBlocks.push_back(mBlockArray[i]);
+        }
+        else{
+            THROW(GopherwoodException,
+                  "[ActiveStatus] Dead Zone, Internal Error!");
+        }
+    }
+
+    /* free all block cached in local space. If it's evicting by someone,
+     * mark it deleted.
+     * TODO: Not implemented yet */
+
+    /* remove all remote file
+     * TODO: Not implemented yet */
+
+    /* delete manifest log
+     * TODO: Not implemented yet */
 }
 
 void ActiveStatus::catchUpManifestLogs() {

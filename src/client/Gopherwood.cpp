@@ -253,6 +253,14 @@ int gwCloseFile(gopherwoodFS fs, gwFile file) {
 }
 
 int gwDeleteFile(gopherwoodFS fs, char *filePath) {
+    try {
+        fs->getFilesystem().DeleteFile(filePath);
+        return 0;
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+
     return -1;
 }
 

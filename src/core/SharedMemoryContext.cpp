@@ -68,17 +68,38 @@ void SharedMemoryContext::unlock() {
     lockf(mLockFD, F_ULOCK, 0);
 }
 
-int SharedMemoryContext::regist(int pid, FileId fileId) {
+int SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDelete) {
+    int activeId = -1;
     for (int i=0; i<header->numMaxActiveStatus; i++){
-        if (activeStatus[i].pid == InvalidPid){
+        /* validation */
+        if (activeStatus[i].fileId == fileId){
+            /* file is opening by someone */
+            if(isDelete){
+                THROW(GopherwoodSharedMemException,
+                      "[SharedMemoryContext::regist] The file is still openning by %d",
+                      activeStatus[i].pid);
+            }/* file is deleting by someone */
+            else if(!isDelete && activeStatus[i].isForDelete()){
+                THROW(GopherwoodSharedMemException,
+                      "[SharedMemoryContext::regist] The file is still deleting by %d",
+                      activeStatus[i].pid);
+            }
+        }
+
+        /* assign new activeId */
+        if (activeId == -1 && activeStatus[i].pid == InvalidPid) {
             activeStatus[i].pid = pid;
             activeStatus[i].fileId = fileId;
             activeStatus[i].fileBlockIndex = InvalidBlockId;
-            LOG(INFO, "[SharedMemoryContext] activeId %d, pid=%d", i, activeStatus[i].pid);
-            return i;
+            if (isDelete){
+                activeStatus[i].setForDelete();
+            }
+            activeId = i;
         }
     }
-    return -1;
+
+    LOG(INFO, "[SharedMemoryContext] activeId %d, pid=%d", activeId, activeStatus[activeId].pid);
+    return activeId;
 }
 
 int SharedMemoryContext::unregist(int activeId, int pid){
@@ -97,15 +118,15 @@ int SharedMemoryContext::unregist(int activeId, int pid){
 /* Check if all ActiveStatus of a given FileId are unregisted.
  * This is called by ActiveStatus close, manifest log will be truncated if
  * this function returns true */
-bool SharedMemoryContext::isLastActiveStatusOfFile(FileId fileId){
+bool SharedMemoryContext::isFileOpening(FileId fileId){
     for (int i=0; i<Configuration::MAX_CONNECTION; i ++){
         if (activeStatus[i].fileId == fileId){
-            return false;
+            return true;
         }
     }
     LOG(INFO, "[SharedMemoryContext] Is last active status of file %lu-%u",
     fileId.hashcode, fileId.collisionId);
-    return true;
+    return false;
 }
 
 /* Activate a number of Free Buckets (0->1)*/
