@@ -29,17 +29,17 @@ namespace Internal {
 BlockInputStream::BlockInputStream(int fd, context ossCtx) : mLocalSpaceFD(fd) {
     mLocalReader = shared_ptr<LocalBlockReader>(new LocalBlockReader(fd));
     mOssReader = shared_ptr<OssBlockReader>(new OssBlockReader(ossCtx));
-    mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
+    mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
 }
 
 void BlockInputStream::setBlockInfo(BlockInfo info) {
-    LOG(INFO, "[BlockInputStream] Set BlockInfo, new blockId=%d, new blockOffset=%ld, %s",
-        info.blockId, info.offset, info.isLocal?"local":"remote");
+    LOG(INFO, "[BlockInputStream] Set BlockInfo, new bucketId=%d, new blockOffset=%ld, %s",
+        info.bucketId, info.offset, info.isLocal?"local":"remote");
     mBlockInfo = info;
 }
 
 int64_t BlockInputStream::remaining() {
-    return mBlockSize - mBlockInfo.offset;
+    return mBucketSize - mBlockInfo.offset;
 }
 
 int64_t BlockInputStream::read(char *buffer, int64_t length){
@@ -51,15 +51,15 @@ int64_t BlockInputStream::read(char *buffer, int64_t length){
         {
             mLocalReader->seek(getLocalSpaceOffset());
         }
-        LOG(INFO, "[BlockInputStream] Read from local space, blockId=%d, offset=%ld, length=%ld",
-            mBlockInfo.blockId, mBlockInfo.offset, length);
+        LOG(INFO, "[BlockInputStream] Read from local space, bucketId=%d, offset=%ld, length=%ld",
+            mBlockInfo.bucketId, mBlockInfo.offset, length);
         read = mLocalReader->readLocal(buffer, length);
     } else{
         /* Read from OSS */
     }
 
     mBlockInfo.offset += read;
-    assert(mBlockInfo.offset<=mBlockSize);
+    assert(mBlockInfo.offset <= mBucketSize);
 
     return read;
 }
@@ -70,7 +70,7 @@ void BlockInputStream::flush()
 }
 
 int64_t BlockInputStream::getLocalSpaceOffset(){
-    return mBlockInfo.blockId * mBlockSize + mBlockInfo.offset;
+    return mBlockInfo.bucketId * mBucketSize + mBlockInfo.offset;
 }
 
 BlockInputStream::~BlockInputStream() {

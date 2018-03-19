@@ -145,7 +145,7 @@ gopherwoodFS gwCreateContext(char *workDir, GWContextConfig* config) {
 
     if (config != NULL) {
         Configuration::NUMBER_OF_BLOCKS = config->numBlocks;
-        Configuration::LOCAL_BLOCK_SIZE = config->blockSize;
+        Configuration::LOCAL_BUCKET_SIZE = config->blockSize;
     }
 
     try {

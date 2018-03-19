@@ -41,7 +41,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
     mNumBlocks = 0;
     mPos = 0;
     mEof = 0;
-    mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
+    mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
 
     /* check file exist if not creating a new file */
     std::string manifestFileName= getManifestFileName(mFileId);
@@ -100,11 +100,11 @@ int64_t ActiveStatus::getEof() {
 }
 
 Block ActiveStatus::getCurBlock() {
-    return mBlockArray[mPos / mBlockSize];
+    return mBlockArray[mPos / mBucketSize];
 }
 
 int64_t ActiveStatus::getCurBlockOffset() {
-    return mPos % mBlockSize;
+    return mPos % mBucketSize;
 }
 
 std::string ActiveStatus::getManifestFileName(FileId fileId) {
@@ -119,7 +119,7 @@ std::string ActiveStatus::getManifestFileName(FileId fileId) {
  * will call this function to write/read to multi blocks. When mPos reaches block not activated
  * by current file instance, ActiveStatus will adjust the block status.*/
 BlockInfo ActiveStatus::getCurBlockInfo() {
-    int curBlockIndex = mPos / mBlockSize;
+    int curBlockIndex = mPos / mBucketSize;
 
     /* adjust the active block status */
     adjustActiveBlock(curBlockIndex);
@@ -128,7 +128,8 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
     BlockInfo info;
     Block block = getCurBlock();
     info.fileId = mFileId;
-    info.blockId = block.bucketId;
+    info.blockId = block.blockId;
+    info.bucketId = block.bucketId;
     info.isLocal = block.isLocal;
     info.offset = getCurBlockOffset();
     return info;
@@ -159,9 +160,9 @@ void ActiveStatus::adjustActiveBlock(int curBlockInd) {
  *       Then -> acquire more buckets for preAllocatedBlocks
  * 2(b). If still have quota available, and no 0 or 2 available
  *       Then -> play with current owned buckets
- * 3(a). If quota equal to current active block num, and have 0 or 2 available
+ * 3(a). If quota equal to current active block num, and have 0 available
  *       Then -> inactivate blocks from LRU first, then acquire new blocks
- * 3(b). If quota equal to current active block num, and have 0 or 2 available
+ * 3(b). If quota equal to current active block num, and no 0 available
  *       Then -> play with current owned buckets
  * 4. If quota smaller than current active block num,
  *       Then -> release blocks and use own quota
@@ -169,8 +170,9 @@ void ActiveStatus::adjustActiveBlock(int curBlockInd) {
  *        pre acquire a number of buckets to reduce the Shared Memory contention. */
 void ActiveStatus::acquireNewBlocks() {
     std::vector<Block> blocksForLog;
-    std::vector<int32_t> newBlocks;
-    std::vector<int32_t> evictBuckets;
+    std::vector<int32_t> newBuckets;
+    BlockInfo evictBlockInfo;
+    bool evicting = false;
 
     int32_t numToAcquire = 0;
     int32_t numToInactivate = 0;
@@ -184,96 +186,138 @@ void ActiveStatus::acquireNewBlocks() {
         quota, numAvailable);
 
     /************************************************
-     *      Determin the acquire policy first       *
+     * Step1: Determine the acquire policy first
      ************************************************/
     if (mLRUCache->size() < quota) {
-        /* 2(a) acquire more buckets for preAllocatedBlocks */
         if (numAvailable > 0) {
+            /* 2(a) acquire more buckets for preAllocatedBlocks */
             numToAcquire = numAvailable > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
                            Configuration::PRE_ALLOCATE_BUCKET_NUM : numAvailable;
         }
-            /* 2(b) play with current owned buckets */
         else {
-            /* TODO: Not implemented */
+            /* 2(b) play with current owned buckets */
+            numToInactivate = 0;
+            numToAcquire = 0;
         }
     } else if (mLRUCache->size() == quota) {
-        /* 3(a) inactivate blocks from LRU first, then acquire new blocks */
-        if (numAvailable > 0) {
-            /* TODO: Not implemented */
+        if (numFreeBuckets > 0) {
+            /* 3(a) inactivate blocks from LRU first, then acquire new blocks */
+            numToAcquire = numFreeBuckets > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
+                           Configuration::PRE_ALLOCATE_BUCKET_NUM : numFreeBuckets;
+            numToInactivate = numToAcquire;
         }
-            /* 3(b) play with current owned buckets */
         else {
-            /* TODO: Not implemented */
+            /* 3(b) play with current owned buckets */
+            numToInactivate = 0;
+            numToAcquire = 0;
         }
     }
-        /* 4 release blocks and use own quota*/
     else {
-        /* TODO: Not implemented */
+        /* 4 release blocks and use own quota*/
+        numToInactivate = mLRUCache->size() - quota;
+        numToAcquire = 0;
     }
 
-    /************************************************
-     *      Real Operations on SharedMemory         *
-     ************************************************/
+    /**************************************************************
+     * Step2: inactive/get free buckets/start evict 1st used bucket
+     * NOTE: Only get free buckets since 3(a) is determined
+     * by numFreeBuckets. We should do this consistently
+     * before release SharedMemory lock.
+     **************************************************************/
     /* release first */
     if (numToInactivate > 0){
-
+        /* TODO: pop number of blocks */
     }
 
     /* acquire new buckets */
     if (numToAcquire > 0){
-        int numAcqurieFree;
-        int numToEvict;
-        if (numToAcquire > numFreeBuckets) {
-            numAcqurieFree = numFreeBuckets;
-            numToEvict = numToAcquire - numAcqurieFree;
-        } else {
-            numAcqurieFree = numToAcquire;
-            numToEvict = 0;
-        }
+        int numAcqurieFree = numToAcquire > numFreeBuckets ? numFreeBuckets : numToAcquire;
+        int numToEvict = numToAcquire - numAcqurieFree;
 
-        newBlocks = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
-        evictBuckets = mSharedMemoryContext->markBucketEvicting(mActiveId, numToEvict);
+        newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
+        /* add free buckets to preAllocatedBlocks */
+        for (std::vector<int32_t>::size_type i = 0; i < newBuckets.size(); i++) {
+            LOG(INFO, "[ActiveStatus] add bucket %d to pre-allocated bucket array.", newBuckets[i]);
+            Block newBlock(newBuckets[i],
+                           InvalidBlockId,
+                           LocalBlock,
+                           BUCKET_ACTIVE,
+                           true);/*is my active block*/
+            blocksForLog.push_back(newBlock);
+            mPreAllocatedBuckets.push_back(newBlock);
+        }
+        numToAcquire -= numAcqurieFree;
+
+        /* start evict 1st used bucket */
+        if (numToEvict > 0){
+            evictBlockInfo = mSharedMemoryContext->markBucketEvicting(mActiveId);
+            evicting = true;
+        }
     }
     SHARED_MEM_END
 
-    /* add free buckets to preAllocatedBlocks */
-    for (std::vector<int32_t>::size_type i = 0; i < newBlocks.size(); i++) {
-        LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBlocks[i]);
-        Block newBlock(newBlocks[i],
-                       InvalidBlockId,
-                       LocalBlock,
-                       BUCKET_ACTIVE,
-                       true);/*is my active block*/
-        blocksForLog.push_back(newBlock);
-        mPreAllocatedBuckets.push_back(newBlock);
-    }
-
-    /* add evict buckets to preAllocatedBlocks */
-    for (uint32_t i=0; i<evictBuckets.size(); i++){
-        int bucketId = evictBuckets[i];
-        /* Mark the evict/load status of current ActiveStatus in SharedMem  */
-        SHARED_MEM_BEGIN
-        BlockInfo blockInfo = mSharedMemoryContext->evictBucketStart(bucketId, mActiveId);
-        SHARED_MEM_END
-        LOG(INFO, "[ActiveStatus] Start evicting File %s, blockId %d",
-            blockInfo.fileId.toString().c_str(), blockInfo.blockId);
-
-        /* evict the block
-         * TODO: Implement this */
-
-        /* Set block evict finished and and activate the block */
-        SHARED_MEM_BEGIN
-        int rc = mSharedMemoryContext->evictBucketFinish(bucketId, mActiveId, mFileId, mIsWrite);
-        Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
-        LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBlocks[i]);
-        blocksForLog.push_back(newBlock);
-        mPreAllocatedBuckets.push_back(newBlock);
-        SHARED_MEM_END
-
-        /* the evicted block has been deleted during evicting */
-        if (rc == 1) {
-            /* TODO: remove the bucket since that file has been deleted */
+    /************************************************
+     * Step2: Loop to get used buckets
+     * 1. check if there is any free buckets again
+     * 2. evict used buckets
+     ************************************************/
+    while (numToAcquire > 0 || evicting){
+        /* evict the bucket */
+        if (evicting) {
+            /* TODO: implement this */
         }
+
+        SHARED_MEM_BEGIN
+        /* mark evict finish */
+        if (evicting) {
+            int rc = mSharedMemoryContext->evictBucketFinish(evictBlockInfo.bucketId,
+                                                             mActiveId,
+                                                             mFileId,
+                                                             mIsWrite);
+            if (rc == 0 || rc == 1){
+                Block newBlock(evictBlockInfo.bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
+                LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.",
+                    evictBlockInfo.bucketId);
+                blocksForLog.push_back(newBlock);
+                mPreAllocatedBuckets.push_back(newBlock);
+                evicting = false;
+                numToAcquire--;
+            }
+
+            /* 1: the evicted block has been deleted during eviction
+             * 2: the evicted bucket has been activated by it's file owner, give up this one*/
+            if(rc == 1 || rc == 2){
+                /* the evicted bucket has been activated by it's file owner, give up this one */
+                /* TODO: remove the bucket since that file has been deleted */
+            }
+        }
+
+        /* acquire free buckets */
+        numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
+        int numAcqurieFree = numToAcquire > numFreeBuckets ? numFreeBuckets : numToAcquire;
+
+        if (numAcqurieFree > 0){
+            newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
+            /* add free buckets to preAllocatedBlocks */
+            for (std::vector<int32_t>::size_type i = 0; i < newBuckets.size(); i++) {
+                LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBuckets[i]);
+                Block newBlock(newBuckets[i],
+                               InvalidBlockId,
+                               LocalBlock,
+                               BUCKET_ACTIVE,
+                               true);/*is my active block*/
+                blocksForLog.push_back(newBlock);
+                mPreAllocatedBuckets.push_back(newBlock);
+            }
+            numToAcquire -= numAcqurieFree;
+        }
+
+        /* start evict next bucket */
+        if (numToAcquire > 0){
+            evictBlockInfo = mSharedMemoryContext->markBucketEvicting(mActiveId);
+            evicting = true;
+        }
+        SHARED_MEM_END
     }
 
     /* Manifest Log */
@@ -289,6 +333,10 @@ void ActiveStatus::extendOneBlock() {
 
     if (mPreAllocatedBuckets.size() == 0) {
         acquireNewBlocks();
+    }
+
+    if (mPreAllocatedBuckets.size() == 0) {
+        /* TODO: play with own buckets, evict first */
     }
 
     /* build the block */

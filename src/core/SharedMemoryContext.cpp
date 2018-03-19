@@ -174,50 +174,45 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int nu
  *             This will mark write/read blockId to inform other activestatus
  *             of same File
  * 3. evictBlockFinish -- finally reset evicting ActiveStatus and activate the bucket */
-std::vector<int32_t> SharedMemoryContext::markBucketEvicting(int activeId, int num){
-    std::vector<int32_t> res;
-    int count = num;
-
-    if (num <= 0){
-        return res;
-    }
+BlockInfo SharedMemoryContext::markBucketEvicting(int activeId){
+    BlockInfo info;
+    bool found = false;
 
     /* pick up from used buckets */
     for (int32_t i = 0; i < header->numBuckets; i++) {
         if (buckets[i].isUsedBucket() && !buckets[i].isEvictingBucket()) {
             buckets[i].setBucketEvicting();
             buckets[i].evictActiveId = activeId;
-            res.push_back(i);
+
+            /* fill ActiveStatus evict info */
+            activeStatus[activeId].evictFileId = buckets[i].fileId;
+            activeStatus[activeId].fileBlockIndex = buckets[i].fileBlockIndex;
+            activeStatus[activeId].setEvicting();
+
+            /* fill result BlockInfo */
+            info.fileId = buckets[i].fileId;
+            info.blockId = buckets[i].fileBlockIndex;
+            info.bucketId = i;
+            info.isLocal = true;
+            info.offset = InvalidBlockOffset;
+
             /* update statistics */
-            count--;
             header->numUsedBuckets--;
             header->numEvictingBuckets++;
-
-            if (count == 0) {
-                break;
-            }
+            found = true;
+            break;
         }
     }
-    LOG(INFO, "[SharedMemoryContext] evicting %lu blocks.", res.size());
+
+    if (!found){
+        THROW(GopherwoodSharedMemException,
+              "[SharedMemoryContext::acquireBlock] statistic incorrect, there should be %d used"
+                      "buckets.", header->numUsedBuckets);
+    }
+
+    LOG(INFO, "[SharedMemoryContext] start evicting bucketId %d, FileId %s, BlockId %d",
+        info.bucketId, info.fileId.toString().c_str(), info.blockId);
     printStatistics();
-    return res;
-}
-
-BlockInfo SharedMemoryContext::evictBucketStart(int32_t bucketId, int activeId){
-    assert(bucketId >0 && bucketId<header->numBuckets);
-    assert(buckets[bucketId].isEvictingBucket());
-    assert(buckets[bucketId].evictActiveId == activeId);
-    BlockInfo info;
-
-    /* mark activestatus evict info  */
-    activeStatus[activeId].fileBlockIndex = buckets[bucketId].fileBlockIndex;
-    activeStatus[activeId].setEvicting();
-
-    info.fileId = buckets[bucketId].fileId;
-    info.blockId = buckets[bucketId].fileBlockIndex;
-    info.isLocal = true;
-    info.offset = InvalidBlockOffset;
-
     return info;
 }
 

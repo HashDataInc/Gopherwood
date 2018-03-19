@@ -110,7 +110,7 @@ private:
     int64_t mPos;
     int64_t mEof;
     int32_t mNumBlocks;
-    int64_t mBlockSize;
+    int64_t mBucketSize;
 
     std::vector<Block> mBlockArray;
     std::vector<Block> mPreAllocatedBuckets;

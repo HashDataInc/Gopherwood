@@ -30,19 +30,19 @@ BlockOutputStream::BlockOutputStream(int fd, context ossCtx) : mLocalSpaceFD(fd)
 {
     mLocalWriter = shared_ptr<LocalBlockWriter>(new LocalBlockWriter(fd));
     mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(ossCtx));
-    mBlockSize = Configuration::LOCAL_BLOCK_SIZE;
+    mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
 }
 
 void BlockOutputStream::setBlockInfo(BlockInfo info)
 {
-    LOG(INFO, "[BlockOutputStream] Set BlockInfo, new blockId=%d, new blockOffset=%ld, %s",
-        info.blockId, info.offset, info.isLocal?"local":"remote");
+    LOG(INFO, "[BlockOutputStream] Set BlockInfo, new bucketId=%d, new blockOffset=%ld, %s",
+        info.bucketId, info.offset, info.isLocal?"local":"remote");
     mBlockInfo = info;
 }
 
 int64_t BlockOutputStream::remaining()
 {
-    return mBlockSize - mBlockInfo.offset;
+    return mBucketSize - mBlockInfo.offset;
 }
 
 int64_t BlockOutputStream::write(const char *buffer, int64_t length)
@@ -55,15 +55,15 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length)
         {
             mLocalWriter->seek(getLocalSpaceOffset());
         }
-        LOG(INFO, "[BlockOutputStream] Write to local space, blockId=%d, offset=%ld, length=%ld",
-            mBlockInfo.blockId, mBlockInfo.offset, length);
+        LOG(INFO, "[BlockOutputStream] Write to local space, bucketId=%d, offset=%ld, length=%ld",
+            mBlockInfo.bucketId, mBlockInfo.offset, length);
         written = mLocalWriter->writeLocal(buffer, length);
     } else{
         /* Write to OSS */
     }
 
     mBlockInfo.offset += written;
-    assert(mBlockInfo.offset<=mBlockSize);
+    assert(mBlockInfo.offset<=mBucketSize);
 
     return written;
 }
@@ -78,7 +78,7 @@ void BlockOutputStream::flush()
 }
 
 int64_t BlockOutputStream::getLocalSpaceOffset(){
-    return mBlockInfo.blockId * mBlockSize + mBlockInfo.offset;
+    return mBlockInfo.bucketId * mBucketSize + mBlockInfo.offset;
 }
 
 BlockOutputStream::~BlockOutputStream() {

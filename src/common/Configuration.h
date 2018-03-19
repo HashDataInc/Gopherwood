@@ -34,7 +34,7 @@ public:
     static std::string SHARED_MEMORY_NAME;
     static std::string MANIFEST_FOLDER;
     static int32_t NUMBER_OF_BLOCKS;
-    static int64_t LOCAL_BLOCK_SIZE;
+    static int64_t LOCAL_BUCKET_SIZE;
     static int MAX_CONNECTION;
     static int CUR_CONNECTION;
     static uint32_t CUR_QUOTA_SIZE;

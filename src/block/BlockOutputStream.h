@@ -49,7 +49,7 @@ private:
     int64_t getLocalSpaceOffset();
 
     int mLocalSpaceFD;
-    int64_t mBlockSize;
+    int64_t mBucketSize;
     BlockInfo mBlockInfo;
 
     shared_ptr<LocalBlockWriter> mLocalWriter;

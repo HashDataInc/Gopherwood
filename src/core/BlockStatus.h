@@ -78,6 +78,7 @@ typedef struct BlockRecord {
 typedef struct BlockInfo {
     FileId fileId;
     int32_t blockId;
+    int32_t bucketId;
     int64_t offset;
     bool isLocal;
 } BlockInfo;

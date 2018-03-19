@@ -64,12 +64,9 @@ public:
     void updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId);
     void deleteBlocks(std::vector<Block> &blocks, FileId fileId);
 
-
     /* evict logic related APIs*/
-    std::vector<int32_t> markBucketEvicting(int activeId, int num);
-    BlockInfo evictBucketStart(int32_t bucketId, int activeId);
+    BlockInfo markBucketEvicting(int activeId);
     int evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite);
-
 
     void reset();
     void lock();

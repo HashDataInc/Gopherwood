@@ -114,6 +114,7 @@ typedef struct ShareMemActiveStatus {
     int pid;
     int32_t flags;
     FileId fileId;
+    FileId evictFileId;
     int32_t fileBlockIndex;
 
     void setEvicting() { flags |= 0x00000001; };
@@ -128,6 +129,7 @@ typedef struct ShareMemActiveStatus {
         pid = InvalidPid;
         flags=0;
         fileId.reset();
+        evictFileId.reset();
         fileBlockIndex = InvalidBlockId;
     };
 } ShareMemActiveStatus;
