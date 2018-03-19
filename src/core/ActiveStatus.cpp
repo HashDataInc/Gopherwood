@@ -258,17 +258,22 @@ void ActiveStatus::acquireNewBlocks() {
         LOG(INFO, "[ActiveStatus] Start evicting File %s, blockId %d",
             blockInfo.fileId.toString().c_str(), blockInfo.blockId);
 
-        /* evict the block */
-
+        /* evict the block
+         * TODO: Implement this */
 
         /* Set block evict finished and and activate the block */
         SHARED_MEM_BEGIN
-        mSharedMemoryContext->evictBucketFinish(bucketId, mActiveId, mFileId, mIsWrite);
+        int rc = mSharedMemoryContext->evictBucketFinish(bucketId, mActiveId, mFileId, mIsWrite);
         Block newBlock(bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
         LOG(INFO, "[ActiveStatus] add block %d to pre-allocated bucket array.", newBlocks[i]);
         blocksForLog.push_back(newBlock);
         mPreAllocatedBuckets.push_back(newBlock);
         SHARED_MEM_END
+
+        /* the evicted block has been deleted during evicting */
+        if (rc == 1) {
+            /* TODO: remove the bucket since that file has been deleted */
+        }
     }
 
     /* Manifest Log */
@@ -402,14 +407,16 @@ void ActiveStatus::destroy() {
     }
 
     /* free all block cached in local space. If it's evicting by someone,
-     * mark it deleted.
-     * TODO: Not implemented yet */
+     * mark it deleted. */
+    SHARED_MEM_BEGIN
+    mSharedMemoryContext->deleteBlocks(localBlocks, mFileId);
+    SHARED_MEM_END
 
     /* remove all remote file
      * TODO: Not implemented yet */
 
-    /* delete manifest log
-     * TODO: Not implemented yet */
+    /* delete manifest log */
+    mManifest->destroy();
 }
 
 void ActiveStatus::catchUpManifestLogs() {

@@ -70,6 +70,7 @@ typedef struct ShareMemHeader {
 
 /* Bit usages in flags field (low to high)
  * bit 0~1:     Bucket type 0/1/2
+ * bit 30:      Mark the evicting block has been deleted
  * bit 31:      Evicting bucket will set this bit to 1
  * */
 #define SMBUCKET_MAX_CONCURRENT_OPEN 10
@@ -81,16 +82,18 @@ typedef struct ShareMemBucket {
     int32_t evictActiveId;
     int32_t readActives[SMBUCKET_MAX_CONCURRENT_OPEN];
 
-    /* getter/setter */
+    /* Bucket status operations */
     bool isFreeBucket() { return (flags & 0x00000003) == 0 ? true : false; };
     bool isActiveBucket() { return (flags & 0x00000003) == 1 ? true : false; };
     bool isUsedBucket() { return (flags & 0x00000003) == 2 ? true : false; };
-    bool isEvictingBucket() {return (flags & 0x80000000);};
+    bool isEvictingBucket() { return (flags & 0x80000000);};
+    bool isDeletedBucket() { return (flags & 0x40000000);};
     void setBucketFree() { flags = (flags & BucketTypeMask) | 0x00000000;};
     void setBucketActive() {flags = (flags & BucketTypeMask) | 0x00000001; };
     void setBucketUsed() { flags = (flags & BucketTypeMask) | 0x00000002; };
     void setBucketEvicting() { flags = (flags | 0x80000000);};
     void setBucketEvictFinish() { flags = (flags & 0x7FFFFFFF);};
+    void setBucketDeleted() { flags = (flags | 0x40000000); };
 
     void reset();
     void markWrite(int activeId);

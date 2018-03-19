@@ -62,11 +62,13 @@ public:
     bool activateBucket(FileId fileId, Block& block, int activeId, bool isWrite);
     std::vector<Block> inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite);
     void updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId);
+    void deleteBlocks(std::vector<Block> &blocks, FileId fileId);
+
 
     /* evict logic related APIs*/
     std::vector<int32_t> markBucketEvicting(int activeId, int num);
     BlockInfo evictBucketStart(int32_t bucketId, int activeId);
-    void evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite);
+    int evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite);
 
 
     void reset();

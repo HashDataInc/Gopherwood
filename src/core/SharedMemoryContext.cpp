@@ -221,14 +221,26 @@ BlockInfo SharedMemoryContext::evictBucketStart(int32_t bucketId, int activeId){
     return info;
 }
 
-void SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite) {
+/* return code:
+ * 0 -- evict finish successfully
+ * 1 -- the evicted block has been deleted during the eviction
+ */
+int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite) {
+    int rc = 0;
+
     /* reset activestatus evict info  */
     activeStatus[activeId].fileBlockIndex = InvalidBlockId;
     activeStatus[activeId].unsetEvicting();
 
+    /* check whether the evicted block been deleted during evicting */
+    if (buckets[bucketId].isDeletedBucket()){
+        rc = 1;
+    }
+
     /* clear bucket info */
     buckets[bucketId].reset();
     buckets[bucketId].setBucketActive();
+
     buckets[bucketId].fileId = fileId;
     if (isWrite){
         buckets[bucketId].markWrite(activeId);
@@ -236,11 +248,14 @@ void SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, File
         buckets[bucketId].markRead(activeId);
     }
 
-    header->numActiveBuckets++;
+    /* update statistics */
     header->numEvictingBuckets--;
+    header->numActiveBuckets++;
 
     LOG(INFO, "[SharedMemoryContext] Bucket %d evict finished.", bucketId);
     printStatistics();
+
+    return rc;
 }
 
 /* Transit Bucket State from 1 to 0 */
@@ -353,6 +368,29 @@ void SharedMemoryContext::updateActiveFileInfo(std::vector<Block> &blocks, FileI
             THROW(GopherwoodSharedMemException,
                   "[SharedMemoryContext] FileId mismatch, expectging %s, actually %s",
                   fileId.toString().c_str(), buckets[b.bucketId].fileId.toString().c_str());
+        }
+    }
+}
+
+void SharedMemoryContext::deleteBlocks(std::vector<Block> &blocks, FileId fileId){
+    for (uint32_t i=0; i<blocks.size(); i++) {
+        Block b = blocks[i];
+
+        /* set free if the bucket still in used status */
+        if (buckets[b.bucketId].isUsedBucket() && buckets[b.bucketId].fileId == fileId){
+            buckets[b.bucketId].reset();
+            buckets[b.bucketId].setBucketFree();
+            /* update statistics */
+            header->numUsedBuckets--;
+            header->numFreeBuckets++;
+        }
+        /* mark deleted if it's been evicting by someone */
+        else if(buckets[b.bucketId].isEvictingBucket() && buckets[b.bucketId].fileId == fileId){
+            buckets[b.bucketId].setBucketDeleted();
+        }
+        else{
+            THROW(GopherwoodSharedMemException,
+                  "[SharedMemoryContext] Bucket %d status mismatch!", b.bucketId);
         }
     }
 }

@@ -128,6 +128,11 @@ void Manifest::flush() {
 
 }
 
+void Manifest::destroy(){
+    mfClose();
+    mfRemove();
+}
+
 std::string Manifest::serializeManifestLog(std::vector<Block> &blocks, RecordType type, RecOpaque opaque) {
     /* build log record header */
     std::string logRecord;
@@ -204,8 +209,14 @@ void Manifest::unlock() {
 }
 
 void Manifest::mfClose() {
-    close(mFD);
+    if (mFD != -1){
+        close(mFD);
+    }
     mFD = -1;
+}
+
+void Manifest::mfRemove() {
+    remove(mFilePath.c_str());
 }
 
 Manifest::~Manifest() {

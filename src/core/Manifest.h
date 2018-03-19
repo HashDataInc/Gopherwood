@@ -123,6 +123,8 @@ public:
 
     void unlock();
 
+    void destroy();
+
     ~Manifest();
 
 private:
@@ -137,6 +139,7 @@ private:
     inline int64_t mfRead(char* buffer, int64_t size);
     inline void mfTruncate();
     inline void mfClose();
+    inline void mfRemove();
 
     /******************** Fields ********************/
     std::string mFilePath;

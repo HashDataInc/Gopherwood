@@ -57,6 +57,15 @@ struct FileId {
             return true;
         }
     }
+
+    bool operator!=(const FileId& rhs) const {
+        if (hashcode != rhs.hashcode ||
+            collisionId != rhs.collisionId) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 };
 
 }
