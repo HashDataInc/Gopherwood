@@ -175,11 +175,15 @@ void ActiveStatus::acquireNewBlocks() {
     int32_t numToAcquire = 0;
     int32_t numToInactivate = 0;
 
+    int numFreeBuckets;
+    int numUsedBuckets;
+    int numAvailable;
+
     SHARED_MEM_BEGIN
     uint32_t quota = mSharedMemoryContext->calcDynamicQuotaNum();
-    int numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
-    int numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
-    int numAvailable = numFreeBuckets + numUsedBuckets;
+    numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
+    numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
+    numAvailable = numFreeBuckets + numUsedBuckets;
     LOG(INFO, "[ActiveStatus] current quota is %u, num availables is %d.",
         quota, numAvailable);
 
@@ -246,6 +250,12 @@ void ActiveStatus::acquireNewBlocks() {
         }
         numToAcquire -= numAcqurieFree;
 
+        /* Manifest Log */
+        MANIFEST_LOG_BEGIN
+        mManifest->logAcquireNewBlock(blocksForLog);
+        blocksForLog.clear();
+        MANIFEST_LOG_END
+
         /* start evict 1st used bucket */
         if (numToEvict > 0){
             evictBlockInfo = mSharedMemoryContext->markBucketEvicting(mActiveId);
@@ -310,6 +320,12 @@ void ActiveStatus::acquireNewBlocks() {
             numToAcquire -= numAcqurieFree;
         }
 
+        /* Manifest Log */
+        MANIFEST_LOG_BEGIN
+        mManifest->logAcquireNewBlock(blocksForLog);
+        blocksForLog.clear();
+        MANIFEST_LOG_END
+
         /* start evict next bucket */
         if (numToAcquire > 0){
             evictBlockInfo = mSharedMemoryContext->markBucketEvicting(mActiveId);
@@ -317,11 +333,6 @@ void ActiveStatus::acquireNewBlocks() {
         }
         SHARED_MEM_END
     }
-
-    /* Manifest Log */
-    MANIFEST_LOG_BEGIN
-    mManifest->logAcquireNewBlock(blocksForLog);
-    MANIFEST_LOG_END
 }
 
 /* Extend the file to create a new block, the block will get bucket from the

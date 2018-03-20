@@ -38,8 +38,15 @@ namespace Internal {
 #define MANIFEST_LOG_BEGIN  mManifest->lock();
 #define MANIFEST_LOG_END    mManifest->unlock();
 
-#define SHARED_MEM_BEGIN    mSharedMemoryContext->lock();
-#define SHARED_MEM_END      mSharedMemoryContext->unlock();
+#define SHARED_MEM_BEGIN    try { \
+                                mSharedMemoryContext->lock();
+
+#define SHARED_MEM_END          mSharedMemoryContext->unlock();\
+                            } catch (...) { \
+                                SetLastException(Gopherwood::current_exception()); \
+                                mSharedMemoryContext->unlock(); \
+                                Gopherwood::rethrow_exception(Gopherwood::current_exception()); \
+                            }
 
 enum ActiveStatusType{
     writeFile = 1,
