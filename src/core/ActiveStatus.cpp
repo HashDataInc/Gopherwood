@@ -139,11 +139,10 @@ void ActiveStatus::adjustActiveBlock(int curBlockInd) {
     if (curBlockInd + 1 > mNumBlocks) {
         extendOneBlock();
     }
-    /* need to mark the block to my active block */
     else if (!mBlockArray[curBlockInd].isMyActive){
-
+        /* need to mark the block to my active block */
         if(!mBlockArray[curBlockInd].isLocal) {
-
+            /* load the bucket back */
         }else if(mBlockArray[curBlockInd].state == BUCKET_USED) {
             activateBlock(curBlockInd);
         }else if(mBlockArray[curBlockInd].state == BUCKET_ACTIVE &&
@@ -377,7 +376,7 @@ void ActiveStatus::activateBlock(int blockInd){
 
     /* the block is activated by me */
     if (activated){
-        //mManifest-> TODO: log inactivate blocks
+        //mManifest-> TODO: log activate blocks
     }
     SHARED_MEM_END
 }

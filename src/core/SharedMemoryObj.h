@@ -109,7 +109,14 @@ typedef struct ShareMemBucket {
  * Operations are:
  * 1. Check whether all ActiveStatus of a File is closed
  * 2. Check the evicting ActiveStatus pid
- * 3. Check the loading status(from OSS) of a file block */
+ * 3. Check the loading status(from OSS) of a file block
+ *
+ * FLAGS (low -> high):
+ * 0  bit: mark evicting
+ * 1  bit: mark reading
+ * 30 bit: mark the evict bucket has been stolen(the owner get it back)
+ * 31 bit: mark the evict bucket has been deleted(the owner file has been deleted)
+ */
 typedef struct ShareMemActiveStatus {
     int pid;
     int32_t flags;
@@ -120,10 +127,13 @@ typedef struct ShareMemActiveStatus {
     void setEvicting() { flags |= 0x00000001; };
     void setReading() { flags |= 0x00000002; };
     void setForDelete() { flags |= 0x80000000; };
+    void setBucketStolen() { flags |= 0x40000000; };
     void unsetEvicting() { flags &= 0xFFFFFFFE; };
-    void unsetReading() { flags |= 0xFFFFFFFD; };
+    void unsetReading() { flags &= 0xFFFFFFFD; };
+    void unsetBucketStolen() { flags &= 0xBFFFFFFF; };
 
     bool isForDelete() { return flags & 0x80000000;};
+    bool isEvictBucketStolen() {return flags & 0x40000000;};
 
     void reset() {
         pid = InvalidPid;

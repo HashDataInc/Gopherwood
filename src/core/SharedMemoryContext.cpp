@@ -219,13 +219,20 @@ BlockInfo SharedMemoryContext::markBucketEvicting(int activeId){
 /* return code:
  * 0 -- evict finish successfully
  * 1 -- the evicted block has been deleted during the eviction
+ * 2 -- the evicted bucket has been activated by it's file owner, give up this one
  */
 int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite) {
     int rc = 0;
 
     /* reset activestatus evict info  */
+    activeStatus[activeId].evictFileId.reset();
     activeStatus[activeId].fileBlockIndex = InvalidBlockId;
     activeStatus[activeId].unsetEvicting();
+
+    if (activeStatus[activeId].isEvictBucketStolen()){
+        activeStatus[activeId].unsetBucketStolen();
+        return 2;
+    }
 
     /* check whether the evicted block been deleted during evicting */
     if (buckets[bucketId].isDeletedBucket()){
@@ -275,11 +282,11 @@ void SharedMemoryContext::releaseBuckets(std::vector<Block> &blocks) {
     printStatistics();
 }
 
-/* Activate a block from status 2 to 1. No need to evict because it's just the same File */
+/* Activate a block from status 2 to 1. No need to evict because it's just the same File.
+ * return true if the bucket is activated by current process */
 bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int activeId, bool isWrite) {
     int32_t bucketId = block.bucketId;
-    if (buckets[bucketId].fileId.hashcode != fileId.hashcode ||
-        buckets[bucketId].fileId.collisionId != fileId.collisionId ||
+    if (buckets[bucketId].fileId != fileId ||
         buckets[bucketId].fileBlockIndex != block.blockId){
         THROW(GopherwoodSharedMemException,
               "[SharedMemoryContext::activateBlock] File Id mismatch, expect fileId = %lu-%u, "
@@ -299,8 +306,22 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int active
             buckets[bucketId].markRead(activeId);
             LOG(INFO, "[SharedMemoryContext] read activeId %d, bucketId %d", activeId, bucketId);
         }
-        header->numUsedBuckets--;
-        header->numActiveBuckets++;
+        if (buckets[bucketId].isEvictingBucket()){
+            int32_t evictId = buckets[bucketId].evictActiveId;
+            if (activeStatus[evictId].evictFileId == buckets[bucketId].fileId &&
+                activeStatus[evictId].fileBlockIndex == buckets[bucketId].fileBlockIndex){
+                activeStatus[evictId].setBucketStolen();
+            } else{
+                THROW(GopherwoodSharedMemException,
+                      "[activateBucket] The activeStatus %d is not evicting file %s block %d",
+                      evictId, buckets[bucketId].fileId.toString().c_str(),buckets[bucketId].fileBlockIndex);
+            }
+            header->numEvictingBuckets--;
+            header->numActiveBuckets++;
+        } else{
+            header->numUsedBuckets--;
+            header->numActiveBuckets++;
+        }
         return true;
     } else if(buckets[bucketId].isActiveBucket()){
         if (isWrite) {
@@ -318,7 +339,6 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int active
               "[SharedMemoryContext::activateBlock]  not implemented yet");
         return false;
     }
-
 }
 
 /* Transit Bucket State from 1 to 2 */
