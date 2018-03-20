@@ -45,6 +45,7 @@ public:
     void flush();
 
     ~BlockInputStream();
+
 private:
     int64_t getLocalSpaceOffset();
 

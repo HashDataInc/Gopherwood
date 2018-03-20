@@ -11,6 +11,7 @@ char workDir[] = "/tmp/gopherwood";
 
 
 void testReadWrite(){
+    printf("===========Test Concurrent Read Write ===========\n");
     char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
     char* buffer = (char*)malloc(100);
 
@@ -37,6 +38,17 @@ void testReadWrite(){
     gwDeleteFile(fs, "/test1");
 };
 
+void testWriteExceedQuota(){
+    printf("===========Test Seq Write Exceed Quota===========\n");
+    char input[] = "0123456789";
+
+    gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
+    for (int i=0; i<20; i++) {
+        gwWrite(fs, file, input, 10);
+    }
+    gwCloseFile(fs, file);
+}
+
 int main(int argc, char *argv[])
 {
     gwFormatContext(workDir);
@@ -48,6 +60,7 @@ int main(int argc, char *argv[])
     fs =  gwCreateContext(workDir, &config);
 
     testReadWrite();
+    testWriteExceedQuota();
 
     gwDestroyContext(fs);
 

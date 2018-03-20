@@ -28,7 +28,7 @@
 namespace Gopherwood {
 namespace Internal {
 
-void FileSystem::Format(const char *workDir){
+void FileSystem::Format(const char *workDir) {
     std::stringstream ss;
     ss << "exec rm -r " << workDir << "/*";
     system(ss.str().c_str());
@@ -42,7 +42,7 @@ FileSystem::FileSystem(const char *workDir) :
     std::stringstream ss;
     ss << workDir << '/' << Configuration::LOCAL_SPACE_FILE;
     std::string filePath = ss.str();
-    int flags = O_CREAT|O_RDWR;
+    int flags = O_CREAT | O_RDWR;
     mLocalSpaceFile = open(filePath.c_str(), flags, 0644);
 
     /* create lock file */
@@ -67,8 +67,7 @@ FileSystem::FileSystem(const char *workDir) :
     initOssContext();
 }
 
-FileId FileSystem::makeFileId(const std::string filePath)
-{
+FileId FileSystem::makeFileId(const std::string filePath) {
     FileId id;
 
     /* hash the path to size_t */
@@ -101,14 +100,13 @@ void FileSystem::initOssContext() {
             liboss_write_buffer,
             liboss_read_buffer);
 
-    if (mOssContext == NULL){
+    if (mOssContext == NULL) {
         THROW(GopherwoodInvalidParmException,
               "[FileSystem] OSS context initialization failed!");
     }
 }
 
-File* FileSystem::CreateFile(const char *fileName, int flags, bool isWrite)
-{
+File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     FileId fileId;
     shared_ptr<ActiveStatus> status;
 
@@ -120,8 +118,7 @@ File* FileSystem::CreateFile(const char *fileName, int flags, bool isWrite)
     return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
 }
 
-File* FileSystem::OpenFile(const char *fileName, int flags, bool isWrite)
-{
+File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
     FileId fileId;
     shared_ptr<ActiveStatus> status;
 
@@ -133,11 +130,11 @@ File* FileSystem::OpenFile(const char *fileName, int flags, bool isWrite)
     return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
 }
 
-void FileSystem::CloseFile(File& file) {
+void FileSystem::CloseFile(File &file) {
     file.close();
 }
 
-void FileSystem::DeleteFile(const char *fileName){
+void FileSystem::DeleteFile(const char *fileName) {
     FileId delFileId = makeFileId(std::string(fileName));
     shared_ptr<ActiveStatus> status;
 
@@ -146,7 +143,6 @@ void FileSystem::DeleteFile(const char *fileName){
 
     /* call activeStatus destroy */
     status->destroy();
-
     status.reset();
 }
 

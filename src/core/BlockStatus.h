@@ -48,6 +48,7 @@ typedef struct Block {
     bool isMyActive;
 
     Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s, bool myActive);
+
     std::string toLogFormat();
 } Block;
 

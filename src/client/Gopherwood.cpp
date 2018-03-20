@@ -140,7 +140,7 @@ static void handleException(const Gopherwood::exception_ptr &error) {
     }
 }
 
-gopherwoodFS gwCreateContext(char *workDir, GWContextConfig* config) {
+gopherwoodFS gwCreateContext(char *workDir, GWContextConfig *config) {
     LOG(Gopherwood::Internal::INFO, "gwCreateContext start");
     gopherwoodFS retVal = NULL;
 
@@ -173,16 +173,13 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
     LOG(Gopherwood::Internal::INFO, "gwOpenFile start");
 
     gwFile retVal = NULL;
-    File* file;
+    File *file;
 
     try {
         bool isWrite = (flags & GW_RDWR) || (flags & GW_WRONLY);
-        if (flags & GW_CREAT)
-        {
+        if (flags & GW_CREAT) {
             file = fs->getFilesystem().CreateFile(fileName, flags, isWrite);
-        }
-        else
-        {
+        } else {
             file = fs->getFilesystem().OpenFile(fileName, flags, isWrite);
         }
 

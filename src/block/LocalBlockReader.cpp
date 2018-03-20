@@ -34,7 +34,7 @@ int LocalBlockReader::seek(int64_t offset) {
     return res;
 }
 
-int LocalBlockReader::readLocal(char* buffer, int64_t length) {
+int LocalBlockReader::readLocal(char *buffer, int64_t length) {
     int res = read(mLocalSpaceFD, buffer, length);
     return res;
 }

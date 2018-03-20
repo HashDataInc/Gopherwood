@@ -52,7 +52,7 @@ shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId
     return activeStatus;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId fileId){
+shared_ptr<ActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId fileId) {
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,

@@ -49,7 +49,7 @@ void ShareMemBucket::reset() {
     fileBlockIndex = InvalidBlockId;
     writeActiveId = InvalidActiveId;
     evictActiveId = InvalidActiveId;
-    for (short i=0; i<SMBUCKET_MAX_CONCURRENT_OPEN; i++){
+    for (short i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
         readActives[i] = InvalidActiveId;
     }
 }
@@ -65,8 +65,8 @@ void ShareMemBucket::markWrite(int activeId) {
 };
 
 void ShareMemBucket::markRead(int activeId) {
-    for (int i=0; i<SMBUCKET_MAX_CONCURRENT_OPEN; i++){
-        if(readActives[i] == InvalidActiveId){
+    for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
+        if (readActives[i] == InvalidActiveId) {
             readActives[i] = activeId;
             return;
         }
@@ -87,9 +87,10 @@ void ShareMemBucket::unmarkWrite(int activeId) {
     }
     writeActiveId = InvalidActiveId;
 }
+
 void ShareMemBucket::unmarkRead(int activeId) {
-    for (int i=0; i<SMBUCKET_MAX_CONCURRENT_OPEN; i++){
-        if(readActives[i] == activeId){
+    for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
+        if (readActives[i] == activeId) {
             readActives[i] = InvalidActiveId;
             return;
         }
@@ -105,8 +106,8 @@ bool ShareMemBucket::noActiveReadWrite() {
     if (writeActiveId != InvalidActiveId) {
         return false;
     }
-    for (int i=0; i<SMBUCKET_MAX_CONCURRENT_OPEN; i++){
-        if (readActives[i] != InvalidActiveId){
+    for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
+        if (readActives[i] != InvalidActiveId) {
             return false;
         }
     }

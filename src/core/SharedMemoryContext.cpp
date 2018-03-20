@@ -36,7 +36,8 @@ SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_regi
     header = static_cast<ShareMemHeader *>(addr);
     buckets = static_cast<ShareMemBucket *>((void *) ((char *) addr + sizeof(ShareMemHeader)));
     activeStatus = static_cast<ShareMemActiveStatus *>((void *) ((char *) addr + sizeof(ShareMemHeader) +
-                            Configuration::NUMBER_OF_BLOCKS*sizeof(ShareMemBucket)));
+                                                                 Configuration::NUMBER_OF_BLOCKS *
+                                                                 sizeof(ShareMemBucket)));
 
     /* Init Shared Memory */
     if (reset) {
@@ -44,10 +45,10 @@ SharedMemoryContext::SharedMemoryContext(std::string dir, shared_ptr<mapped_regi
         memset((char *) addr + sizeof(ShareMemHeader), 0,
                Configuration::NUMBER_OF_BLOCKS * sizeof(ShareMemBucket) +
                Configuration::MAX_CONNECTION * sizeof(ShareMemActiveStatus));
-        for (int i=0; i<header->numBuckets; i++) {
+        for (int i = 0; i < header->numBuckets; i++) {
             buckets[i].reset();
         }
-        for (int i=0; i<header->numMaxActiveStatus; i++) {
+        for (int i = 0; i < header->numMaxActiveStatus; i++) {
             activeStatus[i].reset();
         }
     }
@@ -70,16 +71,16 @@ void SharedMemoryContext::unlock() {
 
 int SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDelete) {
     int activeId = -1;
-    for (int i=0; i<header->numMaxActiveStatus; i++){
+    for (int i = 0; i < header->numMaxActiveStatus; i++) {
         /* validation */
-        if (activeStatus[i].fileId == fileId){
+        if (activeStatus[i].fileId == fileId) {
             /* file is opening by someone */
-            if(isDelete){
+            if (isDelete) {
                 THROW(GopherwoodSharedMemException,
                       "[SharedMemoryContext::regist] The file is still openning by %d",
                       activeStatus[i].pid);
             }/* file is deleting by someone */
-            else if(!isDelete && activeStatus[i].isForDelete()){
+            else if (!isDelete && activeStatus[i].isForDelete()) {
                 THROW(GopherwoodSharedMemException,
                       "[SharedMemoryContext::regist] The file is still deleting by %d",
                       activeStatus[i].pid);
@@ -91,7 +92,7 @@ int SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDel
             activeStatus[i].pid = pid;
             activeStatus[i].fileId = fileId;
             activeStatus[i].fileBlockIndex = InvalidBlockId;
-            if (isDelete){
+            if (isDelete) {
                 activeStatus[i].setForDelete();
             }
             activeId = i;
@@ -102,13 +103,13 @@ int SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDel
     return activeId;
 }
 
-int SharedMemoryContext::unregist(int activeId, int pid){
-    LOG(INFO, "[SharedMemoryContext] Start activeId = %d, pid = %d", activeId, pid);
-    if (activeId < 0 || activeId >= header->numMaxActiveStatus){
+int SharedMemoryContext::unregist(int activeId, int pid) {
+    LOG(INFO, "[SharedMemoryContext] stop activeId = %d, pid = %d", activeId, pid);
+    if (activeId < 0 || activeId >= header->numMaxActiveStatus) {
         return -1;
     }
     LOG(INFO, "[SharedMemoryContext] activeStatus[activeId].pid=%d", activeStatus[activeId].pid);
-    if (activeStatus[activeId].pid == pid){
+    if (activeStatus[activeId].pid == pid) {
         activeStatus[activeId].reset();
         return 0;
     }
@@ -118,14 +119,14 @@ int SharedMemoryContext::unregist(int activeId, int pid){
 /* Check if all ActiveStatus of a given FileId are unregisted.
  * This is called by ActiveStatus close, manifest log will be truncated if
  * this function returns true */
-bool SharedMemoryContext::isFileOpening(FileId fileId){
-    for (int i=0; i<Configuration::MAX_CONNECTION; i ++){
-        if (activeStatus[i].fileId == fileId){
+bool SharedMemoryContext::isFileOpening(FileId fileId) {
+    for (int i = 0; i < Configuration::MAX_CONNECTION; i++) {
+        if (activeStatus[i].fileId == fileId) {
             return true;
         }
     }
     LOG(INFO, "[SharedMemoryContext] Is last active status of file %lu-%u",
-    fileId.hashcode, fileId.collisionId);
+        fileId.hashcode, fileId.collisionId);
     return false;
 }
 
@@ -139,9 +140,9 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int nu
         if (buckets[i].isFreeBucket()) {
             buckets[i].setBucketActive();
             buckets[i].fileId = fileId;
-            if (isWrite){
+            if (isWrite) {
                 buckets[i].markWrite(activeId);
-            }else {
+            } else {
                 buckets[i].markRead(activeId);
             }
             res.push_back(i);
@@ -174,7 +175,7 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int nu
  *             This will mark write/read blockId to inform other activestatus
  *             of same File
  * 3. evictBlockFinish -- finally reset evicting ActiveStatus and activate the bucket */
-BlockInfo SharedMemoryContext::markBucketEvicting(int activeId){
+BlockInfo SharedMemoryContext::markBucketEvicting(int activeId) {
     BlockInfo info;
     bool found = false;
 
@@ -204,7 +205,7 @@ BlockInfo SharedMemoryContext::markBucketEvicting(int activeId){
         }
     }
 
-    if (!found){
+    if (!found) {
         THROW(GopherwoodSharedMemException,
               "[SharedMemoryContext::acquireBlock] statistic incorrect, there should be %d used"
                       "buckets.", header->numUsedBuckets);
@@ -229,13 +230,13 @@ int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileI
     activeStatus[activeId].fileBlockIndex = InvalidBlockId;
     activeStatus[activeId].unsetEvicting();
 
-    if (activeStatus[activeId].isEvictBucketStolen()){
+    if (activeStatus[activeId].isEvictBucketStolen()) {
         activeStatus[activeId].unsetBucketStolen();
         return 2;
     }
 
     /* check whether the evicted block been deleted during evicting */
-    if (buckets[bucketId].isDeletedBucket()){
+    if (buckets[bucketId].isDeletedBucket()) {
         rc = 1;
     }
 
@@ -244,9 +245,9 @@ int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileI
     buckets[bucketId].setBucketActive();
 
     buckets[bucketId].fileId = fileId;
-    if (isWrite){
+    if (isWrite) {
         buckets[bucketId].markWrite(activeId);
-    }else{
+    } else {
         buckets[bucketId].markRead(activeId);
     }
 
@@ -263,15 +264,15 @@ int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileI
 /* Transit Bucket State from 1 to 0 */
 /* TODO: Remove activestatus mark, if all removed then release this bucket */
 void SharedMemoryContext::releaseBuckets(std::vector<Block> &blocks) {
-    for (uint32_t i=0; i<blocks.size(); i++) {
+    for (uint32_t i = 0; i < blocks.size(); i++) {
         int32_t bucketId = blocks[i].bucketId;
-        if (buckets[bucketId].isActiveBucket()){
+        if (buckets[bucketId].isActiveBucket()) {
             buckets[bucketId].reset();
             buckets[bucketId].setBucketFree();
             /* update statistics */
             header->numActiveBuckets--;
             header->numFreeBuckets++;
-        } else{
+        } else {
             THROW(
                     GopherwoodSharedMemException,
                     "[SharedMemoryContext::releaseBlock] state of bucket %d is not Active",
@@ -284,10 +285,10 @@ void SharedMemoryContext::releaseBuckets(std::vector<Block> &blocks) {
 
 /* Activate a block from status 2 to 1. No need to evict because it's just the same File.
  * return true if the bucket is activated by current process */
-bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int activeId, bool isWrite) {
+bool SharedMemoryContext::activateBucket(FileId fileId, Block &block, int activeId, bool isWrite) {
     int32_t bucketId = block.bucketId;
     if (buckets[bucketId].fileId != fileId ||
-        buckets[bucketId].fileBlockIndex != block.blockId){
+        buckets[bucketId].fileBlockIndex != block.blockId) {
         THROW(GopherwoodSharedMemException,
               "[SharedMemoryContext::activateBlock] File Id mismatch, expect fileId = %lu-%u, "
                       "current bucket fileId=%lu-%u",
@@ -302,36 +303,36 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int active
         if (isWrite) {
             buckets[bucketId].markWrite(activeId);
             LOG(INFO, "[SharedMemoryContext] write activeId %d, bucketId %d", activeId, bucketId);
-        }else{
+        } else {
             buckets[bucketId].markRead(activeId);
             LOG(INFO, "[SharedMemoryContext] read activeId %d, bucketId %d", activeId, bucketId);
         }
 
-        if (buckets[bucketId].isEvictingBucket()){
+        if (buckets[bucketId].isEvictingBucket()) {
             int32_t evictId = buckets[bucketId].evictActiveId;
             if (activeStatus[evictId].evictFileId == buckets[bucketId].fileId &&
-                activeStatus[evictId].fileBlockIndex == buckets[bucketId].fileBlockIndex){
+                activeStatus[evictId].fileBlockIndex == buckets[bucketId].fileBlockIndex) {
                 activeStatus[evictId].setBucketStolen();
-            } else{
+            } else {
                 THROW(GopherwoodSharedMemException,
                       "[activateBucket] The activeStatus %d is not evicting file %s block %d",
-                      evictId, buckets[bucketId].fileId.toString().c_str(),buckets[bucketId].fileBlockIndex);
+                      evictId, buckets[bucketId].fileId.toString().c_str(), buckets[bucketId].fileBlockIndex);
             }
             header->numEvictingBuckets--;
             header->numActiveBuckets++;
-        } else{
+        } else {
             header->numUsedBuckets--;
             header->numActiveBuckets++;
         }
         return true;
-    } else if(buckets[bucketId].isActiveBucket()){
+    } else if (buckets[bucketId].isActiveBucket()) {
         if (isWrite) {
             buckets[bucketId].markWrite(activeId);
-        }else{
+        } else {
             buckets[bucketId].markRead(activeId);
         }
         return false;
-    } else{
+    } else {
         THROW(GopherwoodSharedMemException,
               "[SharedMemoryContext::activateBlock] Dead Zone, get out!");
         return false;
@@ -339,21 +340,22 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int active
 }
 
 /* Transit Bucket State from 1 to 2 */
-std::vector<Block> SharedMemoryContext::inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite){
+std::vector<Block>
+SharedMemoryContext::inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite) {
     std::vector<Block> res;
-    for (uint32_t i=0; i<blocks.size(); i++) {
+    for (uint32_t i = 0; i < blocks.size(); i++) {
         Block b = blocks[i];
-        if (buckets[b.bucketId].isActiveBucket()){
+        if (buckets[b.bucketId].isActiveBucket()) {
             buckets[b.bucketId].fileId = fileId;
             buckets[b.bucketId].fileBlockIndex = b.blockId;
-            if (isWrite){
+            if (isWrite) {
                 buckets[b.bucketId].unmarkWrite(activeId);
-            } else{
+            } else {
                 buckets[b.bucketId].unmarkRead(activeId);
             }
 
             /* only return 1->2 blocks for manifest logging */
-            if (buckets[b.bucketId].noActiveReadWrite()){
+            if (buckets[b.bucketId].noActiveReadWrite()) {
                 buckets[b.bucketId].setBucketUsed();
                 b.state = BUCKET_USED;
                 res.push_back(b);
@@ -361,7 +363,7 @@ std::vector<Block> SharedMemoryContext::inactivateBuckets(std::vector<Block> &bl
                 header->numActiveBuckets--;
                 header->numUsedBuckets++;
             }
-        } else{
+        } else {
             THROW(GopherwoodSharedMemException,
                   "[SharedMemoryContext] state of bucket %d is not Active when trying to release block",
                   b.bucketId);
@@ -372,12 +374,12 @@ std::vector<Block> SharedMemoryContext::inactivateBuckets(std::vector<Block> &bl
     return res;
 }
 
-void SharedMemoryContext::updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId){
-    for (uint32_t i=0; i<blocks.size(); i++) {
+void SharedMemoryContext::updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId) {
+    for (uint32_t i = 0; i < blocks.size(); i++) {
         Block b = blocks[i];
         if (buckets[b.bucketId].fileId == fileId) {
             buckets[b.bucketId].fileBlockIndex = b.blockId;
-        }else{
+        } else {
             THROW(GopherwoodSharedMemException,
                   "[SharedMemoryContext] FileId mismatch, expectging %s, actually %s",
                   fileId.toString().c_str(), buckets[b.bucketId].fileId.toString().c_str());
@@ -385,23 +387,22 @@ void SharedMemoryContext::updateActiveFileInfo(std::vector<Block> &blocks, FileI
     }
 }
 
-void SharedMemoryContext::deleteBlocks(std::vector<Block> &blocks, FileId fileId){
-    for (uint32_t i=0; i<blocks.size(); i++) {
+void SharedMemoryContext::deleteBlocks(std::vector<Block> &blocks, FileId fileId) {
+    for (uint32_t i = 0; i < blocks.size(); i++) {
         Block b = blocks[i];
 
         /* set free if the bucket still in used status */
-        if (buckets[b.bucketId].isUsedBucket() && buckets[b.bucketId].fileId == fileId){
+        if (buckets[b.bucketId].isUsedBucket() && buckets[b.bucketId].fileId == fileId) {
             buckets[b.bucketId].reset();
             buckets[b.bucketId].setBucketFree();
             /* update statistics */
             header->numUsedBuckets--;
             header->numFreeBuckets++;
         }
-        /* mark deleted if it's been evicting by someone */
-        else if(buckets[b.bucketId].isEvictingBucket() && buckets[b.bucketId].fileId == fileId){
+            /* mark deleted if it's been evicting by someone */
+        else if (buckets[b.bucketId].isEvictingBucket() && buckets[b.bucketId].fileId == fileId) {
             buckets[b.bucketId].setBucketDeleted();
-        }
-        else{
+        } else {
             THROW(GopherwoodSharedMemException,
                   "[SharedMemoryContext] Bucket %d status mismatch!", b.bucketId);
         }
@@ -419,23 +420,23 @@ std::string &SharedMemoryContext::getWorkDir() {
     return workDir;
 }
 
-int32_t SharedMemoryContext::getNumMaxActiveStatus(){
+int32_t SharedMemoryContext::getNumMaxActiveStatus() {
     return header->numMaxActiveStatus;
 }
 
-int32_t SharedMemoryContext::getFreeBucketNum(){
+int32_t SharedMemoryContext::getFreeBucketNum() {
     return header->numFreeBuckets;
 }
 
-int32_t SharedMemoryContext::getActiveBucketNum(){
+int32_t SharedMemoryContext::getActiveBucketNum() {
     return header->numActiveBuckets;
 }
 
-int32_t SharedMemoryContext::getUsedBucketNum(){
+int32_t SharedMemoryContext::getUsedBucketNum() {
     return header->numUsedBuckets;
 }
 
-int32_t SharedMemoryContext::getEvictingBucketNum(){
+int32_t SharedMemoryContext::getEvictingBucketNum() {
     return header->numEvictingBuckets;
 }
 

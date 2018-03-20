@@ -28,7 +28,7 @@ OssBlockWriter::OssBlockWriter(context ossCtx) :
         mOssContext(ossCtx) {
 }
 
-OssBlockWriter::~OssBlockWriter(){
+OssBlockWriter::~OssBlockWriter() {
 }
 
 }

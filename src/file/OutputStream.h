@@ -42,6 +42,7 @@ public:
     void close();
 
     ~OutputStream();
+
 private:
     void updateBlockStream();
 

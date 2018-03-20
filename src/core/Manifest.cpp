@@ -36,7 +36,7 @@ Manifest::Manifest(std::string path) :
         mFilePath(path), mFD(-1) {
     mfOpen();
     mfSeek(0, SEEK_SET);
-    mBuffer = (char *)malloc(BUFFER_SIZE);
+    mBuffer = (char *) malloc(BUFFER_SIZE);
 }
 
 void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
@@ -87,34 +87,35 @@ RecordHeader Manifest::fetchOneLogRecord(std::vector<Block> &blocks) {
 
     /* get log size and eyecatcher */
     bytesRead = mfRead(mBuffer, 10);
-    if (bytesRead == 0){
+    if (bytesRead == 0) {
         header.type = RecordType::invalidLog;
         return header;
     }
 
-    int64_t recLength = *(int64_t*)mBuffer;
-    uint16_t eyecatcher = *(uint16_t*)(mBuffer+8);
+    int64_t recLength = *(int64_t *) mBuffer;
+    uint16_t eyecatcher = *(uint16_t *) (mBuffer + 8);
     if (recLength > BUFFER_SIZE) {
         THROW(GopherwoodNotImplException,
               "[Manifest::fetchOneLogRecord] recLength should not exceed buffer size.");
     }
     if (bytesRead == -1 ||
         bytesRead != 10 ||
-        eyecatcher != MANIFEST_RECORD_EYECATCHER){
-        THROW(GopherwoodException, "[Manifest::fetchOneLogRecord] read log error.");
+        eyecatcher != MANIFEST_RECORD_EYECATCHER) {
+        THROW(GopherwoodException, "[Manifest::fetchOneLogRecord] read log error, fd=%dbytesRead=%ld",
+              mFD, bytesRead);
     }
 
     /* read the whole log record to buffer */
-    bytesRead = mfRead(mBuffer+10, recLength-10);
-    if (bytesRead != recLength-10) {
+    bytesRead = mfRead(mBuffer + 10, recLength - 10);
+    if (bytesRead != recLength - 10) {
         THROW(GopherwoodException, "[Manifest::fetchOneLogRecord] read log error.");
     }
 
     /* build log header and block info */
-    header = *(RecordHeader*)mBuffer;
+    header = *(RecordHeader *) mBuffer;
     uint32_t numBlocks = 0;
-    BlockRecord* blockRecord = (BlockRecord*)(mBuffer + sizeof(RecordHeader));
-    while (numBlocks < header.numBlocks){
+    BlockRecord *blockRecord = (BlockRecord *) (mBuffer + sizeof(RecordHeader));
+    while (numBlocks < header.numBlocks) {
         Block block = blockRecord->toBlockFormat();
         blocks.push_back(block);
         blockRecord++;
@@ -128,7 +129,7 @@ void Manifest::flush() {
 
 }
 
-void Manifest::destroy(){
+void Manifest::destroy() {
     mfClose();
     mfRemove();
 }
@@ -175,6 +176,11 @@ std::string Manifest::serializeManifestLog(std::vector<Block> &blocks, RecordTyp
 void Manifest::mfOpen() {
     int flags = O_CREAT | O_RDWR;
     mFD = open(mFilePath.c_str(), flags, 0644);
+    if (mFD == -1){
+        THROW(GopherwoodIOException,
+              "[Manifest::mfOpen] open failed %s.",
+              mFilePath.c_str());
+    }
 }
 
 void Manifest::mfSeek(int64_t offset, int flag) {
@@ -183,7 +189,7 @@ void Manifest::mfSeek(int64_t offset, int flag) {
 
 void Manifest::mfWrite(std::string &record) {
     int len = write(mFD, record.c_str(), record.size());
-    if (len == -1 || len != (int)record.size()) {
+    if (len == -1 || len != (int) record.size()) {
         THROW(GopherwoodIOException,
               "[Manifest::mfWrite] write failed %s.",
               mFilePath.c_str());
@@ -191,7 +197,7 @@ void Manifest::mfWrite(std::string &record) {
     mPos += len;
 }
 
-inline int64_t Manifest::mfRead(char* buffer, int64_t size) {
+inline int64_t Manifest::mfRead(char *buffer, int64_t size) {
     return read(mFD, buffer, size);
 }
 
@@ -209,7 +215,7 @@ void Manifest::unlock() {
 }
 
 void Manifest::mfClose() {
-    if (mFD != -1){
+    if (mFD != -1) {
         close(mFD);
     }
     mFD = -1;

@@ -26,58 +26,51 @@
 namespace Gopherwood {
 namespace Internal {
 
-BlockOutputStream::BlockOutputStream(int fd, context ossCtx) : mLocalSpaceFD(fd)
-{
+BlockOutputStream::BlockOutputStream(int fd, context ossCtx) : mLocalSpaceFD(fd) {
     mLocalWriter = shared_ptr<LocalBlockWriter>(new LocalBlockWriter(fd));
     mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(ossCtx));
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
 }
 
-void BlockOutputStream::setBlockInfo(BlockInfo info)
-{
+void BlockOutputStream::setBlockInfo(BlockInfo info) {
     LOG(INFO, "[BlockOutputStream] Set BlockInfo, new bucketId=%d, new blockOffset=%ld, %s",
-        info.bucketId, info.offset, info.isLocal?"local":"remote");
+        info.bucketId, info.offset, info.isLocal ? "local" : "remote");
     mBlockInfo = info;
 }
 
-int64_t BlockOutputStream::remaining()
-{
+int64_t BlockOutputStream::remaining() {
     return mBucketSize - mBlockInfo.offset;
 }
 
-int64_t BlockOutputStream::write(const char *buffer, int64_t length)
-{
+int64_t BlockOutputStream::write(const char *buffer, int64_t length) {
     int64_t written = -1;
 
-    if (mBlockInfo.isLocal)
-    {
-        if (mLocalWriter->getCurOffset() != getLocalSpaceOffset())
-        {
+    if (mBlockInfo.isLocal) {
+        if (mLocalWriter->getCurOffset() != getLocalSpaceOffset()) {
             mLocalWriter->seek(getLocalSpaceOffset());
         }
         LOG(INFO, "[BlockOutputStream] Write to local space, bucketId=%d, offset=%ld, length=%ld",
             mBlockInfo.bucketId, mBlockInfo.offset, length);
         written = mLocalWriter->writeLocal(buffer, length);
-    } else{
+    } else {
         /* Write to OSS */
     }
 
     mBlockInfo.offset += written;
-    assert(mBlockInfo.offset<=mBucketSize);
+    assert(mBlockInfo.offset <= mBucketSize);
 
     return written;
 }
 
-void BlockOutputStream::flush()
-{
-    if (mBlockInfo.isLocal){
+void BlockOutputStream::flush() {
+    if (mBlockInfo.isLocal) {
         mLocalWriter->flush();
-    } else{
+    } else {
         /* TODO: Remote flush */
     }
 }
 
-int64_t BlockOutputStream::getLocalSpaceOffset(){
+int64_t BlockOutputStream::getLocalSpaceOffset() {
     return mBlockInfo.bucketId * mBucketSize + mBlockInfo.offset;
 }
 

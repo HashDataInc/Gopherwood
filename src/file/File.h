@@ -34,6 +34,7 @@ namespace Gopherwood {
 namespace Internal {
 
 #define OPEN_TYPE_MASK 0x00000003
+
 class File {
 public:
     File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status, context ossCtx);

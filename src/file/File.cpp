@@ -29,10 +29,9 @@ namespace Internal {
 
 File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status, context ossCtx) :
         id(id), name(fileName), mFlags(flags), localFD(fd), mStatus(status) {
-    if ((flags & GW_WRONLY) || (flags & GW_RDWR)){
+    if ((flags & GW_WRONLY) || (flags & GW_RDWR)) {
         mOutStream = shared_ptr<OutputStream>(new OutputStream(localFD, status, ossCtx));
-    }
-    else{
+    } else {
         mOutStream = NULL;
     }
 
@@ -41,7 +40,7 @@ File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<Active
 
 int64_t File::read(char *buffer, int64_t length) {
     int64_t bytesToRead = length < remaining() ? length : remaining();
-    if(bytesToRead == 0){
+    if (bytesToRead == 0) {
         return 0;
     }
 
@@ -54,7 +53,7 @@ void File::write(const char *buffer, int64_t length) {
 }
 
 void File::flush() {
-    if ((mFlags & OPEN_TYPE_MASK) == GW_RDONLY){
+    if ((mFlags & OPEN_TYPE_MASK) == GW_RDONLY) {
         THROW(GopherwoodInvalidParmException, "[File] Can not flush a read only file.");
     }
     mOutStream->flush();
@@ -67,15 +66,15 @@ void File::seek(int64_t pos, int mode) {
 
     if (mode == SEEK_SET) {
         targetPos = pos;
-    } else if (mode == SEEK_CUR){
+    } else if (mode == SEEK_CUR) {
         targetPos = mStatus->getPosition() + pos;
-    } else if (mode == SEEK_END){
+    } else if (mode == SEEK_END) {
         targetPos = eof + pos;
     }
 
-    if (targetPos >= 0 && targetPos <= eof){
+    if (targetPos >= 0 && targetPos <= eof) {
         mStatus->setPosition(targetPos);
-    } else{
+    } else {
         THROW(GopherwoodInvalidParmException,
               "[File::seek] target offset %ld exceed Eof %ld",
               targetPos, eof);
@@ -85,21 +84,21 @@ void File::seek(int64_t pos, int mode) {
 void File::close() {
     mStatus->close();
 
-    if (mOutStream){
+    if (mOutStream) {
         mOutStream->close();
     }
 
-    if (mInStream){
+    if (mInStream) {
         mInStream->close();
     }
 }
 
-int64_t File::remaining(){
+int64_t File::remaining() {
     assert(mStatus->getEof() >= mStatus->getPosition());
     return mStatus->getEof() - mStatus->getPosition();
 }
 
-FileId File::getFileId(){
+FileId File::getFileId() {
     return id;
 }
 

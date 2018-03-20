@@ -86,13 +86,13 @@ typedef struct ShareMemBucket {
     bool isFreeBucket() { return (flags & 0x00000003) == 0 ? true : false; };
     bool isActiveBucket() { return (flags & 0x00000003) == 1 ? true : false; };
     bool isUsedBucket() { return (flags & 0x00000003) == 2 ? true : false; };
-    bool isEvictingBucket() { return (flags & 0x80000000);};
-    bool isDeletedBucket() { return (flags & 0x40000000);};
-    void setBucketFree() { flags = (flags & BucketTypeMask) | 0x00000000;};
-    void setBucketActive() {flags = (flags & BucketTypeMask) | 0x00000001; };
+    bool isEvictingBucket() { return (flags & 0x80000000); };
+    bool isDeletedBucket() { return (flags & 0x40000000); };
+    void setBucketFree() { flags = (flags & BucketTypeMask) | 0x00000000; };
+    void setBucketActive() { flags = (flags & BucketTypeMask) | 0x00000001; };
     void setBucketUsed() { flags = (flags & BucketTypeMask) | 0x00000002; };
-    void setBucketEvicting() { flags = (flags | 0x80000000);};
-    void setBucketEvictFinish() { flags = (flags & 0x7FFFFFFF);};
+    void setBucketEvicting() { flags = (flags | 0x80000000); };
+    void setBucketEvictFinish() { flags = (flags & 0x7FFFFFFF); };
     void setBucketDeleted() { flags = (flags | 0x40000000); };
 
     void reset();
@@ -132,12 +132,12 @@ typedef struct ShareMemActiveStatus {
     void unsetReading() { flags &= 0xFFFFFFFD; };
     void unsetBucketStolen() { flags &= 0xBFFFFFFF; };
 
-    bool isForDelete() { return flags & 0x80000000;};
-    bool isEvictBucketStolen() {return flags & 0x40000000;};
+    bool isForDelete() { return flags & 0x80000000; };
+    bool isEvictBucketStolen() { return flags & 0x40000000; };
 
     void reset() {
         pid = InvalidPid;
-        flags=0;
+        flags = 0;
         fileId.reset();
         evictFileId.reset();
         fileBlockIndex = InvalidBlockId;

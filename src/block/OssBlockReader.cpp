@@ -28,7 +28,7 @@ OssBlockReader::OssBlockReader(context ossCtx) :
         mOssContext(ossCtx) {
 }
 
-OssBlockReader::~OssBlockReader(){
+OssBlockReader::~OssBlockReader() {
 }
 
 }

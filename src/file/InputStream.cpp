@@ -25,12 +25,12 @@ namespace Gopherwood {
 namespace Internal {
 
 InputStream::InputStream(int fd, shared_ptr<ActiveStatus> status, context ossCtx) :
-        mLocalSpaceFD(fd), mStatus(status){
+        mLocalSpaceFD(fd), mStatus(status) {
     mPos = -1;
     mBlockInputStream = shared_ptr<BlockInputStream>(new BlockInputStream(mLocalSpaceFD, ossCtx));
 }
 
-void InputStream::updateBlockStream(){
+void InputStream::updateBlockStream() {
     /* TODO: Implement this once we make BlockOutput stream a buffered stream */
     mBlockInputStream->flush();
 
@@ -45,14 +45,13 @@ void InputStream::read(char *buffer, int64_t length) {
 
     /* update OutputStream file level position */
     int64_t statusPos = mStatus->getPosition();
-    if(mPos != statusPos){
+    if (mPos != statusPos) {
         needUpdate = true;
         mPos = statusPos;
     }
 
     /* write the buffer, switch target block if needed */
-    while(bytesToRead > 0)
-    {
+    while (bytesToRead > 0) {
         /* update BlockOutputStream, flush previous cached data
          * and switch to target block id & offset */
         if (needUpdate) {
@@ -64,7 +63,7 @@ void InputStream::read(char *buffer, int64_t length) {
         int64_t read;
         if (bytesToRead <= mBlockInputStream->remaining()) {
             read = mBlockInputStream->read(buffer + bytesRead, bytesToRead);
-        }else {
+        } else {
             read = mBlockInputStream->read(buffer + bytesRead, mBlockInputStream->remaining());
             needUpdate = true;
         }
@@ -81,8 +80,8 @@ void InputStream::close() {
 
 }
 
-InputStream::~InputStream(){
-    
+InputStream::~InputStream() {
+
 }
 
 }

@@ -28,7 +28,7 @@ namespace Gopherwood {
 namespace Internal {
 
 Block::Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s, bool myActive) :
-    bucketId(theBucketId), blockId(theBlockId), isLocal(local), state(s), isMyActive(myActive) {
+        bucketId(theBucketId), blockId(theBlockId), isLocal(local), state(s), isMyActive(myActive) {
 
 }
 
@@ -74,7 +74,7 @@ Block BlockRecord::toBlockFormat() {
     bool isLocal = rFlags & BLOCK_RECORD_REMOTE ? RemoteBlock : LocalBlock;
     int type = rFlags & BLOCK_RECORD_TYPE_MASK;
 
-    switch(type){
+    switch (type) {
         case BLOCK_RECORD_FREE:
             state = BUCKET_FREE;
             break;

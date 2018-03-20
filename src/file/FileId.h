@@ -41,15 +41,15 @@ struct FileId {
         hashcode = -1;
         collisionId = -1;
     }
-    std::string toString()
-    {
+
+    std::string toString() {
         std::stringstream ss;
         ss << hashcode << collisionId;
         std::string res = ss.str();
         return res;
     }
 
-    bool operator==(const FileId& rhs) const {
+    bool operator==(const FileId &rhs) const {
         if (hashcode != rhs.hashcode ||
             collisionId != rhs.collisionId) {
             return false;
@@ -58,7 +58,7 @@ struct FileId {
         }
     }
 
-    bool operator!=(const FileId& rhs) const {
+    bool operator!=(const FileId &rhs) const {
         if (hashcode != rhs.hashcode ||
             collisionId != rhs.collisionId) {
             return true;

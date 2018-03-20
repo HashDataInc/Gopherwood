@@ -49,10 +49,10 @@ extern "C" {
 /*******************************************
  * AccessFileType - the access file's type
  *******************************************/
-#define	GW_RDONLY	0x00000000		/* open for reading only */
-#define	GW_WRONLY	0x00000001		/* open for writing only */
-#define	GW_RDWR		0x00000002		/* open for reading and writing */
-#define	GW_CREAT	0x00000004		/* create if nonexistant */
+#define    GW_RDONLY    0x00000000        /* open for reading only */
+#define    GW_WRONLY    0x00000001        /* open for writing only */
+#define    GW_RDWR      0x00000002        /* open for reading and writing */
+#define    GW_CREAT     0x00000004        /* create if nonexistant */
 
 /********************************************
  *  Hint
@@ -81,7 +81,7 @@ typedef struct GWContextConfig {
  * @param workDir   the working directory
  * @return Returns a handle to the filesystem or NULL on error.
  */
-gopherwoodFS gwCreateContext(char *workDir, GWContextConfig* config);
+gopherwoodFS gwCreateContext(char *workDir, GWContextConfig *config);
 
 /**
  * gwFormatContext - Format a gopherwood file system.

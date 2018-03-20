@@ -33,11 +33,6 @@
 namespace Gopherwood {
 namespace Internal {
 
-/* [IMPORTANT] Usually you need to acquire Shared Memory lock
- * before acquire Manifest Lock */
-#define MANIFEST_LOG_BEGIN  mManifest->lock();
-#define MANIFEST_LOG_END    mManifest->unlock();
-
 #define SHARED_MEM_BEGIN    try { \
                                 mSharedMemoryContext->lock(); \
                                 catchUpManifestLogs();
@@ -49,7 +44,7 @@ namespace Internal {
                                 Gopherwood::rethrow_exception(Gopherwood::current_exception()); \
                             }
 
-enum ActiveStatusType{
+enum ActiveStatusType {
     writeFile = 1,
     readFile = 2,
     deleteFile = 3
@@ -78,13 +73,13 @@ public:
     );
 
     /*********** Getter and setters ***********/
-    int64_t     getEof();
-    int64_t     getPosition();
-    void        setPosition(int64_t pos);
+    int64_t getEof();
+    int64_t getPosition();
+    void setPosition(int64_t pos);
 
     /**** The main entry point to adjust block status ****/
-    BlockInfo   getCurBlockInfo();
-
+    BlockInfo getCurBlockInfo();
+    
     void flush();
     void close();
     void destroy();
@@ -95,8 +90,8 @@ private:
     void registInSharedMem();
     void unregistInSharedMem();
 
-    Block       getCurBlock();
-    int64_t     getCurBlockOffset();
+    Block getCurBlock();
+    int64_t getCurBlockOffset();
     std::string getManifestFileName(FileId fileId);
 
     /***** active status block manipulations *****/

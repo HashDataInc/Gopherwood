@@ -33,6 +33,7 @@ public:
     OssBlockReader(context ossCtx);
 
     ~OssBlockReader();
+
 private:
     context mOssContext;
 };

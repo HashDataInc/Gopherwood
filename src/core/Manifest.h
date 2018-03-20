@@ -79,9 +79,9 @@ struct UpdateEof {
 
 /* The Manifest Log data field for different log types */
 typedef union RecOpaque {
-    Common  common;
+    Common common;
     AcquireNewBlock acquireNewBlock;
-    ExtendBlock  extendBlock;
+    ExtendBlock extendBlock;
     FullStatus fullStatus;
     UpdateEof updateEof;
 } RecOpaque;
@@ -111,8 +111,11 @@ public:
     Manifest(std::string path);
 
     void logAcquireNewBlock(std::vector<Block> &blocks);
+
     void logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque);
+
     void logFullStatus(std::vector<Block> &blocks, RecOpaque opaque);
+
     void logUpdateEof(RecOpaque opaque);
 
     RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);
@@ -136,7 +139,7 @@ private:
     inline void mfOpen();
     inline void mfSeek(int64_t offset, int flag);
     inline void mfWrite(std::string &record);
-    inline int64_t mfRead(char* buffer, int64_t size);
+    inline int64_t mfRead(char *buffer, int64_t size);
     inline void mfTruncate();
     inline void mfClose();
     inline void mfRemove();

@@ -34,7 +34,7 @@ BlockInputStream::BlockInputStream(int fd, context ossCtx) : mLocalSpaceFD(fd) {
 
 void BlockInputStream::setBlockInfo(BlockInfo info) {
     LOG(INFO, "[BlockInputStream] Set BlockInfo, new bucketId=%d, new blockOffset=%ld, %s",
-        info.bucketId, info.offset, info.isLocal?"local":"remote");
+        info.bucketId, info.offset, info.isLocal ? "local" : "remote");
     mBlockInfo = info;
 }
 
@@ -42,19 +42,17 @@ int64_t BlockInputStream::remaining() {
     return mBucketSize - mBlockInfo.offset;
 }
 
-int64_t BlockInputStream::read(char *buffer, int64_t length){
+int64_t BlockInputStream::read(char *buffer, int64_t length) {
     int64_t read = -1;
 
-    if (mBlockInfo.isLocal)
-    {
-        if (mLocalReader->getCurOffset() != getLocalSpaceOffset())
-        {
+    if (mBlockInfo.isLocal) {
+        if (mLocalReader->getCurOffset() != getLocalSpaceOffset()) {
             mLocalReader->seek(getLocalSpaceOffset());
         }
         LOG(INFO, "[BlockInputStream] Read from local space, bucketId=%d, offset=%ld, length=%ld",
             mBlockInfo.bucketId, mBlockInfo.offset, length);
         read = mLocalReader->readLocal(buffer, length);
-    } else{
+    } else {
         /* Read from OSS */
     }
 
@@ -64,12 +62,11 @@ int64_t BlockInputStream::read(char *buffer, int64_t length){
     return read;
 }
 
-void BlockInputStream::flush()
-{
+void BlockInputStream::flush() {
 
 }
 
-int64_t BlockInputStream::getLocalSpaceOffset(){
+int64_t BlockInputStream::getLocalSpaceOffset() {
     return mBlockInfo.bucketId * mBucketSize + mBlockInfo.offset;
 }
 

@@ -41,11 +41,11 @@ public:
 
     FileSystem(const char *workDir);
 
-    File* CreateFile(const char *fileName, int flags, bool isWrite);
+    File *CreateFile(const char *fileName, int flags, bool isWrite);
 
-    File* OpenFile(const char *fileName, int flags, bool isWrite);
+    File *OpenFile(const char *fileName, int flags, bool isWrite);
 
-    void CloseFile(File& file);
+    void CloseFile(File &file);
 
     void DeleteFile(const char *fileName);
 
@@ -57,7 +57,7 @@ private:
     void initOssContext();
 
     int32_t mLocalSpaceFile = -1;
-    const char* workDir;
+    const char *workDir;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<ActiveStatusContext> mActiveStatusContext;
     context mOssContext;

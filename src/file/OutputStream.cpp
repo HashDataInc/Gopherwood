@@ -27,12 +27,12 @@ namespace Gopherwood {
 namespace Internal {
 
 OutputStream::OutputStream(int fd, shared_ptr<ActiveStatus> status, context ossCtx) :
-        mLocalSpaceFD(fd), mStatus(status){
+        mLocalSpaceFD(fd), mStatus(status) {
     mPos = -1;
     mBlockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream(mLocalSpaceFD, ossCtx));
 }
 
-void OutputStream::updateBlockStream(){
+void OutputStream::updateBlockStream() {
     mBlockOutputStream->flush();
 
     /* Update the BlockInfo of the BlockOutputStream */
@@ -46,14 +46,13 @@ void OutputStream::write(const char *buffer, int64_t length) {
 
     /* update OutputStream file level position */
     int64_t statusPos = mStatus->getPosition();
-    if(mPos != statusPos){
+    if (mPos != statusPos) {
         needUpdate = true;
         mPos = statusPos;
     }
 
     /* write the buffer, switch target block if needed */
-    while(bytesToWrite > 0)
-    {
+    while (bytesToWrite > 0) {
         /* update BlockOutputStream, flush previous cached data
          * and switch to target block id & offset */
         if (needUpdate) {
@@ -65,12 +64,12 @@ void OutputStream::write(const char *buffer, int64_t length) {
         int64_t written;
         if (bytesToWrite <= mBlockOutputStream->remaining()) {
             written = mBlockOutputStream->write(buffer + bytesWritten, bytesToWrite);
-        }else {
+        } else {
             written = mBlockOutputStream->write(buffer + bytesWritten, mBlockOutputStream->remaining());
             needUpdate = true;
         }
 
-        if (written == -1){
+        if (written == -1) {
             THROW(GopherwoodException,
                   "[OutputStream::write] write error!");
         }
@@ -83,7 +82,7 @@ void OutputStream::write(const char *buffer, int64_t length) {
     }
 }
 
-void OutputStream::flush(){
+void OutputStream::flush() {
     mBlockOutputStream->flush();
 }
 
@@ -92,8 +91,7 @@ void OutputStream::close() {
 }
 
 
-
-OutputStream::~OutputStream(){
+OutputStream::~OutputStream() {
 
 }
 

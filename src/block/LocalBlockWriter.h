@@ -35,15 +35,16 @@ public:
 
     int seek(int64_t offset);
 
-    int writeLocal(const char* buffer, int64_t length);
+    int writeLocal(const char *buffer, int64_t length);
 
     void flush();
 
-    inline int64_t getCurOffset(){
+    inline int64_t getCurOffset() {
         return mOffset;
     };
 
     ~LocalBlockWriter();
+
 private:
     int mLocalSpaceFD;
     int64_t mOffset;            //offset of the local space file

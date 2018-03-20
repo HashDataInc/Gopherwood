@@ -33,6 +33,7 @@ public:
     OssBlockWriter(context ossCtx);
 
     ~OssBlockWriter();
+
 private:
     context mOssContext;
 };

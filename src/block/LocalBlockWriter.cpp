@@ -34,12 +34,12 @@ int LocalBlockWriter::seek(int64_t offset) {
     return res;
 }
 
-int LocalBlockWriter::writeLocal(const char* buffer, int64_t length) {
+int LocalBlockWriter::writeLocal(const char *buffer, int64_t length) {
     int res = write(mLocalSpaceFD, buffer, length);
     return res;
 }
 
-void LocalBlockWriter::flush(){
+void LocalBlockWriter::flush() {
     fsync(mLocalSpaceFD);
 }
 
