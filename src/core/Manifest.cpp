@@ -70,6 +70,30 @@ void Manifest::logUpdateEof(RecOpaque opaque) {
     mfWrite(logRecord);
 }
 
+void Manifest::logReleaseBucket(std::vector<Block> &blocks) {
+    /* build Acquire New Block Opaque */
+    RecOpaque opaque;
+    opaque.common.padding = 0;
+
+    /* build log record */
+    std::string logRecord = serializeManifestLog(blocks, RecordType::releaseBlock, opaque);
+
+    /* flush to log */
+    mfWrite(logRecord);
+}
+
+void Manifest::logInactivateBucket(std::vector<Block> &blocks) {
+    /* build Acquire New Block Opaque */
+    RecOpaque opaque;
+    opaque.common.padding = 0;
+
+    /* build log record */
+    std::string logRecord = serializeManifestLog(blocks, RecordType::inactiveBlock, opaque);
+
+    /* flush to log */
+    mfWrite(logRecord);
+}
+
 void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
     /* truncate existing Manifest file */
     mfTruncate();

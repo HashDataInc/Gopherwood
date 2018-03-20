@@ -411,23 +411,28 @@ void ActiveStatus::close() {
 
         /* release all preAllocatedBlocks & active buckets */
         mSharedMemoryContext->releaseBuckets(mPreAllocatedBuckets);
-        std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBuckets(activeBlocks, mFileId, mActiveId,
-                                                                                       mIsWrite);
+        /* log release buckets */
+        mManifest->logReleaseBucket(mPreAllocatedBuckets);
 
-        /* updata block status */
+        /* inactivate buckets, in other words, remove the marker of current ActiveId */
+        std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBuckets(activeBlocks,
+                                                                                       mFileId,
+                                                                                       mActiveId,
+                                                                                       mIsWrite);
+        /* update block status for those real inactivated blocks */
         for (uint32_t i = 0; i < turedToUsedBlocks.size(); i++) {
             Block b = turedToUsedBlocks[i];
             mBlockArray[b.blockId].state = b.state;
         }
-
-        /* TODO: log inactivate blocks */
-        //THROW(GopherwoodNotImplException, "Not implemented yet!");
-        //mManifest->log
+        /* log inactivate buckets */
+        mManifest->logInactivateBucket(turedToUsedBlocks);
 
         unregistInSharedMem();
 
+        /* truncate existing Manifest file and flush latest block status to it.
+         * NOTES: Only do the Manifest log shrinking if nobody is opening
+         * this file. */
         if (!mSharedMemoryContext->isFileOpening(mFileId)) {
-            /* truncate existing Manifest file and flush latest block status to it */
             RecOpaque opaque;
             opaque.fullStatus.eof = mEof;
             mManifest->logFullStatus(mBlockArray, opaque);
@@ -488,22 +493,31 @@ void ActiveStatus::catchUpManifestLogs() {
         if (header.type == RecordType::invalidLog) {
             break;
         }
-        /* integrety checks */
+        /* integrity checks */
         assert(header.numBlocks == blocks.size());
 
         /* replay the log */
         switch (header.type) {
             case RecordType::inactiveBlock:
                 LOG(INFO, "[ActiveStatus] got inactiveBlock log record with %lu blocks.", blocks.size());
-                /* TODO: Apply this log*/
-                THROW(GopherwoodNotImplException, "Not implemented yet!");
+                for (uint32_t i = 0; i < blocks.size(); i++) {
+                    mBlockArray[blocks[i].blockId].state = BUCKET_USED;
+                }
                 break;
             case RecordType::acquireNewBlock:
-                if (mIsWrite) {
-                    LOG(INFO, "[ActiveStatus] got acquireNewBlock log record with %lu blocks.", blocks.size());
-                    /* TODO: Apply this log*/
-                    THROW(GopherwoodNotImplException, "Not implemented yet!");
-                }
+                /* No need to replay this log for Read ActiveStatus and Delete ActiveStatus,
+                 * the preAllocatedBuckets should bundled with Write ActiveStatus
+                 * Since we only support one Write ActiveStatus at a time:
+                 * 1. Read/Delete ActiveStatus do not need the preAllocatedBuckets info
+                 * 2. When Write ActiveStatus do the log replay work, all preAllocatedBuckets should have
+                 *    been released
+                 * TODO: The only need to replay this log is to check the log integrity */
+                LOG(INFO, "[ActiveStatus] Skip acquireNewBlock log record with %lu blocks.", blocks.size());
+                break;
+            case RecordType::releaseBlock:
+                /* As described in acquireNewBlock log, the only need to replay this
+                 * log is to check the log integrity */
+                LOG(INFO, "[ActiveStatus] Skip releaseBlock log record with %lu blocks.", blocks.size());
                 break;
             case RecordType::extendBlock:
                 LOG(INFO, "[ActiveStatus] got assignBlock log record with %lu blocks.", blocks.size());

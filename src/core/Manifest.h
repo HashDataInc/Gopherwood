@@ -111,21 +111,17 @@ public:
     Manifest(std::string path);
 
     void logAcquireNewBlock(std::vector<Block> &blocks);
-
     void logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque);
-
     void logFullStatus(std::vector<Block> &blocks, RecOpaque opaque);
-
     void logUpdateEof(RecOpaque opaque);
+    void logReleaseBucket(std::vector<Block> &blocks);
+    void logInactivateBucket(std::vector<Block> &blocks);
 
     RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);
 
     void flush();
-
     void lock();
-
     void unlock();
-
     void destroy();
 
     ~Manifest();
