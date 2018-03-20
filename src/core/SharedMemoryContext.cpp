@@ -306,6 +306,7 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int active
             buckets[bucketId].markRead(activeId);
             LOG(INFO, "[SharedMemoryContext] read activeId %d, bucketId %d", activeId, bucketId);
         }
+
         if (buckets[bucketId].isEvictingBucket()){
             int32_t evictId = buckets[bucketId].evictActiveId;
             if (activeStatus[evictId].evictFileId == buckets[bucketId].fileId &&
@@ -330,13 +331,9 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block& block, int active
             buckets[bucketId].markRead(activeId);
         }
         return false;
-    } else if(buckets[bucketId].isEvictingBucket()){
-        THROW(GopherwoodNotImplException,
-              "[SharedMemoryContext::activateBlock] activate an evicting bucket is not implemented yet");
-        return false;
     } else{
-        THROW(GopherwoodNotImplException,
-              "[SharedMemoryContext::activateBlock]  not implemented yet");
+        THROW(GopherwoodSharedMemException,
+              "[SharedMemoryContext::activateBlock] Dead Zone, get out!");
         return false;
     }
 }
@@ -355,9 +352,10 @@ std::vector<Block> SharedMemoryContext::inactivateBuckets(std::vector<Block> &bl
                 buckets[b.bucketId].unmarkRead(activeId);
             }
 
-            /* only return 1->0 blocks for manifest logging */
+            /* only return 1->2 blocks for manifest logging */
             if (buckets[b.bucketId].noActiveReadWrite()){
                 buckets[b.bucketId].setBucketUsed();
+                b.state = BUCKET_USED;
                 res.push_back(b);
                 /* update statistics */
                 header->numActiveBuckets--;
@@ -408,6 +406,8 @@ void SharedMemoryContext::deleteBlocks(std::vector<Block> &blocks, FileId fileId
                   "[SharedMemoryContext] Bucket %d status mismatch!", b.bucketId);
         }
     }
+    LOG(INFO, "[SharedMemoryContext] deleted %lu blocks.", blocks.size());
+    printStatistics();
 }
 
 int SharedMemoryContext::calcDynamicQuotaNum() {

@@ -138,18 +138,17 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
 void ActiveStatus::adjustActiveBlock(int curBlockInd) {
     if (curBlockInd + 1 > mNumBlocks) {
         extendOneBlock();
-    }
-    else if (!mBlockArray[curBlockInd].isMyActive){
+    } else if (!mBlockArray[curBlockInd].isMyActive){
         /* need to mark the block to my active block */
         if(!mBlockArray[curBlockInd].isLocal) {
-            /* load the bucket back */
+            /* load the bucket back
+             * TODO： Implement this, middle priority */
         }else if(mBlockArray[curBlockInd].state == BUCKET_USED) {
             activateBlock(curBlockInd);
         }else if(mBlockArray[curBlockInd].state == BUCKET_ACTIVE &&
                  !mBlockArray[curBlockInd].isMyActive){
             activateBlock(curBlockInd);
         }
-
     }
 }
 
@@ -406,6 +405,12 @@ void ActiveStatus::close() {
     /* release all preAllocatedBlocks & active buckets */
     mSharedMemoryContext->releaseBuckets(mPreAllocatedBuckets);
     std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBuckets(activeBlocks, mFileId, mActiveId, mIsWrite);
+
+    /* updata block status */
+    for (uint32_t i=0; i<turedToUsedBlocks.size(); i++) {
+        Block b = turedToUsedBlocks[i];
+        mBlockArray[b.blockId].state = b.state;
+    }
 
     /* TODO: log inactivate blocks */
     //mManifest->log

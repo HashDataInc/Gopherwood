@@ -4,23 +4,15 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "../../src/client/gopherwood.h"
+#include "client/gopherwood.h"
 
 static gopherwoodFS fs;
 char workDir[] = "/tmp/gopherwood";
-char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
 
-int main(int argc, char *argv[])
-{
+
+void testReadWrite(){
+    char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
     char* buffer = (char*)malloc(100);
-
-    gwFormatContext(workDir);
-
-    GWContextConfig config;
-    config.blockSize = 10;
-    config.numBlocks = 100;
-
-    fs =  gwCreateContext(workDir, &config);
 
     gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
     gwWrite(fs, file, input, sizeof(input));
@@ -41,6 +33,21 @@ int main(int argc, char *argv[])
 
     gwCloseFile(fs, file1);
     gwCloseFile(fs, file);
+
+    gwDeleteFile(fs, "/test1");
+};
+
+int main(int argc, char *argv[])
+{
+    gwFormatContext(workDir);
+
+    GWContextConfig config;
+    config.blockSize = 10;
+    config.numBlocks = 100;
+
+    fs =  gwCreateContext(workDir, &config);
+
+    testReadWrite();
 
     gwDestroyContext(fs);
 
