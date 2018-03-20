@@ -39,7 +39,8 @@ namespace Internal {
 #define MANIFEST_LOG_END    mManifest->unlock();
 
 #define SHARED_MEM_BEGIN    try { \
-                                mSharedMemoryContext->lock();
+                                mSharedMemoryContext->lock(); \
+                                catchUpManifestLogs();
 
 #define SHARED_MEM_END          mSharedMemoryContext->unlock();\
                             } catch (...) { \
