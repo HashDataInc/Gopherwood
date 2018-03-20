@@ -36,7 +36,7 @@ BlockOutputStream::BlockOutputStream(int fd, context ossCtx) : mLocalSpaceFD(fd)
 }
 
 void BlockOutputStream::setBlockInfo(BlockInfo info) {
-    LOG(INFO, "[BlockOutputStream] Set BlockInfo, new bucketId=%d, new blockOffset=%ld, %s",
+    LOG(INFO, "[BlockOutputStream]     |setBlockInfo| bucketId=%d, new blockOffset=%ld, %s",
         info.bucketId, info.offset, info.isLocal ? "local" : "remote");
     mBlockInfo = info;
 }

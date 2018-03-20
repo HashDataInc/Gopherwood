@@ -35,7 +35,7 @@ class OutputStream {
 public:
     OutputStream(int fd, shared_ptr<ActiveStatus> status, context ossCtx);
 
-    void write(const char *buffer, int64_t length);
+    void write(const char *buffer, int64_t length, bool isSeek);
 
     void flush();
 

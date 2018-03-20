@@ -92,6 +92,8 @@ void ActiveStatus::setPosition(int64_t pos) {
     if (mPos > mEof) {
         mEof = mPos;
     }
+    LOG(INFO, "[ActiveStatus]       || Update ActiveStatus position, pos=%ld, eof=%ld",
+        mPos, mEof);
 }
 
 int64_t ActiveStatus::getEof() {
@@ -195,7 +197,8 @@ void ActiveStatus::acquireNewBlocks() {
                 numToAcquire = numAvailable > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
                                Configuration::PRE_ALLOCATE_BUCKET_NUM : numAvailable;
                 /* it might exceed quota after acquired new buckets */
-                numToInactivate = mLRUCache->size() + numToAcquire - quota;
+                numToInactivate = (mLRUCache->size() + numToAcquire) > quota ?
+                                   mLRUCache->size() + numToAcquire - quota : 0;
             } else {
                 /* 2(b) play with current owned buckets */
                 numToInactivate = 0;
@@ -217,8 +220,9 @@ void ActiveStatus::acquireNewBlocks() {
             numToInactivate = mLRUCache->size() - quota;
             numToAcquire = 0;
         }
-        LOG(INFO, "[ActiveStatus] current newQuota %u, curQuota %ld, num availables %d, inactivate %d, acquire %d",
-            quota, mLRUCache->size(), numAvailable, numToInactivate, numToAcquire);
+        LOG(INFO, "[ActiveStatus]          |calcNewQuota| newQuota=%u, curQuota=%ld, numAvailables=%d, "
+                "inactivate=%d, acquire %d", quota, mLRUCache->size(), numAvailable,
+            numToInactivate, numToAcquire);
 
         /**************************************************************
          * Step2: inactive/get free buckets/start evict 1st used bucket
@@ -240,7 +244,8 @@ void ActiveStatus::acquireNewBlocks() {
             newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
             /* add free buckets to preAllocatedBlocks */
             for (std::vector<int32_t>::size_type i = 0; i < newBuckets.size(); i++) {
-                LOG(INFO, "[ActiveStatus] add bucket %d to pre-allocated bucket array.", newBuckets[i]);
+                LOG(INFO, "[ActiveStatus]          |PreAllocate| add bucket %d to pre-allocated bucket array.",
+                    newBuckets[i]);
                 Block newBlock(newBuckets[i],
                                InvalidBlockId,
                                LocalBlock,
@@ -371,6 +376,8 @@ void ActiveStatus::extendOneBlock() {
         opaque.extendBlock.eof = mEof;
         mManifest->logExtendBlock(blocksModified, opaque);
     SHARED_MEM_END
+    LOG(INFO, "[ActiveStatus]          |extendOneBlock| blockId=%d, bucketId=%d",
+        b.blockId, b.bucketId);
 }
 
 /* activate a block if it's not been marked */

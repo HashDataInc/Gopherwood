@@ -163,7 +163,7 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int nu
               count);
     }
 
-    LOG(INFO, "[SharedMemoryContext] acquired %lu blocks.", res.size());
+    LOG(INFO, "[SharedMemoryContext] |acquireFreeBucket| Acquired %lu blocks.", res.size());
     printStatistics();
     return res;
 }
@@ -440,7 +440,7 @@ int32_t SharedMemoryContext::getEvictingBucketNum() {
 }
 
 void SharedMemoryContext::printStatistics() {
-    LOG(INFO, "[SharedMemoryContext] free %d, active %d, used %d, evicting %d",
+    LOG(INFO, "[SharedMemoryContext] |Statistics| free %d, active %d, used %d, evicting %d",
         header->numFreeBuckets, header->numActiveBuckets, header->numUsedBuckets, header->numEvictingBuckets);
 }
 

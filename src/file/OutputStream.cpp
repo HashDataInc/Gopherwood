@@ -28,7 +28,7 @@ namespace Internal {
 
 OutputStream::OutputStream(int fd, shared_ptr<ActiveStatus> status, context ossCtx) :
         mLocalSpaceFD(fd), mStatus(status) {
-    mPos = -1;
+    mPos = 0;
     mBlockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream(mLocalSpaceFD, ossCtx));
 }
 
@@ -39,17 +39,10 @@ void OutputStream::updateBlockStream() {
     mBlockOutputStream->setBlockInfo(mStatus->getCurBlockInfo());
 }
 
-void OutputStream::write(const char *buffer, int64_t length) {
+void OutputStream::write(const char *buffer, int64_t length, bool isSeek) {
     int64_t bytesToWrite = length;
     int64_t bytesWritten = 0;
-    bool needUpdate = false;
-
-    /* update OutputStream file level position */
-    int64_t statusPos = mStatus->getPosition();
-    if (mPos != statusPos) {
-        needUpdate = true;
-        mPos = statusPos;
-    }
+    bool needUpdate = true;
 
     /* write the buffer, switch target block if needed */
     while (bytesToWrite > 0) {
@@ -63,9 +56,19 @@ void OutputStream::write(const char *buffer, int64_t length) {
         /* write to target block */
         int64_t written;
         if (bytesToWrite <= mBlockOutputStream->remaining()) {
-            written = mBlockOutputStream->write(buffer + bytesWritten, bytesToWrite);
+            if (!isSeek){
+                written = mBlockOutputStream->write(buffer + bytesWritten, bytesToWrite);
+                assert(written == bytesToWrite);
+            } else {
+                written = bytesToWrite;
+            }
         } else {
-            written = mBlockOutputStream->write(buffer + bytesWritten, mBlockOutputStream->remaining());
+            if (!isSeek){
+                written = mBlockOutputStream->write(buffer + bytesWritten, mBlockOutputStream->remaining());
+                assert(written == mBlockOutputStream->remaining());
+            } else {
+                written = mBlockOutputStream->remaining();
+            }
             needUpdate = true;
         }
 

@@ -38,6 +38,25 @@ void testReadWrite(){
     gwDeleteFile(fs, "/test1");
 };
 
+void testSeekExceedEof(){
+    printf("===========Test Seek Exceed Eof ===========\n");
+    char input[] = "aaaaaaaaaabbbbbbbbbb";
+    char* buffer = (char*)malloc(100);
+
+    gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
+    gwSeek(fs, file, 10, SEEK_SET);
+    gwWrite(fs, file, input, 20);
+
+    gwSeek(fs, file, 10, SEEK_SET);
+    int len = gwRead(fs, file, buffer, 20);
+    buffer[len] = '\0';
+    printf("Read From Gopherwood the first time %s \n", buffer);
+    buffer[0] = '\0';
+
+    gwCloseFile(fs, file);
+    gwDeleteFile(fs, "/test1");
+}
+
 void testWriteExceedQuota(){
     printf("===========Test Seq Write Exceed Quota===========\n");
     char input[] = "0123456789";
@@ -60,7 +79,8 @@ int main(int argc, char *argv[])
     fs =  gwCreateContext(workDir, &config);
 
     testReadWrite();
-    testWriteExceedQuota();
+    testSeekExceedEof();
+    //testWriteExceedQuota();
 
     gwDestroyContext(fs);
 

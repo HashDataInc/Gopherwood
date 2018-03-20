@@ -49,6 +49,7 @@ void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
+    LOG(INFO, "[Manifest]             new acquireNewBlock log record");
 }
 
 void Manifest::logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque) {
@@ -57,6 +58,7 @@ void Manifest::logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
+    LOG(INFO, "[Manifest]             new extendBlock log record");
 }
 
 void Manifest::logUpdateEof(RecOpaque opaque) {
@@ -68,6 +70,7 @@ void Manifest::logUpdateEof(RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
+    LOG(INFO, "[Manifest]             new updateEof log record");
 }
 
 void Manifest::logReleaseBucket(std::vector<Block> &blocks) {
@@ -80,6 +83,7 @@ void Manifest::logReleaseBucket(std::vector<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
+    LOG(INFO, "[Manifest]             new releaseBlock log record");
 }
 
 void Manifest::logInactivateBucket(std::vector<Block> &blocks) {
@@ -92,6 +96,7 @@ void Manifest::logInactivateBucket(std::vector<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
+    LOG(INFO, "[Manifest]             new inactiveBlock log record");
 }
 
 void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
@@ -103,6 +108,7 @@ void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
+    LOG(INFO, "[Manifest]             new fullStatus log record");
 }
 
 RecordHeader Manifest::fetchOneLogRecord(std::vector<Block> &blocks) {
@@ -189,7 +195,6 @@ std::string Manifest::serializeManifestLog(std::vector<Block> &blocks, RecordTyp
               "[Manifest::serializeManifestLog] Broken log record, expect_size=%lu, actual_size=%lu",
               header.recordLength, logRecord.size());
     }
-    LOG(INFO, "[Manifest] new log record, type=%d, length=%lu", type, header.recordLength);
 
     return logRecord;
 }

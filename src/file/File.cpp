@@ -49,7 +49,7 @@ int64_t File::read(char *buffer, int64_t length) {
 }
 
 void File::write(const char *buffer, int64_t length) {
-    mOutStream->write(buffer, length);
+    mOutStream->write(buffer, length, false);
 }
 
 void File::flush() {
@@ -74,10 +74,21 @@ void File::seek(int64_t pos, int mode) {
 
     if (targetPos >= 0 && targetPos <= eof) {
         mStatus->setPosition(targetPos);
-    } else {
+    }
+    else if (targetPos > eof) {
+        /* Only file with Write ActiveStatus can seek to the position exceed eof */
+        if ((mFlags & GW_WRONLY) || (mFlags & GW_RDWR)){
+            mStatus->setPosition(eof);
+            mOutStream->write(NULL, targetPos - eof, true);
+        } else{
+            THROW(GopherwoodInvalidParmException,
+                  "[File::seek] Read only file seek position %ld exceed EOF %ld",
+                  targetPos, eof);
+        }
+    }
+    else {
         THROW(GopherwoodInvalidParmException,
-              "[File::seek] target offset %ld exceed Eof %ld",
-              targetPos, eof);
+              "[File::seek] invalid seek offset %ld", targetPos);
     }
 }
 
