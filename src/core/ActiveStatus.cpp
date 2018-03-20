@@ -47,12 +47,13 @@ ActiveStatus::ActiveStatus(FileId fileId,
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
     mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::CUR_QUOTA_SIZE));
 
+    mNumBlocks = 0;
+    mPos = 0;
+    mEof = 0;
+    mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
+
     SHARED_MEM_BEGIN
         registInSharedMem();
-        mNumBlocks = 0;
-        mPos = 0;
-        mEof = 0;
-        mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
     SHARED_MEM_END
 }
 
@@ -141,6 +142,7 @@ void ActiveStatus::adjustActiveBlock(int curBlockInd) {
         if (!mBlockArray[curBlockInd].isLocal) {
             /* load the bucket back
              * TODO： Implement this, middle priority */
+            THROW(GopherwoodNotImplException, "Not implemented yet!");
         } else if (mBlockArray[curBlockInd].state == BUCKET_USED) {
             activateBlock(curBlockInd);
         } else if (mBlockArray[curBlockInd].state == BUCKET_ACTIVE &&
@@ -183,8 +185,6 @@ void ActiveStatus::acquireNewBlocks() {
         numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
         numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
         numAvailable = numFreeBuckets + numUsedBuckets;
-        LOG(INFO, "[ActiveStatus] current quota is %u, num availables is %d.",
-            quota, numAvailable);
 
         /************************************************
          * Step1: Determine the acquire policy first
@@ -194,6 +194,8 @@ void ActiveStatus::acquireNewBlocks() {
                 /* 2(a) acquire more buckets for preAllocatedBlocks */
                 numToAcquire = numAvailable > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
                                Configuration::PRE_ALLOCATE_BUCKET_NUM : numAvailable;
+                /* it might exceed quota after acquired new buckets */
+                numToInactivate = mLRUCache->size() + numToAcquire - quota;
             } else {
                 /* 2(b) play with current owned buckets */
                 numToInactivate = 0;
@@ -215,6 +217,8 @@ void ActiveStatus::acquireNewBlocks() {
             numToInactivate = mLRUCache->size() - quota;
             numToAcquire = 0;
         }
+        LOG(INFO, "[ActiveStatus] current newQuota %u, curQuota %ld, num availables %d, inactivate %d, acquire %d",
+            quota, mLRUCache->size(), numAvailable, numToInactivate, numToAcquire);
 
         /**************************************************************
          * Step2: inactive/get free buckets/start evict 1st used bucket
@@ -225,6 +229,7 @@ void ActiveStatus::acquireNewBlocks() {
         /* release first */
         if (numToInactivate > 0) {
             /* TODO: pop number of blocks */
+            THROW(GopherwoodNotImplException, "Not implemented yet!");
         }
 
         /* acquire new buckets */
@@ -267,6 +272,7 @@ void ActiveStatus::acquireNewBlocks() {
         /* evict the bucket */
         if (evicting) {
             /* TODO: implement this */
+            THROW(GopherwoodNotImplException, "Not implemented yet!");
         }
 
         SHARED_MEM_BEGIN
@@ -291,6 +297,7 @@ void ActiveStatus::acquireNewBlocks() {
                 if (rc == 1 || rc == 2) {
                     /* the evicted bucket has been activated by it's file owner, give up this one */
                     /* TODO: remove the bucket since that file has been deleted */
+                    THROW(GopherwoodNotImplException, "Not implemented yet!");
                 }
             }
 
@@ -338,6 +345,7 @@ void ActiveStatus::extendOneBlock() {
 
     if (mPreAllocatedBuckets.size() == 0) {
         /* TODO: play with own buckets, evict first */
+        THROW(GopherwoodNotImplException, "Not implemented yet!");
     }
 
     /* build the block */
@@ -368,8 +376,6 @@ void ActiveStatus::extendOneBlock() {
 /* activate a block if it's not been marked */
 void ActiveStatus::activateBlock(int blockInd) {
     SHARED_MEM_BEGIN
-        /* TODO: catch up log inside shared mem */
-
         /* activate the block */
         bool activated = mSharedMemoryContext->activateBucket(mFileId, mBlockArray[blockInd], mActiveId, mIsWrite);
         mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd]);
@@ -377,6 +383,7 @@ void ActiveStatus::activateBlock(int blockInd) {
         /* the block is activated by me */
         if (activated) {
             //mManifest-> TODO: log activate blocks
+            THROW(GopherwoodNotImplException, "Not implemented yet!");
         }
     SHARED_MEM_END
 }
@@ -414,6 +421,7 @@ void ActiveStatus::close() {
         }
 
         /* TODO: log inactivate blocks */
+        //THROW(GopherwoodNotImplException, "Not implemented yet!");
         //mManifest->log
 
         unregistInSharedMem();
@@ -464,11 +472,12 @@ void ActiveStatus::destroy() {
 
     /* remove all remote file
      * TODO: Not implemented yet */
+    if (remoteBlocks.size() > 0){
+        THROW(GopherwoodNotImplException, "Not implemented yet!");
+    }
 
     /* delete manifest log */
     mManifest->destroy();
-
-
 }
 
 void ActiveStatus::catchUpManifestLogs() {
@@ -486,11 +495,14 @@ void ActiveStatus::catchUpManifestLogs() {
         switch (header.type) {
             case RecordType::inactiveBlock:
                 LOG(INFO, "[ActiveStatus] got inactiveBlock log record with %lu blocks.", blocks.size());
+                /* TODO: Apply this log*/
+                THROW(GopherwoodNotImplException, "Not implemented yet!");
                 break;
             case RecordType::acquireNewBlock:
                 if (mIsWrite) {
                     LOG(INFO, "[ActiveStatus] got acquireNewBlock log record with %lu blocks.", blocks.size());
                     /* TODO: Apply this log*/
+                    THROW(GopherwoodNotImplException, "Not implemented yet!");
                 }
                 break;
             case RecordType::extendBlock:
@@ -511,6 +523,7 @@ void ActiveStatus::catchUpManifestLogs() {
                 break;
             case RecordType::updateEof:
                 assert(header.numBlocks == 0);
+                LOG(INFO, "[ActiveStatus] got updateEof log record eof=%ld.", header.opaque.updateEof.eof);
                 mEof = header.opaque.updateEof.eof;
                 break;
             default:

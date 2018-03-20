@@ -46,8 +46,6 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
      * out side of SharedMemoryContext class*/
     lockf(lockFD, F_LOCK, 0);
 
-    /* TODO: remove this line !*/
-//    shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
     /* try to open the shared memory */
     shm = openSharedMemory(Configuration::SHARED_MEMORY_NAME.c_str(), &shmExist);
 

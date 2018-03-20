@@ -95,7 +95,7 @@ RecordHeader Manifest::fetchOneLogRecord(std::vector<Block> &blocks) {
     int64_t recLength = *(int64_t *) mBuffer;
     uint16_t eyecatcher = *(uint16_t *) (mBuffer + 8);
     if (recLength > BUFFER_SIZE) {
-        THROW(GopherwoodNotImplException,
+        THROW(GopherwoodException,
               "[Manifest::fetchOneLogRecord] recLength should not exceed buffer size.");
     }
     if (bytesRead == -1 ||

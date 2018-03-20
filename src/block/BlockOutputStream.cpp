@@ -20,6 +20,8 @@
  * limitations under the License.
  */
 #include "block/BlockOutputStream.h"
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
 #include "common/Configuration.h"
 #include "common/Logger.h"
 
@@ -30,6 +32,7 @@ BlockOutputStream::BlockOutputStream(int fd, context ossCtx) : mLocalSpaceFD(fd)
     mLocalWriter = shared_ptr<LocalBlockWriter>(new LocalBlockWriter(fd));
     mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(ossCtx));
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
+    mBlockInfo.reset();
 }
 
 void BlockOutputStream::setBlockInfo(BlockInfo info) {
@@ -63,10 +66,15 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length) {
 }
 
 void BlockOutputStream::flush() {
+    if (mBlockInfo.bucketId == InvalidBlockId){
+        return;
+    }
+
     if (mBlockInfo.isLocal) {
         mLocalWriter->flush();
     } else {
         /* TODO: Remote flush */
+        THROW(GopherwoodNotImplException, "Not implemented yet!");
     }
 }
 

@@ -82,6 +82,13 @@ typedef struct BlockInfo {
     int32_t bucketId;
     int64_t offset;
     bool isLocal;
+
+    void reset(){
+        fileId.reset();
+        blockId = InvalidBlockId;
+        bucketId = -1;
+        offset = InvalidBlockOffset;
+    }
 } BlockInfo;
 
 }
