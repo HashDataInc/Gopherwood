@@ -336,6 +336,7 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block &block, int active
             header->numUsedBuckets--;
             header->numActiveBuckets++;
         }
+        printStatistics();
         return true;
     } else if (buckets[bucketId].isActiveBucket()) {
         if (isWrite) {
@@ -343,6 +344,7 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block &block, int active
         } else {
             buckets[bucketId].markRead(activeId);
         }
+        printStatistics();
         return false;
     } else {
         THROW(GopherwoodSharedMemException,

@@ -127,6 +127,10 @@ public:
         return _cache_items_map.size();
     }
 
+    size_t maxSize() const {
+        return _max_size;
+    }
+
     void printLruCache() {
         std::stringstream ss;
         for (key_value_pair_t tmpKV : _cache_items_list) {

@@ -417,8 +417,35 @@ void ActiveStatus::extendOneBlock() {
 /* activate a block if it's not been marked */
 void ActiveStatus::activateBlock(int blockInd) {
     SHARED_MEM_BEGIN
+        /* inactivate first if LRUCache(Quota) is used up */
+        if (mLRUCache->size() == mLRUCache->maxSize()){
+            std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
+            std::vector<Block> blocksToInactivate;
+            for (int i : blockIds) {
+                blocksToInactivate.push_back(mBlockArray[i]);
+            }
+            std::vector<Block> turedToUsedBlocks =
+                    mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
+                                                            mFileId,
+                                                            mActiveId,
+                                                            mIsWrite);
+
+            /* update block status*/
+            for (Block b : blocksToInactivate) {
+                mBlockArray[b.blockId].isMyActive = false;
+            }
+            for (Block b : turedToUsedBlocks) {
+                mBlockArray[b.blockId].state = b.state;
+            }
+            /* log inactivate buckets */
+            mManifest->logInactivateBucket(turedToUsedBlocks);
+        }
+
         /* activate the block */
-        bool activated = mSharedMemoryContext->activateBucket(mFileId, mBlockArray[blockInd], mActiveId, mIsWrite);
+        bool activated = mSharedMemoryContext->activateBucket(mFileId,
+                                                              mBlockArray[blockInd],
+                                                              mActiveId,
+                                                              mIsWrite);
         mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd].bucketId);
         mBlockArray[blockInd].isMyActive = true;
 
