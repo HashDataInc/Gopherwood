@@ -256,7 +256,10 @@ void ActiveStatus::acquireNewBlocks() {
                                                             mActiveId,
                                                             mIsWrite);
 
-            /* update block status for those real inactivated blocks */
+            /* update block status*/
+            for (Block b : blocksToInactivate) {
+                mBlockArray[b.blockId].isMyActive = false;
+            }
             for (Block b : turedToUsedBlocks) {
                 mBlockArray[b.blockId].state = b.state;
             }
@@ -386,6 +389,7 @@ void ActiveStatus::extendOneBlock() {
     Block b = mPreAllocatedBuckets.front();
     mPreAllocatedBuckets.pop_front();
     b.blockId = mNumBlocks;
+    b.isMyActive = true;
 
     /* add to block array */
     mBlockArray.push_back(b);
@@ -416,11 +420,11 @@ void ActiveStatus::activateBlock(int blockInd) {
         /* activate the block */
         bool activated = mSharedMemoryContext->activateBucket(mFileId, mBlockArray[blockInd], mActiveId, mIsWrite);
         mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd].bucketId);
+        mBlockArray[blockInd].isMyActive = true;
 
         /* the block is activated by me */
         if (activated) {
-            //mManifest-> TODO: log activate blocks
-            THROW(GopherwoodNotImplException, "Not implemented yet!");
+            mManifest->logActivateBucket(mBlockArray[blockInd]);
         }
     SHARED_MEM_END
 }
@@ -456,7 +460,10 @@ void ActiveStatus::close() {
                                                                                        mFileId,
                                                                                        mActiveId,
                                                                                        mIsWrite);
-        /* update block status for those real inactivated blocks */
+        /* update block status*/
+        for (Block b : activeBlocks) {
+            mBlockArray[b.blockId].isMyActive = false;
+        }
         for (Block tunredToUsedBlock : turedToUsedBlocks) {
             Block b = tunredToUsedBlock;
             mBlockArray[b.blockId].state = b.state;
@@ -535,6 +542,13 @@ void ActiveStatus::catchUpManifestLogs() {
 
         /* replay the log */
         switch (header.type) {
+            case RecordType::activeBlock:
+                LOG(INFO, "[ActiveStatus]          |"
+                        "Replay activeBlock log record with %lu blocks.", blocks.size());
+                for (Block block : blocks) {
+                    mBlockArray[block.blockId].state = BUCKET_ACTIVE;
+                }
+                break;
             case RecordType::inactiveBlock:
                 LOG(INFO, "[ActiveStatus]          |"
                           "Replay inactiveBlock log record with %lu blocks.", blocks.size());

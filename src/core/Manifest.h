@@ -116,6 +116,7 @@ public:
     void logUpdateEof(RecOpaque opaque);
     void logReleaseBucket(std::list<Block> &blocks);
     void logInactivateBucket(std::vector<Block> &blocks);
+    void logActivateBucket(Block &block);
 
     RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);
 

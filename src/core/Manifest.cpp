@@ -109,6 +109,23 @@ void Manifest::logInactivateBucket(std::vector<Block> &blocks) {
               "New inactiveBlock log record");
 }
 
+void Manifest::logActivateBucket(Block &block) {
+    /* build Acquire New Block Opaque */
+    RecOpaque opaque;
+    opaque.common.padding = 0;
+
+    std::vector<Block> blocks;
+    blocks.push_back(block);
+
+    /* build log record */
+    std::string logRecord = serializeManifestLog(blocks, RecordType::activeBlock, opaque);
+
+    /* flush to log */
+    mfWrite(logRecord);
+    LOG(INFO, "[Manifest]              |"
+            "New activeBlock log record");
+}
+
 void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
     /* truncate existing Manifest file */
     mfTruncate();

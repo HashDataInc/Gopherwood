@@ -65,14 +65,14 @@ void testWriteExceedQuota(){
     char* buffer = (char*)malloc(200);
 
     gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
-    for (int i=0; i<20; i++) {
+    for (int i=0; i<12; i++) {
         gwWrite(fs, file, input, 10);
     }
     gwCloseFile(fs, file);
 
     gwFile file1 = gwOpenFile(fs, "/test1", GW_RDONLY);
     int ind = 0;
-    for (int pos = 0; pos <190; pos+=2){
+    for (int pos = 0; pos <110; pos+=2){
         gwSeek(fs, file1, pos, SEEK_SET);
         gwRead(fs, file1, buffer+ind, 1);
         ind+=1;
