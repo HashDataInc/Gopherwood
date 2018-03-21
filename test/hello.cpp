@@ -66,6 +66,7 @@ void testWriteExceedQuota(){
         gwWrite(fs, file, input, 10);
     }
     gwCloseFile(fs, file);
+    gwDeleteFile(fs, "/test1");
 }
 
 int main(int argc, char *argv[])
@@ -80,7 +81,7 @@ int main(int argc, char *argv[])
 
     testReadWrite();
     testSeekExceedEof();
-    //testWriteExceedQuota();
+    testWriteExceedQuota();
 
     gwDestroyContext(fs);
 

@@ -236,8 +236,30 @@ void ActiveStatus::acquireNewBlocks() {
          **************************************************************/
         /* release first */
         if (numToInactivate > 0) {
-            /* TODO: pop number of blocks */
-            THROW(GopherwoodNotImplException, "Not implemented yet!");
+            std::vector<Block> blocksToInactivate;
+            std::vector<int> blockIds = mLRUCache->removeNumOfKeys(numToInactivate);
+
+            for (int blockId : blockIds){
+                if (mBlockArray[blockId].isMyActive) {
+                    blocksToInactivate.push_back(mBlockArray[blockId]);
+                } else{
+                    THROW(GopherwoodException,
+                          "[ActiveStatus] Incorrect block status, the blockId %d should be activated!", blockId);
+                }
+            }
+            std::vector<Block> turedToUsedBlocks =
+                    mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
+                                                            mFileId,
+                                                            mActiveId,
+                                                            mIsWrite);
+
+            /* update block status for those real inactivated blocks */
+            for (uint32_t i = 0; i < turedToUsedBlocks.size(); i++) {
+                Block b = turedToUsedBlocks[i];
+                mBlockArray[b.blockId].state = b.state;
+            }
+            /* log inactivate buckets */
+            mManifest->logInactivateBucket(turedToUsedBlocks);
         }
 
         /* acquire new buckets */

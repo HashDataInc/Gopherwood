@@ -26,6 +26,7 @@
 #include <list>
 #include <vector>
 #include <assert.h>
+#include <sstream>
 #include "Logger.h"
 
 namespace Gopherwood {
@@ -127,15 +128,12 @@ public:
     }
 
     void printLruCache() {
-        LOG(Gopherwood::Internal::INFO, "start to print the lru cache status");
+        std::stringstream ss;
         for (key_value_pair_t tmpKV : _cache_items_list) {
-            LOG(
-                    Gopherwood::Internal::INFO,
-                    "the key = %d, the value =%d",
-                    tmpKV.first,
-                    tmpKV.second);
+            ss << tmpKV.first << ':' << tmpKV.second << ',';
         }
-        LOG(Gopherwood::Internal::INFO, "the end of print the lru cache status");
+        LOG(INFO, "[LRUCache]              |"
+                  "Status %s", ss.str().c_str());
     }
 
 private:
