@@ -93,13 +93,6 @@ set(SOURCE_FILES
         src/network/Syscall.h
         src/network/TcpSocket.cpp
         src/network/TcpSocket.h
-        test/function/TestFileStatus.cpp
-        test/function/TestFileSystem.cpp
-        test/function/TestGWAPI.cpp
-        test/function/TestLogFormat.cpp
-        test/function/TestRandomReadWriteSeek.cpp
-        test/function/TestReadWriteSeek.cpp
-        test/function/TestSharedMemoryManager.cpp
         src/file/InputStream.h
         src/file/InputStream.cpp
         src/file/OutputStream.h
@@ -121,7 +114,7 @@ set(SOURCE_FILES
         src/block/LocalBlockReader.cpp
         src/block/OssBlockReader.h
         src/block/OssBlockReader.cpp
-        test/function/hello.cpp
+        test/hello.cpp
         src/core/BlockStatus.h
         src/core/Manifest.h
         src/core/Manifest.cpp
