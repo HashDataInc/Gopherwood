@@ -45,7 +45,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
               manifestFileName.c_str());
     }
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
-    mLRUCache = shared_ptr<LRUCache<int, Block>>(new LRUCache<int, Block>(Configuration::CUR_QUOTA_SIZE));
+    mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(Configuration::CUR_QUOTA_SIZE));
 
     mNumBlocks = 0;
     mPos = 0;
@@ -370,7 +370,7 @@ void ActiveStatus::extendOneBlock() {
     mNumBlocks++;
 
     /* add to LRU cache */
-    mLRUCache->put(b.blockId, b);
+    mLRUCache->put(b.blockId, b.bucketId);
 
     /* prepare for log */
     blocksModified.push_back(b);
@@ -393,7 +393,7 @@ void ActiveStatus::activateBlock(int blockInd) {
     SHARED_MEM_BEGIN
         /* activate the block */
         bool activated = mSharedMemoryContext->activateBucket(mFileId, mBlockArray[blockInd], mActiveId, mIsWrite);
-        mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd]);
+        mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd].bucketId);
 
         /* the block is activated by me */
         if (activated) {

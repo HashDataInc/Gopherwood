@@ -106,7 +106,7 @@ private:
     int32_t mActiveId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<Manifest> mManifest;
-    shared_ptr<LRUCache<int, Block>> mLRUCache;
+    shared_ptr<LRUCache<int, int>> mLRUCache;
 
     bool mIsWrite;
     bool mIsDelete;
