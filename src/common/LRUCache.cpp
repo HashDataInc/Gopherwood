@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <list>
 #include <vector>
+#include <assert.h>
 #include "Logger.h"
 
 namespace Gopherwood {
@@ -38,6 +39,20 @@ public:
 
     LRUCache(size_t max_size) :
             _max_size(max_size) {
+    }
+
+    std::vector<key_t> adjustSize(size_t newSize) {
+        assert(newSize > 0);
+        std::vector<key_t> removeVector;
+        size_t currSize = size();
+        if (newSize < currSize) {
+            size_t numToRemove = currSize - newSize;
+            removeVector = removeNumOfKeys(numToRemove);
+        } else {
+            removeVector = NULL;
+        }
+        this->_max_size = newSize;
+        return removeVector;
     }
 
     std::vector<key_t> put(const key_t &key, const value_t &value) {
@@ -59,6 +74,20 @@ public:
             deleteVector.push_back(last->first);
         }
         return deleteVector;
+    }
+
+    std::vector<key_t> removeNumOfKeys(size_t num) {
+        std::vector<key_t> removeVector;
+        size_t removeNum = num > _cache_items_map.size() ? _cache_items_map.size() : num;
+        while (removeNum > 0) {
+            auto last = _cache_items_list.end();
+            last--;
+            _cache_items_map.erase(last->first);
+            _cache_items_list.pop_back();
+            removeVector.push_back(last->first);
+            removeNum--;
+        }
+        return removeVector;
     }
 
     void deleteObject(const key_t &key) {
