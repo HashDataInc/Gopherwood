@@ -49,7 +49,8 @@ void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]             new acquireNewBlock log record");
+    LOG(INFO, "[Manifest]              |"
+              "New acquireNewBlock log record");
 }
 
 void Manifest::logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque) {
@@ -58,7 +59,8 @@ void Manifest::logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]             new extendBlock log record");
+    LOG(INFO, "[Manifest]              |"
+              "New extendBlock log record");
 }
 
 void Manifest::logUpdateEof(RecOpaque opaque) {
@@ -70,7 +72,8 @@ void Manifest::logUpdateEof(RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]             new updateEof log record");
+    LOG(INFO, "[Manifest]              |"
+              "New updateEof log record");
 }
 
 void Manifest::logReleaseBucket(std::vector<Block> &blocks) {
@@ -83,7 +86,8 @@ void Manifest::logReleaseBucket(std::vector<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]             new releaseBlock log record");
+    LOG(INFO, "[Manifest]              |"
+              "New releaseBlock log record");
 }
 
 void Manifest::logInactivateBucket(std::vector<Block> &blocks) {
@@ -96,7 +100,8 @@ void Manifest::logInactivateBucket(std::vector<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]             new inactiveBlock log record");
+    LOG(INFO, "[Manifest]              |"
+              "New inactiveBlock log record");
 }
 
 void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
@@ -108,7 +113,8 @@ void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]             new fullStatus log record");
+    LOG(INFO, "[Manifest]              |"
+              "New fullStatus log record");
 }
 
 RecordHeader Manifest::fetchOneLogRecord(std::vector<Block> &blocks) {

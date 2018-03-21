@@ -33,7 +33,8 @@ void FileSystem::Format(const char *workDir) {
     ss << "exec rm -r " << workDir << "/*";
     system(ss.str().c_str());
     shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
-    LOG(INFO, "[FileSystem] %s", Configuration::SHARED_MEMORY_NAME.c_str());
+    LOG(INFO, "[FileSystem]            |"
+              "Format SharedMemory %s", Configuration::SHARED_MEMORY_NAME.c_str());
 }
 
 FileSystem::FileSystem(const char *workDir) :
@@ -113,7 +114,8 @@ File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     fileId = makeFileId(std::string(fileName));
     status = mActiveStatusContext->initFileActiveStatus(fileId, isWrite);
 
-    LOG(INFO, "[FileSystem] Creating file %s", fileId.toString().c_str());
+    LOG(INFO, "[FileSystem]            |"
+              "Creating file %s", fileId.toString().c_str());
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
 }
@@ -125,7 +127,8 @@ File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
     fileId = makeFileId(std::string(fileName));
     status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite);
 
-    LOG(INFO, "[FileSystem] Opening file %s", fileId.toString().c_str());
+    LOG(INFO, "[FileSystem]            |"
+              "Opening file %s", fileId.toString().c_str());
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
 }

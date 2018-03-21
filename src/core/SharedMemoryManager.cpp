@@ -36,7 +36,6 @@ namespace Internal {
  * @param   workDir The working directory of current instance.
  */
 shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(const char *workDir, int32_t lockFD) {
-    LOG(INFO, "Start SharedMemoryManager::buildSharedMemoryContext");
     bool shmExist = true;
     shared_ptr<SharedMemoryContext> ctx;
     shared_ptr<shared_memory_object> shm;
@@ -63,10 +62,8 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
         try {
             region = shared_ptr<mapped_region>(new mapped_region(*shm, read_write));
         } catch (const interprocess_exception &e) {
-            LOG(
-                    WARNING,
-                    "Got exception when mapping region, error message: %s",
-                    e.what());
+            LOG(WARNING, "[SharedMemoryManager]|"
+                         "Got exception when mapping region, error message: %s", e.what());
             THROW(
                     GopherwoodSyncException,
                     "[SharedMemoryManager::createSharedMemory] Got exception when mapping region, error code %d"
@@ -85,8 +82,7 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
 
     /* release shared memory mutex */
     lockf(lockFD, F_ULOCK, 0);
-
-    LOG(INFO, "End SharedMemoryManager::buildSharedMemoryContext");
+    LOG(INFO, "[SharedMemoryManager]   |SharedMemory context built");
     return ctx;
 }
 
@@ -96,9 +92,8 @@ shared_ptr<shared_memory_object> SharedMemoryManager::createSharedMemory(const c
         res = shared_ptr<shared_memory_object
         >(new shared_memory_object(create_only, name, read_write));
     } catch (const interprocess_exception &e) {
-        LOG(
-                WARNING,
-                "Got exception when open/create the Shared Memory, error message: %s",
+        LOG(WARNING, "[SharedMemoryManager]|"
+                     "Got exception when open/create the Shared Memory, error message: %s",
                 e.what());
         THROW(
                 GopherwoodSyncException,
@@ -116,7 +111,8 @@ shared_ptr<shared_memory_object> SharedMemoryManager::openSharedMemory(const cha
     try {
         res = shared_ptr<shared_memory_object>(new shared_memory_object(open_only, name, read_write));
     } catch (const interprocess_exception &e) {
-        LOG(WARNING, "Got exception when opening the Shared Memory, error message: %s", e.what());
+        LOG(WARNING, "[SharedMemoryManager]|"
+                     "Got exception when opening the Shared Memory, error message: %s", e.what());
         *exist = false;
     }
     return res;
