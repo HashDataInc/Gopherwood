@@ -254,8 +254,7 @@ void ActiveStatus::acquireNewBlocks() {
                                                             mIsWrite);
 
             /* update block status for those real inactivated blocks */
-            for (uint32_t i = 0; i < turedToUsedBlocks.size(); i++) {
-                Block b = turedToUsedBlocks[i];
+            for (Block b : turedToUsedBlocks) {
                 mBlockArray[b.blockId].state = b.state;
             }
             /* log inactivate buckets */
@@ -269,11 +268,10 @@ void ActiveStatus::acquireNewBlocks() {
 
             newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
             /* add free buckets to preAllocatedBlocks */
-            for (std::vector<int32_t>::size_type i = 0; i < newBuckets.size(); i++) {
+            for (int32_t bucketId : newBuckets) {
                 LOG(INFO, "[ActiveStatus]          |"
-                          "Pre-allocate bucket %d to pre-allocated bucket array.",
-                    newBuckets[i]);
-                Block newBlock(newBuckets[i],
+                          "Pre-allocate bucket %d to pre-allocated bucket array.", bucketId);
+                Block newBlock(bucketId,
                                InvalidBlockId,
                                LocalBlock,
                                BUCKET_ACTIVE,
@@ -341,10 +339,10 @@ void ActiveStatus::acquireNewBlocks() {
             if (numAcqurieFree > 0) {
                 newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
                 /* add free buckets to preAllocatedBlocks */
-                for (std::vector<int32_t>::size_type i = 0; i < newBuckets.size(); i++) {
+                for (int32_t bucketId: newBuckets) {
                     LOG(INFO, "[ActiveStatus]          |"
-                              "Add block %d to pre-allocated bucket array.", newBuckets[i]);
-                    Block newBlock(newBuckets[i],
+                              "Add block %d to pre-allocated bucket array.", bucketId);
+                    Block newBlock(bucketId,
                                    InvalidBlockId,
                                    LocalBlock,
                                    BUCKET_ACTIVE,
@@ -383,8 +381,8 @@ void ActiveStatus::extendOneBlock() {
     }
 
     /* build the block */
-    Block b = mPreAllocatedBuckets.back();
-    mPreAllocatedBuckets.pop_back();
+    Block b = mPreAllocatedBuckets.front();
+    mPreAllocatedBuckets.pop_front();
     b.blockId = mNumBlocks;
 
     /* add to block array */
@@ -442,8 +440,8 @@ void ActiveStatus::close() {
         /* get blocks to inactivate */
         std::vector<int> activeBlockIds = mLRUCache->getAllKeyObject();
         std::vector<Block> activeBlocks;
-        for (uint32_t i = 0; i < activeBlockIds.size(); i++) {
-            activeBlocks.push_back(mBlockArray[activeBlockIds[i]]);
+        for (int32_t activeBlockId : activeBlockIds) {
+            activeBlocks.push_back(mBlockArray[activeBlockId]);
         }
 
         /* release all preAllocatedBlocks & active buckets */
@@ -457,8 +455,8 @@ void ActiveStatus::close() {
                                                                                        mActiveId,
                                                                                        mIsWrite);
         /* update block status for those real inactivated blocks */
-        for (uint32_t i = 0; i < turedToUsedBlocks.size(); i++) {
-            Block b = turedToUsedBlocks[i];
+        for (Block tunredToUsedBlock : turedToUsedBlocks) {
+            Block b = tunredToUsedBlock;
             mBlockArray[b.blockId].state = b.state;
         }
         /* log inactivate buckets */
@@ -490,15 +488,15 @@ void ActiveStatus::destroy() {
     std::vector<Block> remoteBlocks;
 
     /* check all blocks are not in active status */
-    for (uint32_t i = 0; i < mBlockArray.size(); i++) {
-        if (mBlockArray[i].isLocal && mBlockArray[i].state == BUCKET_USED) {
-            localBlocks.push_back(mBlockArray[i]);
-        } else if (mBlockArray[i].isLocal && mBlockArray[i].state == BUCKET_ACTIVE) {
+    for (Block block : mBlockArray) {
+        if (block.isLocal && block.state == BUCKET_USED) {
+            localBlocks.push_back(block);
+        } else if (block.isLocal && block.state == BUCKET_ACTIVE) {
             THROW(GopherwoodException,
                   "[ActiveStatus] File %s still using active bucket %d",
-                  mFileId.toString().c_str(), mBlockArray[i].bucketId);
-        } else if (!mBlockArray[i].isLocal) {
-            remoteBlocks.push_back(mBlockArray[i]);
+                  mFileId.toString().c_str(), block.bucketId);
+        } else if (!block.isLocal) {
+            remoteBlocks.push_back(block);
         } else {
             THROW(GopherwoodException,
                   "[ActiveStatus] Dead Zone, Internal Error!");
@@ -538,8 +536,8 @@ void ActiveStatus::catchUpManifestLogs() {
             case RecordType::inactiveBlock:
                 LOG(INFO, "[ActiveStatus]          |"
                           "Replay inactiveBlock log record with %lu blocks.", blocks.size());
-                for (uint32_t i = 0; i < blocks.size(); i++) {
-                    mBlockArray[blocks[i].blockId].state = BUCKET_USED;
+                for (Block block : blocks) {
+                    mBlockArray[block.blockId].state = BUCKET_USED;
                 }
                 break;
             case RecordType::acquireNewBlock:
@@ -571,8 +569,8 @@ void ActiveStatus::catchUpManifestLogs() {
                 LOG(INFO, "[ActiveStatus]          |"
                           "Replay fullStatus log record with %lu blocks. EOF=%lu", blocks.size(),
                     header.opaque.fullStatus.eof);
-                for (uint32_t i = 0; i < blocks.size(); i++) {
-                    mBlockArray.push_back(blocks[i]);
+                for (Block block : blocks) {
+                    mBlockArray.push_back(block);
                     mNumBlocks++;
                 }
                 mEof = header.opaque.fullStatus.eof;

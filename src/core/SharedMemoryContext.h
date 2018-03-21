@@ -58,7 +58,7 @@ public:
     bool isFileOpening(FileId fileId);
 
     std::vector<int32_t> acquireFreeBucket(int activeId, int num, FileId fileId, bool isWrite);
-    void releaseBuckets(std::vector<Block> &blocks);
+    void releaseBuckets(std::list<Block> &blocks);
     bool activateBucket(FileId fileId, Block &block, int activeId, bool isWrite);
     std::vector<Block> inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite);
     void updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId);

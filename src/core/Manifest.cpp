@@ -76,13 +76,18 @@ void Manifest::logUpdateEof(RecOpaque opaque) {
               "New updateEof log record");
 }
 
-void Manifest::logReleaseBucket(std::vector<Block> &blocks) {
+void Manifest::logReleaseBucket(std::list<Block> &blocks) {
     /* build Acquire New Block Opaque */
     RecOpaque opaque;
     opaque.common.padding = 0;
 
+    std::vector<Block> logBlocks;
+    for (Block b : blocks){
+        logBlocks.push_back(b);
+    }
+
     /* build log record */
-    std::string logRecord = serializeManifestLog(blocks, RecordType::releaseBlock, opaque);
+    std::string logRecord = serializeManifestLog(logBlocks, RecordType::releaseBlock, opaque);
 
     /* flush to log */
     mfWrite(logRecord);

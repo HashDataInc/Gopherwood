@@ -114,7 +114,7 @@ public:
     void logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque);
     void logFullStatus(std::vector<Block> &blocks, RecOpaque opaque);
     void logUpdateEof(RecOpaque opaque);
-    void logReleaseBucket(std::vector<Block> &blocks);
+    void logReleaseBucket(std::list<Block> &blocks);
     void logInactivateBucket(std::vector<Block> &blocks);
 
     RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);

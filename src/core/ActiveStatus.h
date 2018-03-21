@@ -116,7 +116,7 @@ private:
     int64_t mBucketSize;
 
     std::vector<Block> mBlockArray;
-    std::vector<Block> mPreAllocatedBuckets;
+    std::list<Block> mPreAllocatedBuckets;
 };
 
 

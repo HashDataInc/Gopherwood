@@ -270,9 +270,9 @@ int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileI
 }
 
 /* Transit Bucket State from 1 to 0 */
-void SharedMemoryContext::releaseBuckets(std::vector<Block> &blocks) {
-    for (uint32_t i = 0; i < blocks.size(); i++) {
-        int32_t bucketId = blocks[i].bucketId;
+void SharedMemoryContext::releaseBuckets(std::list<Block> &blocks) {
+    for (Block block : blocks) {
+        int32_t bucketId = block.bucketId;
         if (buckets[bucketId].isActiveBucket()) {
             buckets[bucketId].reset();
             buckets[bucketId].setBucketFree();
