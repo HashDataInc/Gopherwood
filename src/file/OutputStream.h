@@ -33,7 +33,7 @@ namespace Gopherwood {
 namespace Internal {
 class OutputStream {
 public:
-    OutputStream(int fd, shared_ptr<ActiveStatus> status, context ossCtx);
+    OutputStream(int fd, shared_ptr<ActiveStatus> status);
 
     void write(const char *buffer, int64_t length, bool isSeek);
 

@@ -55,18 +55,34 @@ void testSeekExceedEof(){
 
     gwCloseFile(fs, file);
     gwDeleteFile(fs, "/test1");
+
+    free(buffer);
 }
 
 void testWriteExceedQuota(){
     printf("===========Test Seq Write Exceed Quota===========\n");
     char input[] = "0123456789";
+    char* buffer = (char*)malloc(200);
 
     gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
     for (int i=0; i<20; i++) {
         gwWrite(fs, file, input, 10);
     }
     gwCloseFile(fs, file);
+
+    gwFile file1 = gwOpenFile(fs, "/test1", GW_RDONLY);
+    int ind = 0;
+    for (int pos = 0; pos <190; pos+=2){
+        gwSeek(fs, file1, pos, SEEK_SET);
+        gwRead(fs, file1, buffer+ind, 1);
+        ind+=1;
+    }
+    buffer[ind] = '\0';
+    printf("Read From file1%s \n", buffer);
+    gwCloseFile(fs, file1);
+
     gwDeleteFile(fs, "/test1");
+    free(buffer);
 }
 
 int main(int argc, char *argv[])

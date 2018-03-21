@@ -37,7 +37,7 @@ namespace Internal {
 
 class File {
 public:
-    File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status, context ossCtx);
+    File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status);
 
     int64_t read(char *buffer, int64_t length);
 

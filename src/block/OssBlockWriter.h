@@ -22,7 +22,9 @@
 #ifndef GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H
 #define GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H
 
+
 #include "platform.h"
+#include "core/BlockStatus.h"
 #include "oss/oss.h"
 
 namespace Gopherwood {
@@ -30,12 +32,15 @@ namespace Internal {
 
 class OssBlockWriter {
 public:
-    OssBlockWriter(context ossCtx);
+    OssBlockWriter(context ossCtx, int localSpaceFD);
+
+    void writeBlock(BlockInfo info);
 
     ~OssBlockWriter();
 
 private:
     context mOssContext;
+    int mLocalSpaceFD;
 };
 
 }

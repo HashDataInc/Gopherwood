@@ -24,13 +24,14 @@
 #include "common/ExceptionInternal.h"
 #include "common/Configuration.h"
 #include "common/Logger.h"
+#include "file/FileSystem.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-BlockOutputStream::BlockOutputStream(int fd, context ossCtx) : mLocalSpaceFD(fd) {
+BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd) {
     mLocalWriter = shared_ptr<LocalBlockWriter>(new LocalBlockWriter(fd));
-    mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(ossCtx));
+    mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(FileSystem::OSS_CONTEXT, fd));
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
     mBlockInfo.reset();
 }

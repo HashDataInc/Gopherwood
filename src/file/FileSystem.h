@@ -39,6 +39,10 @@ class FileSystem {
 public:
     static void Format(const char *workDir);
 
+    static context OSS_CONTEXT;
+
+    static std::string OSS_BUCKET;
+
     FileSystem(const char *workDir);
 
     File *CreateFile(const char *fileName, int flags, bool isWrite);
@@ -60,7 +64,6 @@ private:
     const char *workDir;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<ActiveStatusContext> mActiveStatusContext;
-    context mOssContext;
 };
 
 }

@@ -37,15 +37,10 @@ public:
 
     int readLocal(char *buffer, int64_t length);
 
-    inline int64_t getCurOffset() {
-        return mOffset;
-    };
-
     ~LocalBlockReader();
 
 private:
     int mLocalSpaceFD;
-    int64_t mOffset;            //offset of the local space file
 };
 
 }

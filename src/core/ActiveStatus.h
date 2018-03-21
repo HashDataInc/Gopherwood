@@ -24,11 +24,13 @@
 
 #include "platform.h"
 
-#include "file/FileId.h"
+#include "block/OssBlockWriter.h"
+#include "block/OssBlockReader.h"
 #include "common/LRUCache.cpp"
 #include "core/SharedMemoryContext.h"
 #include "core/BlockStatus.h"
 #include "core/Manifest.h"
+#include "file/FileId.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -69,7 +71,8 @@ public:
     ActiveStatus(FileId fileId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext,
                  bool isCreate,
-                 ActiveStatusType type
+                 ActiveStatusType type,
+                 int localSpaceFD
     );
 
     /*********** Getter and setters ***********/
@@ -107,6 +110,8 @@ private:
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, int>> mLRUCache;
+    shared_ptr<OssBlockWriter> mOssWriter;
+    shared_ptr<OssBlockReader> mOssReader;
 
     bool mIsWrite;
     bool mIsDelete;

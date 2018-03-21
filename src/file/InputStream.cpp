@@ -24,10 +24,10 @@
 namespace Gopherwood {
 namespace Internal {
 
-InputStream::InputStream(int fd, shared_ptr<ActiveStatus> status, context ossCtx) :
+InputStream::InputStream(int fd, shared_ptr<ActiveStatus> status) :
         mLocalSpaceFD(fd), mStatus(status) {
     mPos = -1;
-    mBlockInputStream = shared_ptr<BlockInputStream>(new BlockInputStream(mLocalSpaceFD, ossCtx));
+    mBlockInputStream = shared_ptr<BlockInputStream>(new BlockInputStream(mLocalSpaceFD));
 }
 
 void InputStream::updateBlockStream() {

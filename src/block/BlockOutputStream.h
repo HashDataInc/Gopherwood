@@ -34,7 +34,7 @@ namespace Gopherwood {
 namespace Internal {
 class BlockOutputStream {
 public:
-    BlockOutputStream(int fd, context ossCtx);
+    BlockOutputStream(int fd);
 
     void setBlockInfo(BlockInfo info);
 

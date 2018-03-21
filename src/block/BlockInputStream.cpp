@@ -22,13 +22,14 @@
 #include "block/BlockInputStream.h"
 #include "common/Configuration.h"
 #include "common/Logger.h"
+#include "file/FileSystem.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-BlockInputStream::BlockInputStream(int fd, context ossCtx) : mLocalSpaceFD(fd) {
+BlockInputStream::BlockInputStream(int fd) : mLocalSpaceFD(fd) {
     mLocalReader = shared_ptr<LocalBlockReader>(new LocalBlockReader(fd));
-    mOssReader = shared_ptr<OssBlockReader>(new OssBlockReader(ossCtx));
+    mOssReader = shared_ptr<OssBlockReader>(new OssBlockReader(FileSystem::OSS_CONTEXT));
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
 }
 
@@ -47,13 +48,11 @@ int64_t BlockInputStream::read(char *buffer, int64_t length) {
     int64_t read = -1;
 
     if (mBlockInfo.isLocal) {
-        if (mLocalReader->getCurOffset() != getLocalSpaceOffset()) {
-            mLocalReader->seek(getLocalSpaceOffset());
-        }
-        LOG(INFO, "[BlockInputStream]      |"
-                  "Read from local space, bucketId=%d, offset=%ld, length=%ld",
-            mBlockInfo.bucketId, mBlockInfo.offset, length);
+        mLocalReader->seek(getLocalSpaceOffset());
         read = mLocalReader->readLocal(buffer, length);
+        LOG(INFO, "[BlockInputStream]      |"
+                "Read from local space, bucketId=%d, offset=%ld, length=%ld",
+            mBlockInfo.bucketId, mBlockInfo.offset, length);
     } else {
         /* Read from OSS */
     }

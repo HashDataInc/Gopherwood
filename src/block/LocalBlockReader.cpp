@@ -26,16 +26,15 @@ namespace Gopherwood {
 namespace Internal {
 
 LocalBlockReader::LocalBlockReader(int fd) : mLocalSpaceFD(fd) {
-    mOffset = 0;
 }
 
 int LocalBlockReader::seek(int64_t offset) {
-    int res = lseek(mLocalSpaceFD, offset, SEEK_SET);
+    int64_t res = lseek(mLocalSpaceFD, offset, SEEK_SET);
     return res;
 }
 
 int LocalBlockReader::readLocal(char *buffer, int64_t length) {
-    int res = read(mLocalSpaceFD, buffer, length);
+    int64_t res = read(mLocalSpaceFD, buffer, length);
     return res;
 }
 

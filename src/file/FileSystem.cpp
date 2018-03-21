@@ -28,6 +28,9 @@
 namespace Gopherwood {
 namespace Internal {
 
+context FileSystem::OSS_CONTEXT = NULL;
+std::string FileSystem::OSS_BUCKET = "";
+
 void FileSystem::Format(const char *workDir) {
     std::stringstream ss;
     ss << "exec rm -r " << workDir << "/*";
@@ -92,16 +95,19 @@ void FileSystem::initOssContext() {
     int64_t liboss_write_buffer = 8 << 20;
     int64_t liboss_read_buffer = 32 << 20;
 
-    mOssContext = ossInitContext(
-            object_stor_type.c_str(),
-            liboss_zone.c_str(),
-            liboss_appid.c_str(),
-            liboss_access_key_id.c_str(),
-            liboss_secret_access_key.c_str(),
-            liboss_write_buffer,
-            liboss_read_buffer);
+    OSS_BUCKET = "Bucket1";
 
-    if (mOssContext == NULL) {
+    if (OSS_CONTEXT == NULL) {
+        OSS_CONTEXT = ossInitContext(
+                object_stor_type.c_str(),
+                liboss_zone.c_str(),
+                liboss_appid.c_str(),
+                liboss_access_key_id.c_str(),
+                liboss_secret_access_key.c_str(),
+                liboss_write_buffer,
+                liboss_read_buffer);
+    }
+    if (OSS_CONTEXT == NULL) {
         THROW(GopherwoodInvalidParmException,
               "[FileSystem] OSS context initialization failed!");
     }
@@ -112,12 +118,12 @@ File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     shared_ptr<ActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
-    status = mActiveStatusContext->initFileActiveStatus(fileId, isWrite);
+    status = mActiveStatusContext->initFileActiveStatus(fileId, isWrite, mLocalSpaceFile);
 
     LOG(INFO, "[FileSystem]            |"
               "Creating file %s", fileId.toString().c_str());
     std::string name(fileName);
-    return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
+    return new File(fileId, name, flags, mLocalSpaceFile, status);
 }
 
 File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
@@ -125,12 +131,12 @@ File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
     shared_ptr<ActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
-    status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite);
+    status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite, mLocalSpaceFile);
 
     LOG(INFO, "[FileSystem]            |"
               "Opening file %s", fileId.toString().c_str());
     std::string name(fileName);
-    return new File(fileId, name, flags, mLocalSpaceFile, status, mOssContext);
+    return new File(fileId, name, flags, mLocalSpaceFile, status);
 }
 
 void FileSystem::CloseFile(File &file) {
@@ -142,7 +148,7 @@ void FileSystem::DeleteFile(const char *fileName) {
     shared_ptr<ActiveStatus> status;
 
     /* open file with delete type */
-    status = mActiveStatusContext->deleteFileActiveStatus(delFileId);
+    status = mActiveStatusContext->deleteFileActiveStatus(delFileId, mLocalSpaceFile);
 
     /* call activeStatus destroy */
     status->destroy();

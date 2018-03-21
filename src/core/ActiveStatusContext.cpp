@@ -30,34 +30,37 @@ ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedM
         mSharedMemoryContext(sharedMemoryContext) {
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId, bool isWrite) {
+shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId, bool isWrite, int localSpaceFD) {
     ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
 
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       true, /* isCreate*/
-                                                      type));
+                                                      type,
+                                                      localSpaceFD));
     return activeStatus;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId, bool isWrite) {
+shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId, bool isWrite, int localSpaceFD) {
     ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
 
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       false, /* isCreate*/
-                                                      type));
+                                                      type,
+                                                      localSpaceFD));
     return activeStatus;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId fileId) {
+shared_ptr<ActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId fileId, int localSpaceFD) {
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       false, /* isCreate*/
-                                                      ActiveStatusType::deleteFile));
+                                                      ActiveStatusType::deleteFile,
+                                                      localSpaceFD));
     return activeStatus;
 }
 

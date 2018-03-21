@@ -27,15 +27,15 @@
 namespace Gopherwood {
 namespace Internal {
 
-File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status, context ossCtx) :
+File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status) :
         id(id), name(fileName), mFlags(flags), localFD(fd), mStatus(status) {
     if ((flags & GW_WRONLY) || (flags & GW_RDWR)) {
-        mOutStream = shared_ptr<OutputStream>(new OutputStream(localFD, status, ossCtx));
+        mOutStream = shared_ptr<OutputStream>(new OutputStream(localFD, status));
     } else {
         mOutStream = NULL;
     }
 
-    mInStream = shared_ptr<InputStream>(new InputStream(localFD, status, ossCtx));
+    mInStream = shared_ptr<InputStream>(new InputStream(localFD, status));
 }
 
 int64_t File::read(char *buffer, int64_t length) {

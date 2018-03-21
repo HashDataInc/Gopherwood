@@ -24,6 +24,7 @@
 #include "common/ExceptionInternal.h"
 #include "common/Logger.h"
 #include "core/ActiveStatus.h"
+#include "file/FileSystem.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -31,7 +32,8 @@ namespace Internal {
 ActiveStatus::ActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
                            bool isCreate,
-                           ActiveStatusType type) :
+                           ActiveStatusType type,
+                           int localSpaceFD) :
         mFileId(fileId),
         mSharedMemoryContext(sharedMemoryContext) {
     mIsWrite = (type == ActiveStatusType::writeFile);
@@ -46,6 +48,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
     }
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
     mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(Configuration::CUR_QUOTA_SIZE));
+    mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(FileSystem::OSS_CONTEXT, localSpaceFD));
 
     mNumBlocks = 0;
     mPos = 0;
@@ -301,8 +304,7 @@ void ActiveStatus::acquireNewBlocks() {
     while (numToAcquire > 0 || evicting) {
         /* evict the bucket */
         if (evicting) {
-            /* TODO: implement this */
-            THROW(GopherwoodNotImplException, "Not implemented yet!");
+            mOssWriter->writeBlock(evictBlockInfo);
         }
 
         SHARED_MEM_BEGIN

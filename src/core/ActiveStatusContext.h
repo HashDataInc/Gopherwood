@@ -37,11 +37,11 @@ class ActiveStatusContext {
 public:
     ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
-    shared_ptr<ActiveStatus> initFileActiveStatus(FileId fileId, bool isWrite);
+    shared_ptr<ActiveStatus> initFileActiveStatus(FileId fileId, bool isWrite, int localSpaceFD);
 
-    shared_ptr<ActiveStatus> openFileActiveStatus(FileId fileId, bool isWrite);
+    shared_ptr<ActiveStatus> openFileActiveStatus(FileId fileId, bool isWrite, int localSpaceFD);
 
-    shared_ptr<ActiveStatus> deleteFileActiveStatus(FileId fileId);
+    shared_ptr<ActiveStatus> deleteFileActiveStatus(FileId fileId, int localSpaceFD);
 
     ~ActiveStatusContext();
 

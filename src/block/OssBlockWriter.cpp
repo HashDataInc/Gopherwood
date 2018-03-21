@@ -19,13 +19,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <file/FileSystem.h>
 #include "block/OssBlockWriter.h"
+#include "common/Configuration.h"
+#include "common/Exception.h"
+#include "common/ExceptionInternal.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-OssBlockWriter::OssBlockWriter(context ossCtx) :
-        mOssContext(ossCtx) {
+OssBlockWriter::OssBlockWriter(context ossCtx, int localSpaceFD) :
+        mOssContext(ossCtx),
+        mLocalSpaceFD(localSpaceFD){
+}
+
+void OssBlockWriter::writeBlock(BlockInfo info) {
+    int64_t rc = 0;
+
+    int64_t bucketSize = Configuration::LOCAL_BUCKET_SIZE;
+    char *buffer = (char*)malloc(bucketSize);
+
+    lseek(mLocalSpaceFD, info.bucketId * bucketSize, SEEK_SET);
+    if (rc == -1){
+        THROW(GopherwoodIOException,
+              "[OssBlockWriter] Local file space seek error!");
+    }
+
+    rc = read(mLocalSpaceFD, buffer, bucketSize);
+    if (rc != bucketSize){
+        THROW(GopherwoodIOException,
+              "[OssBlockWriter] Local file space read error!");
+    }
+
+    ossObject remoteBlock = ossPutObject(mOssContext,
+                                         FileSystem::OSS_BUCKET.c_str(),
+                                         info.fileId.toString().c_str(),
+                                         false);
+
+    ossWrite(mOssContext, remoteBlock, buffer, bucketSize);
+    ossCloseObject(mOssContext, remoteBlock);
 }
 
 OssBlockWriter::~OssBlockWriter() {
