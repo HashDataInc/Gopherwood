@@ -41,9 +41,8 @@ enum RecordType {
     /* release a file block from active status
      * transit Shared Memory state from 1 to 0 */
     releaseBlock = 3,
-    /* change a file block status
-     * transit Shared Memory state from 1 to 0 */
-    blockUpdate = 4,
+    /* load a block from OSS to local space */
+    cacheBlock = 4,
     /* assign a block to local bucket */
     extendBlock = 5,
     /* evict a block from local space to OSS
@@ -110,6 +109,8 @@ class Manifest {
 public:
     Manifest(std::string path);
 
+    static std::string getManifestFileName(std::string workDir, FileId fileId);
+
     void logAcquireNewBlock(std::vector<Block> &blocks);
     void logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque);
     void logFullStatus(std::vector<Block> &blocks, RecOpaque opaque);
@@ -117,9 +118,11 @@ public:
     void logReleaseBucket(std::list<Block> &blocks);
     void logInactivateBucket(std::vector<Block> &blocks);
     void logActivateBucket(Block &block);
+    void logEvcitBlock(Block &block);
 
     RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);
 
+    void mfSeek(int64_t offset, int flag);
     void flush();
     void lock();
     void unlock();
@@ -134,7 +137,6 @@ private:
 
     /******************** File Operations ********************/
     inline void mfOpen();
-    inline void mfSeek(int64_t offset, int flag);
     inline void mfWrite(std::string &record);
     inline int64_t mfRead(char *buffer, int64_t size);
     inline void mfTruncate();

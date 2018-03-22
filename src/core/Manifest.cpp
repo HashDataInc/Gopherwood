@@ -19,6 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Memory.h"
@@ -30,13 +31,20 @@
 namespace Gopherwood {
 namespace Internal {
 
-int64_t Manifest::BUFFER_SIZE = 512;
+int64_t Manifest::BUFFER_SIZE = 4 * 1024;
 
 Manifest::Manifest(std::string path) :
         mFilePath(path), mFD(-1) {
     mfOpen();
     mfSeek(0, SEEK_SET);
     mBuffer = (char *) malloc(BUFFER_SIZE);
+}
+
+std::string Manifest::getManifestFileName(std::string workDir, FileId fileId) {
+    std::stringstream ss;
+    ss << workDir << Configuration::MANIFEST_FOLDER << '/' << fileId.hashcode << '-'
+       << fileId.collisionId;
+    return ss.str();
 }
 
 void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
@@ -124,6 +132,23 @@ void Manifest::logActivateBucket(Block &block) {
     mfWrite(logRecord);
     LOG(INFO, "[Manifest]              |"
             "New activeBlock log record");
+}
+
+void Manifest::logEvcitBlock(Block &block) {
+    /* build Acquire New Block Opaque */
+    RecOpaque opaque;
+    opaque.common.padding = 0;
+
+    std::vector<Block> blocks;
+    blocks.push_back(block);
+
+    /* build log record */
+    std::string logRecord = serializeManifestLog(blocks, RecordType::evictBlock, opaque);
+
+    /* flush to log */
+    mfWrite(logRecord);
+    LOG(INFO, "[Manifest]              |"
+            "New evictBlock log record");
 }
 
 void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {

@@ -19,11 +19,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <file/FileSystem.h>
 #include "block/OssBlockWriter.h"
 #include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
+#include "file/FileSystem.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -53,11 +53,21 @@ void OssBlockWriter::writeBlock(BlockInfo info) {
 
     ossObject remoteBlock = ossPutObject(mOssContext,
                                          FileSystem::OSS_BUCKET.c_str(),
-                                         info.fileId.toString().c_str(),
+                                         getOssObjectName(info).c_str(),
                                          false);
 
     ossWrite(mOssContext, remoteBlock, buffer, bucketSize);
     ossCloseObject(mOssContext, remoteBlock);
+    free(buffer);
+}
+
+std::string OssBlockWriter::getOssObjectName(BlockInfo blockInfo){
+    std::stringstream ss;
+    char hostname[1024];
+    gethostname(hostname, 1024);
+    ss << '/' << hostname << '/' << blockInfo.fileId.toString() << '/'
+       << blockInfo.blockId;
+    return ss.str();
 }
 
 OssBlockWriter::~OssBlockWriter() {

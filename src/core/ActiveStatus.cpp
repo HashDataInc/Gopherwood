@@ -40,7 +40,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
     mIsDelete = (type == ActiveStatusType::deleteFile);
 
     /* check file exist if not creating a new file */
-    std::string manifestFileName = getManifestFileName(mFileId);
+    std::string manifestFileName = Manifest::getManifestFileName(mSharedMemoryContext->getWorkDir(), mFileId);
     if (!isCreate && access(manifestFileName.c_str(), F_OK) == -1) {
         THROW(GopherwoodInvalidParmException,
               "[ActiveStatus::ActiveStatus] File does not exist %s",
@@ -332,6 +332,11 @@ void ActiveStatus::acquireNewBlocks() {
                     numToAcquire--;
                 }
 
+                /* add log to the evicted file */
+                if (rc == 1) {
+                    logEvictBlock(evictBlockInfo);
+                }
+
                 /* 1: the evicted block has been deleted during eviction
                  * 2: the evicted bucket has been activated by it's file owner, give up this one*/
                 if (rc == 1 || rc == 2) {
@@ -458,6 +463,21 @@ void ActiveStatus::activateBlock(int blockInd) {
             mManifest->logActivateBucket(mBlockArray[blockInd]);
         }
     SHARED_MEM_END
+}
+
+void ActiveStatus::logEvictBlock(BlockInfo info) {
+    /* check file exist */
+    std::string manifestFileName = Manifest::getManifestFileName(mSharedMemoryContext->getWorkDir(), info.fileId);
+    if (access(manifestFileName.c_str(), F_OK) == -1) {
+        THROW(GopherwoodInvalidParmException,
+              "[ActiveStatus::ActiveStatus] File does not exist %s",
+              manifestFileName.c_str());
+    }
+    Manifest *manifest = new Manifest(manifestFileName);
+    manifest->mfSeek(0, SEEK_END);
+    Block block(InvalidBucketId, info.blockId, false, BUCKET_FREE, false);
+
+    manifest->logEvcitBlock(block);
 }
 
 /* flush cached Manifest logs to disk
@@ -611,6 +631,18 @@ void ActiveStatus::catchUpManifestLogs() {
                 mBlockArray.push_back(blocks[0]);
                 mNumBlocks++;
                 mEof = header.opaque.extendBlock.eof;
+                break;
+            case RecordType ::evictBlock:
+                LOG(INFO, "[ActiveStatus]          |"
+                        "Replay evictBlock log record with %lu blocks.", blocks.size());
+                assert(header.numBlocks == 1);
+                if (mBlockArray[blocks[0].blockId].isLocal && mBlockArray[blocks[0].blockId].state == BUCKET_USED) {
+                    mBlockArray[blocks[0].blockId] = blocks[0];
+                } else {
+                    THROW(GopherwoodException,
+                          "[ActiveStatus] The block %d status is not BUCKET_USED when replaying the evictBlock log ",
+                          blocks[0].blockId);
+                }
                 break;
             case RecordType::fullStatus:
                 LOG(INFO, "[ActiveStatus]          |"

@@ -29,6 +29,7 @@
 namespace Gopherwood {
 namespace Internal {
 
+#define InvalidBucketId -1
 #define InvalidBlockId  -1
 #define LocalBlock      true
 #define RemoteBlock     false

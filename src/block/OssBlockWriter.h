@@ -39,6 +39,8 @@ public:
     ~OssBlockWriter();
 
 private:
+    std::string getOssObjectName(BlockInfo blockInfo);
+
     context mOssContext;
     int mLocalSpaceFD;
 };

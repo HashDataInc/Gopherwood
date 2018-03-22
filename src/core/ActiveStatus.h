@@ -104,6 +104,8 @@ private:
     void extendOneBlock();
     void activateBlock(int blockInd);
 
+    void logEvictBlock(BlockInfo info);
+
     /****************** Fields *******************/
     FileId mFileId;
     int32_t mActiveId;
