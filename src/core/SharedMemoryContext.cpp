@@ -71,19 +71,18 @@ void SharedMemoryContext::unlock() {
 
 int SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDelete) {
     int activeId = -1;
+    bool shouldDestroy = isDelete ? true : false;
+
     for (int i = 0; i < header->numMaxActiveStatus; i++) {
         /* validation */
         if (activeStatus[i].fileId == fileId) {
-            /* file is opening by someone */
+            if (activeStatus[i].shouldDestroy()) {
+                shouldDestroy = true;
+            }
+
             if (isDelete) {
-                THROW(GopherwoodSharedMemException,
-                      "[SharedMemoryContext::regist] The file is still openning by %d",
-                      activeStatus[i].pid);
-            }/* file is deleting by someone */
-            else if (!isDelete && activeStatus[i].isForDelete()) {
-                THROW(GopherwoodSharedMemException,
-                      "[SharedMemoryContext::regist] The file is still deleting by %d",
-                      activeStatus[i].pid);
+                /* mark should destroy on this activestatus */
+                activeStatus[i].setShouldDestroy();
             }
         }
 
@@ -98,22 +97,31 @@ int SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDel
             activeId = i;
         }
     }
+    if (shouldDestroy && activeId != -1) {
+        activeStatus[activeId].setShouldDestroy();
+    }
 
     LOG(INFO, "[SharedMemoryContext]   |"
-              "Regist file %s, activeId=%d, pid=%d",
-        fileId.toString().c_str(),activeId, activeStatus[activeId].pid);
+              "Regist file %s, activeId=%d, pid=%d, %s",
+        fileId.toString().c_str(),activeId, activeStatus[activeId].pid,
+        shouldDestroy ? "should destroy":"no need to destroy");
     return activeId;
 }
 
-int SharedMemoryContext::unregist(int activeId, int pid) {
+int SharedMemoryContext::unregist(int activeId, int pid, bool *shouldDestroy) {
     if (activeId < 0 || activeId >= header->numMaxActiveStatus) {
         return -1;
     }
-    LOG(INFO, "[SharedMemoryContext]   |"
-              "Unregist File %s, activeId=%d, pid=%d",
-        activeStatus[activeId].fileId.toString().c_str(),
-        activeId, activeStatus[activeId].pid);
+
     if (activeStatus[activeId].pid == pid) {
+        if (activeStatus[activeId].shouldDestroy()){
+            *shouldDestroy = true;
+        }
+        LOG(INFO, "[SharedMemoryContext]   |"
+                "Unregist File %s, activeId=%d, pid=%d, %s",
+            activeStatus[activeId].fileId.toString().c_str(),
+            activeId, activeStatus[activeId].pid,
+            *shouldDestroy ? "should destroy":"no need to destroy");
         activeStatus[activeId].reset();
         return 0;
     }

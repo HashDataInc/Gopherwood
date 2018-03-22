@@ -151,7 +151,7 @@ void FileSystem::DeleteFile(const char *fileName) {
     status = mActiveStatusContext->deleteFileActiveStatus(delFileId, mLocalSpaceFile);
 
     /* call activeStatus destroy */
-    status->destroy();
+    status->close();
     status.reset();
 }
 

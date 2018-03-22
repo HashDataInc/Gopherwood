@@ -52,7 +52,7 @@ public:
 
     /* Regist/Unregist an ActiveStatus instance */
     int regist(int pid, FileId fileId, bool isWrite, bool isDelete);
-    int unregist(int activeId, int pid);
+    int unregist(int activeId, int pid, bool *shouldDestroy);
 
     int calcDynamicQuotaNum();
     bool isFileOpening(FileId fileId);

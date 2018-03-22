@@ -85,7 +85,6 @@ public:
     
     void flush();
     void close();
-    void destroy();
 
     ~ActiveStatus();
 
@@ -117,6 +116,7 @@ private:
 
     bool mIsWrite;
     bool mIsDelete;
+    bool mShouldDestroy;
     int64_t mPos;
     int64_t mEof;
     int32_t mNumBlocks;

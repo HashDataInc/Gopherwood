@@ -38,6 +38,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
         mSharedMemoryContext(sharedMemoryContext) {
     mIsWrite = (type == ActiveStatusType::writeFile);
     mIsDelete = (type == ActiveStatusType::deleteFile);
+    mShouldDestroy = false;
 
     /* check file exist if not creating a new file */
     std::string manifestFileName = Manifest::getManifestFileName(mSharedMemoryContext->getWorkDir(), mFileId);
@@ -76,7 +77,7 @@ void ActiveStatus::unregistInSharedMem() {
     if (mActiveId == -1)
         return;
 
-    int rc = mSharedMemoryContext->unregist(mActiveId, getpid());
+    int rc = mSharedMemoryContext->unregist(mActiveId, getpid(), &mShouldDestroy);
     if (rc != 0) {
         mSharedMemoryContext->unlock();
         THROW(GopherwoodSharedMemException,
@@ -492,8 +493,10 @@ void ActiveStatus::flush() {
 
 /* truncate existing Manifest file and flush latest block status to it */
 void ActiveStatus::close() {
-    SHARED_MEM_BEGIN
+    std::vector<Block> localBlocks;
+    std::vector<Block> remoteBlocks;
 
+    SHARED_MEM_BEGIN
         /* get blocks to inactivate */
         std::vector<int> activeBlockIds = mLRUCache->getAllKeyObject();
         std::vector<Block> activeBlocks;
@@ -502,9 +505,11 @@ void ActiveStatus::close() {
         }
 
         /* release all preAllocatedBlocks & active buckets */
-        mSharedMemoryContext->releaseBuckets(mPreAllocatedBuckets);
-        /* log release buckets */
-        mManifest->logReleaseBucket(mPreAllocatedBuckets);
+        if (mPreAllocatedBuckets.size() > 0) {
+            mSharedMemoryContext->releaseBuckets(mPreAllocatedBuckets);
+            /* log release buckets */
+            mManifest->logReleaseBucket(mPreAllocatedBuckets);
+        }
 
         /* inactivate buckets, in other words, remove the marker of current ActiveId */
         std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBuckets(activeBlocks,
@@ -519,65 +524,61 @@ void ActiveStatus::close() {
             Block b = tunredToUsedBlock;
             mBlockArray[b.blockId].state = b.state;
         }
-        /* log inactivate buckets */
-        mManifest->logInactivateBucket(turedToUsedBlocks);
 
+        if (turedToUsedBlocks.size() > 0){
+            /* log inactivate buckets */
+            mManifest->logInactivateBucket(turedToUsedBlocks);
+        }
+
+        /* this will set the shouldDestroy field */
         unregistInSharedMem();
 
-        /* truncate existing Manifest file and flush latest block status to it.
-         * NOTES: Only do the Manifest log shrinking if nobody is opening
-         * this file. */
         if (!mSharedMemoryContext->isFileOpening(mFileId)) {
-            RecOpaque opaque;
-            opaque.fullStatus.eof = mEof;
-            mManifest->logFullStatus(mBlockArray, opaque);
+            if (mShouldDestroy) {
+                /* check all blocks are not in active status */
+                for (Block block : mBlockArray) {
+                    if (block.isLocal && block.state == BUCKET_USED) {
+                        localBlocks.push_back(block);
+                    } else if (block.isLocal && block.state == BUCKET_ACTIVE) {
+                        THROW(GopherwoodException,
+                              "[ActiveStatus] File %s still using active bucket %d",
+                              mFileId.toString().c_str(), block.bucketId);
+                    } else if (!block.isLocal) {
+                        remoteBlocks.push_back(block);
+                    } else {
+                        THROW(GopherwoodException,
+                              "[ActiveStatus] Dead Zone, Internal Error!");
+                    }
+                }
+                /* delete the used blocks first */
+                mSharedMemoryContext->deleteBlocks(localBlocks, mFileId);
+                /* delete the Manifest File */
+                mManifest->destroy();
+            } else {
+                /* truncate existing Manifest file and flush latest block status to it.
+                 * NOTES: Only do the Manifest log shrinking if nobody is opening
+                 * this file. */
+                RecOpaque opaque;
+                opaque.fullStatus.eof = mEof;
+                mManifest->logFullStatus(mBlockArray, opaque);
+            }
+        } else {
+            mShouldDestroy = false;
         }
 
         /* clear LRU & blockArray */
         mBlockArray.clear();
-        /* TODO: clear mLRUCache */
+        mLRUCache.reset();
 
     SHARED_MEM_END
-}
 
-/* The delete file ActiveStatus already locked the Manifest log by
- * regist machanism, thus we don't need to worry about Manifest log
- * update contention here. */
-void ActiveStatus::destroy() {
-    std::vector<Block> localBlocks;
-    std::vector<Block> remoteBlocks;
-
-    /* check all blocks are not in active status */
-    for (Block block : mBlockArray) {
-        if (block.isLocal && block.state == BUCKET_USED) {
-            localBlocks.push_back(block);
-        } else if (block.isLocal && block.state == BUCKET_ACTIVE) {
-            THROW(GopherwoodException,
-                  "[ActiveStatus] File %s still using active bucket %d",
-                  mFileId.toString().c_str(), block.bucketId);
-        } else if (!block.isLocal) {
-            remoteBlocks.push_back(block);
-        } else {
-            THROW(GopherwoodException,
-                  "[ActiveStatus] Dead Zone, Internal Error!");
+    if (mShouldDestroy) {
+        /* remove all remote file
+         * TODO: Not implemented yet */
+        if (remoteBlocks.size() > 0){
+            THROW(GopherwoodNotImplException, "Not implemented yet!");
         }
     }
-
-    /* free all block cached in local space. If it's evicting by someone,
-     * mark it deleted. */
-    SHARED_MEM_BEGIN
-        mSharedMemoryContext->deleteBlocks(localBlocks, mFileId);
-        unregistInSharedMem();
-    SHARED_MEM_END
-
-    /* remove all remote file
-     * TODO: Not implemented yet */
-    if (remoteBlocks.size() > 0){
-        THROW(GopherwoodNotImplException, "Not implemented yet!");
-    }
-
-    /* delete manifest log */
-    mManifest->destroy();
 }
 
 void ActiveStatus::catchUpManifestLogs() {
@@ -614,7 +615,7 @@ void ActiveStatus::catchUpManifestLogs() {
                  * 1. Read/Delete ActiveStatus do not need the preAllocatedBuckets info
                  * 2. When Write ActiveStatus do the log replay work, all preAllocatedBuckets should have
                  *    been released
-                 * TODO: The only need to replay this log is to check the log integrity */
+                 * TODO: The only case to replay this log is to check the log integrity */
                 LOG(INFO, "[ActiveStatus]          |"
                           "Skip acquireNewBlock log record with %lu blocks.", blocks.size());
                 break;
