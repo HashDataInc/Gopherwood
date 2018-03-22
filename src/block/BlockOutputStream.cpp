@@ -34,6 +34,7 @@ BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd) {
     mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(FileSystem::OSS_CONTEXT, fd));
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
     mBlockInfo.reset();
+    mCached = false;
 }
 
 void BlockOutputStream::setBlockInfo(BlockInfo info) {
@@ -51,9 +52,7 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length) {
     int64_t written = -1;
 
     if (mBlockInfo.isLocal) {
-        if (mLocalWriter->getCurOffset() != getLocalSpaceOffset()) {
-            mLocalWriter->seek(getLocalSpaceOffset());
-        }
+        mLocalWriter->seek(getLocalSpaceOffset());
         LOG(INFO, "[BlockOutputStream]     |"
                   "Write to local space, bucketId=%d, offset=%ld, length=%ld",
             mBlockInfo.bucketId, mBlockInfo.offset, length);
@@ -62,6 +61,8 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length) {
         /* Write to OSS */
     }
 
+    mCached = true;
+
     mBlockInfo.offset += written;
     assert(mBlockInfo.offset <= mBucketSize);
 
@@ -69,7 +70,7 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length) {
 }
 
 void BlockOutputStream::flush() {
-    if (mBlockInfo.bucketId == InvalidBlockId){
+    if (!mCached){
         return;
     }
 

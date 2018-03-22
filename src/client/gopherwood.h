@@ -73,6 +73,7 @@ typedef struct GWFileInternalWrapper *gwFile;
 typedef struct GWContextConfig {
     int32_t numBlocks;
     int64_t blockSize;
+    int32_t numPreDefinedConcurrency;
 } GWContextConfig;
 
 /**

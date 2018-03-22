@@ -52,6 +52,7 @@ private:
     int mLocalSpaceFD;
     int64_t mBucketSize;
     BlockInfo mBlockInfo;
+    bool mCached;
 
     shared_ptr<LocalBlockWriter> mLocalWriter;
     shared_ptr<OssBlockWriter> mOssWriter;

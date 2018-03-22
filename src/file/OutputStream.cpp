@@ -72,6 +72,7 @@ void OutputStream::write(const char *buffer, int64_t length, bool isSeek) {
             needUpdate = true;
         }
 
+
         if (written == -1) {
             THROW(GopherwoodException,
                   "[OutputStream::write] write error!");
@@ -90,7 +91,7 @@ void OutputStream::flush() {
 }
 
 void OutputStream::close() {
-
+    mBlockOutputStream->flush();
 }
 
 
