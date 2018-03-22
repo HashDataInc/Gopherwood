@@ -48,10 +48,10 @@ typedef struct ShareMemHeader {
     int32_t numMaxActiveStatus;
 
     /* Bucket Statistics */
-    int32_t numFreeBuckets;
-    int32_t numActiveBuckets;
-    int32_t numUsedBuckets;
-    int32_t numEvictingBuckets;
+    uint32_t numFreeBuckets;
+    uint32_t numActiveBuckets;
+    uint32_t numUsedBuckets;
+    uint32_t numEvictingBuckets;
 
     void enter();
 

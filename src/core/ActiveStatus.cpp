@@ -47,7 +47,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
               manifestFileName.c_str());
     }
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
-    mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(Configuration::CUR_QUOTA_SIZE));
+    mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(Configuration::getCurQuotaSize()));
     mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(FileSystem::OSS_CONTEXT, localSpaceFD));
 
     mNumBlocks = 0;
@@ -181,12 +181,12 @@ void ActiveStatus::acquireNewBlocks() {
     evictBlockInfo.bucketId = -1;
     bool evicting = false;
 
-    int32_t numToAcquire = 0;
-    int32_t numToInactivate = 0;
+    uint32_t numToAcquire = 0;
+    uint32_t numToInactivate = 0;
 
-    int numFreeBuckets;
-    int numUsedBuckets;
-    int numAvailable;
+    uint32_t numFreeBuckets;
+    uint32_t numUsedBuckets;
+    uint32_t numAvailable;
 
     SHARED_MEM_BEGIN
         uint32_t quota = mSharedMemoryContext->calcDynamicQuotaNum();
@@ -200,8 +200,11 @@ void ActiveStatus::acquireNewBlocks() {
         if (mLRUCache->size() < quota) {
             if (numAvailable > 0) {
                 /* 2(a) acquire more buckets for preAllocatedBlocks */
-                numToAcquire = numAvailable > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
-                               Configuration::PRE_ALLOCATE_BUCKET_NUM : numAvailable;
+                uint32_t tmpAcquire = quota - mLRUCache->size();
+                if (tmpAcquire > Configuration::PRE_ALLOCATE_BUCKET_NUM){
+                    tmpAcquire = Configuration::PRE_ALLOCATE_BUCKET_NUM;
+                }
+                numToAcquire = numAvailable > tmpAcquire ? tmpAcquire : numAvailable;
                 /* it might exceed quota after acquired new buckets */
                 numToInactivate = (mLRUCache->size() + numToAcquire) > quota ?
                                    mLRUCache->size() + numToAcquire - quota : 0;
@@ -213,8 +216,9 @@ void ActiveStatus::acquireNewBlocks() {
         } else if (mLRUCache->size() == quota) {
             if (numFreeBuckets > 0) {
                 /* 3(a) inactivate blocks from LRU first, then acquire new blocks */
-                numToAcquire = numFreeBuckets > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
-                               Configuration::PRE_ALLOCATE_BUCKET_NUM : numFreeBuckets;
+                uint32_t tmpAcquire = quota > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
+                                 Configuration::PRE_ALLOCATE_BUCKET_NUM : quota;
+                numToAcquire = numFreeBuckets > tmpAcquire ? tmpAcquire : numFreeBuckets;
                 numToInactivate = numToAcquire;
             } else {
                 /* 3(b) play with current owned buckets */
@@ -269,7 +273,7 @@ void ActiveStatus::acquireNewBlocks() {
 
         /* acquire new buckets */
         if (numToAcquire > 0) {
-            int numAcqurieFree = numToAcquire > numFreeBuckets ? numFreeBuckets : numToAcquire;
+            uint32_t numAcqurieFree = numToAcquire > numFreeBuckets ? numFreeBuckets : numToAcquire;
             int numToEvict = numToAcquire - numAcqurieFree;
 
             newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
@@ -339,7 +343,7 @@ void ActiveStatus::acquireNewBlocks() {
 
             /* acquire free buckets */
             numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
-            int numAcqurieFree = numToAcquire > numFreeBuckets ? numFreeBuckets : numToAcquire;
+            uint32_t numAcqurieFree = numToAcquire > numFreeBuckets ? numFreeBuckets : numToAcquire;
 
             if (numAcqurieFree > 0) {
                 newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);

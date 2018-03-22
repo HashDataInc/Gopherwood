@@ -37,8 +37,9 @@ public:
     static int64_t LOCAL_BUCKET_SIZE;
     static int MAX_CONNECTION;
     static int CUR_CONNECTION;
-    static uint32_t CUR_QUOTA_SIZE;
-    static int PRE_ALLOCATE_BUCKET_NUM;
+    static uint32_t PRE_ALLOCATE_BUCKET_NUM;
+
+    static uint32_t getCurQuotaSize();
 };
 
 

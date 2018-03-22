@@ -428,7 +428,7 @@ void SharedMemoryContext::deleteBlocks(std::vector<Block> &blocks, FileId fileId
 }
 
 int SharedMemoryContext::calcDynamicQuotaNum() {
-    return Configuration::CUR_QUOTA_SIZE;
+    return Configuration::getCurQuotaSize();
 }
 
 

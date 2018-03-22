@@ -36,10 +36,11 @@ int Configuration::MAX_CONNECTION = 128;
 
 int Configuration::CUR_CONNECTION = 10;
 
-uint32_t Configuration::CUR_QUOTA_SIZE = Configuration::NUMBER_OF_BLOCKS/Configuration::CUR_CONNECTION;
+uint32_t Configuration::PRE_ALLOCATE_BUCKET_NUM = 3;
 
-int Configuration::PRE_ALLOCATE_BUCKET_NUM = 3;
-
+uint32_t Configuration::getCurQuotaSize(){
+    return Configuration::NUMBER_OF_BLOCKS/Configuration::CUR_CONNECTION;
+}
 
 }
 }
