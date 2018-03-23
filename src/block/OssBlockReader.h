@@ -23,6 +23,7 @@
 #define GOPHERWOOD_BLOCK_OSSBLOCKREADER_H
 
 #include "platform.h"
+#include "core/BlockStatus.h"
 #include "oss/oss.h"
 
 namespace Gopherwood {
@@ -30,12 +31,17 @@ namespace Internal {
 
 class OssBlockReader {
 public:
-    OssBlockReader(context ossCtx);
+    OssBlockReader(context ossCtx, int localSpaceFD);
+
+    void readBlock(BlockInfo info);
 
     ~OssBlockReader();
 
 private:
+    std::string getOssObjectName(BlockInfo blockInfo);
+
     context mOssContext;
+    int mLocalSpaceFD;
 };
 
 }

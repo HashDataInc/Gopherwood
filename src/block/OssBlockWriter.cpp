@@ -39,7 +39,7 @@ void OssBlockWriter::writeBlock(BlockInfo info) {
     int64_t bucketSize = Configuration::LOCAL_BUCKET_SIZE;
     char *buffer = (char*)malloc(bucketSize);
 
-    lseek(mLocalSpaceFD, info.bucketId * bucketSize, SEEK_SET);
+    rc = lseek(mLocalSpaceFD, info.bucketId * bucketSize, SEEK_SET);
     if (rc == -1){
         THROW(GopherwoodIOException,
               "[OssBlockWriter] Local file space seek error!");

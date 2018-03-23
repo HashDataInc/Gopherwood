@@ -276,7 +276,7 @@ int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileI
     return rc;
 }
 
-void SharedMemoryContext::markBucketLoading(Block block, int activeId, FileId fileId) {
+void SharedMemoryContext::markBucketLoading(Block &block, int activeId, FileId fileId) {
     assert(buckets[block.bucketId].isActiveBucket());
     assert(buckets[block.bucketId].fileId == fileId);
 
@@ -292,6 +292,27 @@ void SharedMemoryContext::markBucketLoading(Block block, int activeId, FileId fi
     LOG(INFO, "[SharedMemoryContext]   |"
             "Start loading bucketId %d, FileId %s, BlockId %d",
         block.bucketId, fileId.toString().c_str(), block.blockId);
+}
+
+void SharedMemoryContext::markLoadFinish(Block &block, int activeId, FileId fileId) {
+    assert(buckets[block.bucketId].isActiveBucket());
+    assert(buckets[block.bucketId].isLoadingBucket());
+    /* update the bucket info */
+    buckets[block.bucketId].setBucketLoadFinish();
+
+    /* clear ActiveStatus loading info */
+    activeStatus[activeId].fileBlockIndex = InvalidBlockId;
+    activeStatus[activeId].unsetLoading();
+}
+
+bool SharedMemoryContext::isBucketLoading(Block &block, FileId fileId) {
+    if (buckets[block.bucketId].fileId != fileId ||
+        buckets[block.bucketId].fileBlockIndex != block.blockId) {
+        THROW(GopherwoodSharedMemException,
+              "[SharedMemoryContext::isBucketLoading] File info of bucket %d is not Active",
+              block.bucketId);
+    }
+    return buckets[block.bucketId].isLoadingBucket();
 }
 
 /* Transit Bucket State from 1 to 0 */

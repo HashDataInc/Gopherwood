@@ -22,7 +22,6 @@
 #ifndef GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H
 #define GOPHERWOOD_BLOCK_OSSBLOCKWRITER_H
 
-
 #include "platform.h"
 #include "core/BlockStatus.h"
 #include "oss/oss.h"

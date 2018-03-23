@@ -488,11 +488,33 @@ void ActiveStatus::activateBlock(int blockId) {
 
     /* load the block */
     if (loadBlock) {
-        /* TODO: load the block and mark loadFinish */
+        BlockInfo info;
+        info.fileId = mFileId;
+        info.blockId = blockId;
+        info.bucketId = mBlockArray[blockId].bucketId;
+        info.isLocal = false;
+        info.offset = InvalidBlockOffset;
+
+        mOssReader->readBlock(info);
+
+        SHARED_MEM_BEGIN
+            mSharedMemoryContext->markLoadFinish(mBlockArray[blockId], mActiveId, mFileId);
+        SHARED_MEM_END
     }
-    /* if wait loading, loop to check status */
+    /* if the block is loading by other process, wait until it finished */
     if (rc == 2) {
-        /* TODO: wait loading */
+        bool stillLoading = true;
+
+        while (true) {
+            sleep(5000);
+            SHARED_MEM_BEGIN
+                stillLoading = mSharedMemoryContext->isBucketLoading(mBlockArray[blockId], mFileId);
+            SHARED_MEM_END
+
+            if (!stillLoading) {
+                break;
+            }
+        }
     }
 }
 
