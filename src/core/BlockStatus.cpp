@@ -27,8 +27,8 @@
 namespace Gopherwood {
 namespace Internal {
 
-Block::Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s, bool myActive) :
-        bucketId(theBucketId), blockId(theBlockId), isLocal(local), state(s), isMyActive(myActive) {
+Block::Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s) :
+        bucketId(theBucketId), blockId(theBlockId), isLocal(local), state(s) {
 
 }
 
@@ -90,7 +90,7 @@ Block BlockRecord::toBlockFormat() {
                   state);
     }
 
-    return Block(rBucketId, rBlockId, isLocal, state, false);
+    return Block(rBucketId, rBlockId, isLocal, state);
 }
 
 }

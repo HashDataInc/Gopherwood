@@ -95,13 +95,15 @@ private:
     Block getCurBlock();
     int64_t getCurBlockOffset();
     std::string getManifestFileName(FileId fileId);
+    bool isMyActiveBlock(int blockId);
 
     /***** active status block manipulations *****/
     void catchUpManifestLogs();
-    void adjustActiveBlock(int curBlockInd);
+    void adjustActiveBlock(int curBlockId);
     void acquireNewBlocks();
     void extendOneBlock();
     void activateBlock(int blockInd);
+    void loadBlock(int blockInd);
 
     void logEvictBlock(BlockInfo info);
 

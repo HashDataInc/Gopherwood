@@ -45,10 +45,8 @@ typedef struct Block {
     /* Current bucket status of this block, only
      * meaningful when block is in local cache space */
     uint8_t state;
-    /* Ture if the File already got the authority to manipulate this block  */
-    bool isMyActive;
 
-    Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s, bool myActive);
+    Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s);
 
     std::string toLogFormat();
 } Block;

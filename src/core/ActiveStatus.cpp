@@ -70,7 +70,7 @@ void ActiveStatus::registInSharedMem() {
               mSharedMemoryContext->getNumMaxActiveStatus());
     }
     LOG(INFO, "[ActiveStatus]          |"
-              "Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
+            "Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
 }
 
 void ActiveStatus::unregistInSharedMem() {
@@ -85,7 +85,7 @@ void ActiveStatus::unregistInSharedMem() {
               mActiveId, getpid());
     }
     LOG(INFO, "[ActiveStatus]          |"
-              "Unregistered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
+            "Unregistered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
     mActiveId = -1;
 }
 
@@ -99,7 +99,7 @@ void ActiveStatus::setPosition(int64_t pos) {
         mEof = mPos;
     }
     LOG(INFO, "[ActiveStatus]          |"
-              "Update ActiveStatus position, pos=%ld, eof=%ld",
+            "Update ActiveStatus position, pos=%ld, eof=%ld",
         mPos, mEof);
 }
 
@@ -122,15 +122,18 @@ std::string ActiveStatus::getManifestFileName(FileId fileId) {
     return ss.str();
 }
 
+bool ActiveStatus::isMyActiveBlock(int blockId) {
+    return mLRUCache->exists(blockId);
+}
 
 /* [IMPORTANT] This is the main entry point of adjusting active status. OutpuStream/InputStream
  * will call this function to write/read to multi blocks. When mPos reaches block not activated
  * by current file instance, ActiveStatus will adjust the block status.*/
 BlockInfo ActiveStatus::getCurBlockInfo() {
-    int curBlockIndex = mPos / mBucketSize;
+    int curBlockId = mPos / mBucketSize;
 
     /* adjust the active block status */
-    adjustActiveBlock(curBlockIndex);
+    adjustActiveBlock(curBlockId);
 
     /* build the block info */
     BlockInfo info;
@@ -143,20 +146,19 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
     return info;
 }
 
-void ActiveStatus::adjustActiveBlock(int curBlockInd) {
-    if (curBlockInd + 1 > mNumBlocks) {
+void ActiveStatus::adjustActiveBlock(int curBlockId) {
+    if (curBlockId + 1 > mNumBlocks) {
         extendOneBlock();
-    } else if (!mBlockArray[curBlockInd].isMyActive) {
+    } else if (!isMyActiveBlock(curBlockId)) {
         /* need to mark the block to my active block */
-        if (!mBlockArray[curBlockInd].isLocal) {
-            /* load the bucket back
-             * TODO： Implement this, middle priority */
+        if (!mBlockArray[curBlockId].isLocal) {
+            loadBlock(curBlockId);
             THROW(GopherwoodNotImplException, "Not implemented yet!");
-        } else if (mBlockArray[curBlockInd].state == BUCKET_USED) {
-            activateBlock(curBlockInd);
-        } else if (mBlockArray[curBlockInd].state == BUCKET_ACTIVE &&
-                   !mBlockArray[curBlockInd].isMyActive) {
-            activateBlock(curBlockInd);
+        } else if (mBlockArray[curBlockId].state == BUCKET_USED) {
+            activateBlock(curBlockId);
+        } else if (mBlockArray[curBlockId].state == BUCKET_ACTIVE &&
+                    !isMyActiveBlock(curBlockId)) {
+            activateBlock(curBlockId);
         }
     }
 }
@@ -202,13 +204,13 @@ void ActiveStatus::acquireNewBlocks() {
             if (numAvailable > 0) {
                 /* 2(a) acquire more buckets for preAllocatedBlocks */
                 uint32_t tmpAcquire = quota - mLRUCache->size();
-                if (tmpAcquire > Configuration::PRE_ALLOCATE_BUCKET_NUM){
+                if (tmpAcquire > Configuration::PRE_ALLOCATE_BUCKET_NUM) {
                     tmpAcquire = Configuration::PRE_ALLOCATE_BUCKET_NUM;
                 }
                 numToAcquire = numAvailable > tmpAcquire ? tmpAcquire : numAvailable;
                 /* it might exceed quota after acquired new buckets */
                 numToInactivate = (mLRUCache->size() + numToAcquire) > quota ?
-                                   mLRUCache->size() + numToAcquire - quota : 0;
+                                  mLRUCache->size() + numToAcquire - quota : 0;
             } else {
                 /* 2(b) play with current owned buckets */
                 numToInactivate = 0;
@@ -218,7 +220,7 @@ void ActiveStatus::acquireNewBlocks() {
             if (numFreeBuckets > 0) {
                 /* 3(a) inactivate blocks from LRU first, then acquire new blocks */
                 uint32_t tmpAcquire = quota > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
-                                 Configuration::PRE_ALLOCATE_BUCKET_NUM : quota;
+                                      Configuration::PRE_ALLOCATE_BUCKET_NUM : quota;
                 numToAcquire = numFreeBuckets > tmpAcquire ? tmpAcquire : numFreeBuckets;
                 numToInactivate = numToAcquire;
             } else {
@@ -232,8 +234,8 @@ void ActiveStatus::acquireNewBlocks() {
             numToAcquire = 0;
         }
         LOG(INFO, "[ActiveStatus]          |"
-                  "Calculate new quota size, newQuota=%u, curQuota=%ld, numAvailables=%d, "
-                  "inactivate=%d, acquire %d", quota, mLRUCache->size(), numAvailable,
+                "Calculate new quota size, newQuota=%u, curQuota=%ld, numAvailables=%d, "
+                "inactivate=%d, acquire %d", quota, mLRUCache->size(), numAvailable,
             numToInactivate, numToAcquire);
 
         /**************************************************************
@@ -247,13 +249,8 @@ void ActiveStatus::acquireNewBlocks() {
             std::vector<Block> blocksToInactivate;
             std::vector<int> blockIds = mLRUCache->removeNumOfKeys(numToInactivate);
 
-            for (int blockId : blockIds){
-                if (mBlockArray[blockId].isMyActive) {
-                    blocksToInactivate.push_back(mBlockArray[blockId]);
-                } else{
-                    THROW(GopherwoodException,
-                          "[ActiveStatus] Incorrect block status, the blockId %d should be activated!", blockId);
-                }
+            for (int blockId : blockIds) {
+                blocksToInactivate.push_back(mBlockArray[blockId]);
             }
             std::vector<Block> turedToUsedBlocks =
                     mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
@@ -262,9 +259,6 @@ void ActiveStatus::acquireNewBlocks() {
                                                             mIsWrite);
 
             /* update block status*/
-            for (Block b : blocksToInactivate) {
-                mBlockArray[b.blockId].isMyActive = false;
-            }
             for (Block b : turedToUsedBlocks) {
                 mBlockArray[b.blockId].state = b.state;
             }
@@ -281,12 +275,11 @@ void ActiveStatus::acquireNewBlocks() {
             /* add free buckets to preAllocatedBlocks */
             for (int32_t bucketId : newBuckets) {
                 LOG(INFO, "[ActiveStatus]          |"
-                          "Pre-allocate bucket %d to pre-allocated bucket array.", bucketId);
+                        "Pre-allocate bucket %d to pre-allocated bucket array.", bucketId);
                 Block newBlock(bucketId,
                                InvalidBlockId,
                                LocalBlock,
-                               BUCKET_ACTIVE,
-                               true);/*is my active block*/
+                               BUCKET_ACTIVE);
                 blocksForLog.push_back(newBlock);
                 mPreAllocatedBuckets.push_back(newBlock);
             }
@@ -323,9 +316,9 @@ void ActiveStatus::acquireNewBlocks() {
                                                                  mFileId,
                                                                  mIsWrite);
                 if (rc == 0 || rc == 1) {
-                    Block newBlock(evictBlockInfo.bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE, true);
+                    Block newBlock(evictBlockInfo.bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
                     LOG(INFO, "[ActiveStatus]          |"
-                              "Add block %d to pre-allocated bucket array.",
+                            "Add block %d to pre-allocated bucket array.",
                         newBlock.bucketId);
                     blocksForLog.push_back(newBlock);
                     mPreAllocatedBuckets.push_back(newBlock);
@@ -356,12 +349,11 @@ void ActiveStatus::acquireNewBlocks() {
                 /* add free buckets to preAllocatedBlocks */
                 for (int32_t bucketId: newBuckets) {
                     LOG(INFO, "[ActiveStatus]          |"
-                              "Add block %d to pre-allocated bucket array.", bucketId);
+                            "Add block %d to pre-allocated bucket array.", bucketId);
                     Block newBlock(bucketId,
                                    InvalidBlockId,
                                    LocalBlock,
-                                   BUCKET_ACTIVE,
-                                   true);/*is my active block*/
+                                   BUCKET_ACTIVE);
                     blocksForLog.push_back(newBlock);
                     mPreAllocatedBuckets.push_back(newBlock);
                 }
@@ -399,7 +391,6 @@ void ActiveStatus::extendOneBlock() {
     Block b = mPreAllocatedBuckets.front();
     mPreAllocatedBuckets.pop_front();
     b.blockId = mNumBlocks;
-    b.isMyActive = true;
 
     /* add to block array */
     mBlockArray.push_back(b);
@@ -420,7 +411,7 @@ void ActiveStatus::extendOneBlock() {
         mManifest->logExtendBlock(blocksModified, opaque);
     SHARED_MEM_END
     LOG(INFO, "[ActiveStatus]          |"
-              "ExtendOneBlock blockId=%d, bucketId=%d",
+            "ExtendOneBlock blockId=%d, bucketId=%d",
         b.blockId, b.bucketId);
 }
 
@@ -428,7 +419,7 @@ void ActiveStatus::extendOneBlock() {
 void ActiveStatus::activateBlock(int blockInd) {
     SHARED_MEM_BEGIN
         /* inactivate first if LRUCache(Quota) is used up */
-        if (mLRUCache->size() == mLRUCache->maxSize()){
+        if (mLRUCache->size() == mLRUCache->maxSize()) {
             std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
             std::vector<Block> blocksToInactivate;
             for (int i : blockIds) {
@@ -441,9 +432,6 @@ void ActiveStatus::activateBlock(int blockInd) {
                                                             mIsWrite);
 
             /* update block status*/
-            for (Block b : blocksToInactivate) {
-                mBlockArray[b.blockId].isMyActive = false;
-            }
             for (Block b : turedToUsedBlocks) {
                 mBlockArray[b.blockId].state = b.state;
             }
@@ -457,13 +445,20 @@ void ActiveStatus::activateBlock(int blockInd) {
                                                               mActiveId,
                                                               mIsWrite);
         mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd].bucketId);
-        mBlockArray[blockInd].isMyActive = true;
 
         /* the block is activated by me */
         if (activated) {
             mManifest->logActivateBucket(mBlockArray[blockInd]);
         }
     SHARED_MEM_END
+}
+
+/* load a block from  */
+void ActiveStatus::loadBlock(int blockInd) {
+    /* mark loading? */
+    /* load */
+    /* mark finish */
+
 }
 
 void ActiveStatus::logEvictBlock(BlockInfo info) {
@@ -476,7 +471,7 @@ void ActiveStatus::logEvictBlock(BlockInfo info) {
     }
     Manifest *manifest = new Manifest(manifestFileName);
     manifest->mfSeek(0, SEEK_END);
-    Block block(InvalidBucketId, info.blockId, false, BUCKET_FREE, false);
+    Block block(InvalidBucketId, info.blockId, false, BUCKET_FREE);
 
     manifest->logEvcitBlock(block);
 }
@@ -498,7 +493,7 @@ void ActiveStatus::close() {
 
     SHARED_MEM_BEGIN
         /* get blocks to inactivate */
-        std::vector<int> activeBlockIds = mLRUCache->getAllKeyObject();
+        std::vector<int> activeBlockIds = mLRUCache->removeNumOfKeys(mLRUCache->size());
         std::vector<Block> activeBlocks;
         for (int32_t activeBlockId : activeBlockIds) {
             activeBlocks.push_back(mBlockArray[activeBlockId]);
@@ -517,15 +512,12 @@ void ActiveStatus::close() {
                                                                                        mActiveId,
                                                                                        mIsWrite);
         /* update block status*/
-        for (Block b : activeBlocks) {
-            mBlockArray[b.blockId].isMyActive = false;
-        }
         for (Block tunredToUsedBlock : turedToUsedBlocks) {
             Block b = tunredToUsedBlock;
             mBlockArray[b.blockId].state = b.state;
         }
 
-        if (turedToUsedBlocks.size() > 0){
+        if (turedToUsedBlocks.size() > 0) {
             /* log inactivate buckets */
             mManifest->logInactivateBucket(turedToUsedBlocks);
         }
@@ -575,7 +567,7 @@ void ActiveStatus::close() {
     if (mShouldDestroy) {
         /* remove all remote file
          * TODO: Not implemented yet */
-        if (remoteBlocks.size() > 0){
+        if (remoteBlocks.size() > 0) {
             THROW(GopherwoodNotImplException, "Not implemented yet!");
         }
     }
@@ -603,7 +595,7 @@ void ActiveStatus::catchUpManifestLogs() {
                 break;
             case RecordType::inactiveBlock:
                 LOG(INFO, "[ActiveStatus]          |"
-                          "Replay inactiveBlock log record with %lu blocks.", blocks.size());
+                        "Replay inactiveBlock log record with %lu blocks.", blocks.size());
                 for (Block block : blocks) {
                     mBlockArray[block.blockId].state = BUCKET_USED;
                 }
@@ -617,23 +609,23 @@ void ActiveStatus::catchUpManifestLogs() {
                  *    been released
                  * TODO: The only case to replay this log is to check the log integrity */
                 LOG(INFO, "[ActiveStatus]          |"
-                          "Skip acquireNewBlock log record with %lu blocks.", blocks.size());
+                        "Skip acquireNewBlock log record with %lu blocks.", blocks.size());
                 break;
             case RecordType::releaseBlock:
                 /* As described in acquireNewBlock log, the only need to replay this
                  * log is to check the log integrity */
                 LOG(INFO, "[ActiveStatus]          |"
-                          "Skip releaseBlock log record with %lu blocks.", blocks.size());
+                        "Skip releaseBlock log record with %lu blocks.", blocks.size());
                 break;
             case RecordType::extendBlock:
                 LOG(INFO, "[ActiveStatus]          |"
-                          "Replay assignBlock log record with %lu blocks.", blocks.size());
+                        "Replay assignBlock log record with %lu blocks.", blocks.size());
                 assert(header.numBlocks == 1);
                 mBlockArray.push_back(blocks[0]);
                 mNumBlocks++;
                 mEof = header.opaque.extendBlock.eof;
                 break;
-            case RecordType ::evictBlock:
+            case RecordType::evictBlock:
                 LOG(INFO, "[ActiveStatus]          |"
                         "Replay evictBlock log record with %lu blocks.", blocks.size());
                 assert(header.numBlocks == 1);
@@ -647,7 +639,7 @@ void ActiveStatus::catchUpManifestLogs() {
                 break;
             case RecordType::fullStatus:
                 LOG(INFO, "[ActiveStatus]          |"
-                          "Replay fullStatus log record with %lu blocks. EOF=%lu", blocks.size(),
+                        "Replay fullStatus log record with %lu blocks. EOF=%lu", blocks.size(),
                     header.opaque.fullStatus.eof);
                 for (Block block : blocks) {
                     mBlockArray.push_back(block);
@@ -658,7 +650,7 @@ void ActiveStatus::catchUpManifestLogs() {
             case RecordType::updateEof:
                 assert(header.numBlocks == 0);
                 LOG(INFO, "[ActiveStatus]          |"
-                          "Replay updateEof log record eof=%ld.", header.opaque.updateEof.eof);
+                        "Replay updateEof log record eof=%ld.", header.opaque.updateEof.eof);
                 mEof = header.opaque.updateEof.eof;
                 break;
             default:
