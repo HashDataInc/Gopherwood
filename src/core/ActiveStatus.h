@@ -102,8 +102,7 @@ private:
     void adjustActiveBlock(int curBlockId);
     void acquireNewBlocks();
     void extendOneBlock();
-    void activateBlock(int blockInd);
-    void loadBlock(int blockInd);
+    void activateBlock(int blockId);
 
     void logEvictBlock(BlockInfo info);
 

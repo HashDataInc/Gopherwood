@@ -184,11 +184,10 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int nu
 
 /* When activate buckets from Used Buckets(2->1), we need to evict the data first.
  * The steps are:
- * 1. markEvicting -- make sure no other ActiveStatus can evict same bucket
- * 2. evictBlockStart -- set the evicting ActiveStatus status in SharedMem.
+ * 1. markBucketEvicting -- set the evicting ActiveStatus status in SharedMem.
  *             This will mark write/read blockId to inform other activestatus
  *             of same File
- * 3. evictBlockFinish -- finally reset evicting ActiveStatus and activate the bucket */
+ * 2. evictBlockFinish -- finally reset evicting ActiveStatus and activate the bucket */
 BlockInfo SharedMemoryContext::markBucketEvicting(int activeId) {
     BlockInfo info;
     bool found = false;
@@ -197,7 +196,7 @@ BlockInfo SharedMemoryContext::markBucketEvicting(int activeId) {
     for (int32_t i = 0; i < header->numBuckets; i++) {
         if (buckets[i].isUsedBucket() && !buckets[i].isEvictingBucket()) {
             buckets[i].setBucketEvicting();
-            buckets[i].evictActiveId = activeId;
+            buckets[i].evictLoadActiveId = activeId;
 
             /* fill ActiveStatus evict info */
             activeStatus[activeId].evictFileId = buckets[i].fileId;
@@ -277,6 +276,24 @@ int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileI
     return rc;
 }
 
+void SharedMemoryContext::markBucketLoading(Block block, int activeId, FileId fileId) {
+    assert(buckets[block.bucketId].isActiveBucket());
+    assert(buckets[block.bucketId].fileId == fileId);
+
+    /* update the bucket info */
+    buckets[block.bucketId].fileBlockIndex = block.blockId;
+    buckets[block.bucketId].setBucketLoading();
+    buckets[block.bucketId].evictLoadActiveId = activeId;
+
+    /* fill ActiveStatus evict info */
+    activeStatus[activeId].fileBlockIndex = block.blockId;
+    activeStatus[activeId].setLoading();
+
+    LOG(INFO, "[SharedMemoryContext]   |"
+            "Start loading bucketId %d, FileId %s, BlockId %d",
+        block.bucketId, fileId.toString().c_str(), block.blockId);
+}
+
 /* Transit Bucket State from 1 to 0 */
 void SharedMemoryContext::releaseBuckets(std::list<Block> &blocks) {
     for (Block block : blocks) {
@@ -300,9 +317,15 @@ void SharedMemoryContext::releaseBuckets(std::list<Block> &blocks) {
 }
 
 /* Activate a block from status 2 to 1. No need to evict because it's just the same File.
- * return true if the bucket is activated by current process */
-bool SharedMemoryContext::activateBucket(FileId fileId, Block &block, int activeId, bool isWrite) {
+ * return 0  -- The bucket is not activated by current process
+ * return 1  -- The bucket is activated by current process
+ * return 2  -- The bucket is loading by other process
+ * return -1 -- error
+ * */
+int SharedMemoryContext::activateBucket(FileId fileId, Block &block, int activeId, bool isWrite) {
+    int rc = -1;
     int32_t bucketId = block.bucketId;
+
     if (buckets[bucketId].fileId != fileId ||
         buckets[bucketId].fileBlockIndex != block.blockId) {
         THROW(GopherwoodSharedMemException,
@@ -329,7 +352,7 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block &block, int active
         }
 
         if (buckets[bucketId].isEvictingBucket()) {
-            int32_t evictId = buckets[bucketId].evictActiveId;
+            int32_t evictId = buckets[bucketId].evictLoadActiveId;
             if (activeStatus[evictId].evictFileId == buckets[bucketId].fileId &&
                 activeStatus[evictId].fileBlockIndex == buckets[bucketId].fileBlockIndex) {
                 activeStatus[evictId].setBucketStolen();
@@ -344,21 +367,32 @@ bool SharedMemoryContext::activateBucket(FileId fileId, Block &block, int active
             header->numUsedBuckets--;
             header->numActiveBuckets++;
         }
-        printStatistics();
-        return true;
+        rc = 1;
     } else if (buckets[bucketId].isActiveBucket()) {
         if (isWrite) {
             buckets[bucketId].markWrite(activeId);
         } else {
             buckets[bucketId].markRead(activeId);
         }
-        printStatistics();
-        return false;
+        if (buckets[bucketId].isLoadingBucket()) {
+            rc = 2;
+            LOG(INFO, "[SharedMemoryContext]   |"
+                    "File %s bucket %d is loading by others. state %d",
+                fileId.toString().c_str(), bucketId, buckets[bucketId].flags);
+        } else {
+            rc = 0;
+            LOG(INFO, "[SharedMemoryContext]   |"
+                    "File %s bucket %d already activated by others. state %d",
+                fileId.toString().c_str(), bucketId, buckets[bucketId].flags);
+        }
+
     } else {
         THROW(GopherwoodSharedMemException,
               "[SharedMemoryContext::activateBlock] Dead Zone, get out!");
-        return false;
+        rc = -1;
     }
+    printStatistics();
+    return rc;
 }
 
 /* Transit Bucket State from 1 to 2 */

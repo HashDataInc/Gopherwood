@@ -59,14 +59,15 @@ public:
 
     std::vector<int32_t> acquireFreeBucket(int activeId, int num, FileId fileId, bool isWrite);
     void releaseBuckets(std::list<Block> &blocks);
-    bool activateBucket(FileId fileId, Block &block, int activeId, bool isWrite);
+    int activateBucket(FileId fileId, Block &block, int activeId, bool isWrite);
     std::vector<Block> inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite);
     void updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId);
     void deleteBlocks(std::vector<Block> &blocks, FileId fileId);
 
-    /* evict logic related APIs*/
+    /* evict/load logic related APIs*/
     BlockInfo markBucketEvicting(int activeId);
     int evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite);
+    void markBucketLoading(Block block, int activeId, FileId fileId);
 
     void reset();
     void lock();

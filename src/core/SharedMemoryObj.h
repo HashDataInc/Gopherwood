@@ -70,6 +70,7 @@ typedef struct ShareMemHeader {
 
 /* Bit usages in flags field (low to high)
  * bit 0~1:     Bucket type 0/1/2
+ * bit 29:      Mark the block is loading
  * bit 30:      Mark the evicting block has been deleted
  * bit 31:      Evicting bucket will set this bit to 1
  * */
@@ -79,7 +80,7 @@ typedef struct ShareMemBucket {
     FileId fileId;
     int32_t fileBlockIndex;
     int32_t writeActiveId;
-    int32_t evictActiveId;
+    int32_t evictLoadActiveId;
     int32_t readActives[SMBUCKET_MAX_CONCURRENT_OPEN];
 
     /* Bucket status operations */
@@ -88,12 +89,15 @@ typedef struct ShareMemBucket {
     bool isUsedBucket() { return (flags & 0x00000003) == 2 ? true : false; };
     bool isEvictingBucket() { return (flags & 0x80000000); };
     bool isDeletedBucket() { return (flags & 0x40000000); };
+    bool isLoadingBucket() { return (flags & 0x20000000); };
     void setBucketFree() { flags = (flags & BucketTypeMask) | 0x00000000; };
     void setBucketActive() { flags = (flags & BucketTypeMask) | 0x00000001; };
     void setBucketUsed() { flags = (flags & BucketTypeMask) | 0x00000002; };
     void setBucketEvicting() { flags = (flags | 0x80000000); };
     void setBucketEvictFinish() { flags = (flags & 0x7FFFFFFF); };
     void setBucketDeleted() { flags = (flags | 0x40000000); };
+    void setBucketLoading() { flags = (flags | 0x20000000); };
+    void setBucketLoadFinish() { flags = (flags & 0xDFFFFFFF); };
 
     void reset();
     void markWrite(int activeId);
@@ -113,7 +117,7 @@ typedef struct ShareMemBucket {
  *
  * FLAGS (low -> high):
  * 0  bit: mark evicting
- * 1  bit: mark reading
+ * 1  bit: mark loading
  * 29 bit: mark the activeStatus opened file has been unlinked, should destroy when
  *          closing this activestatus if it's the last opened activestatus
  * 30 bit: mark the evict bucket has been stolen(the owner get it back)
@@ -127,12 +131,12 @@ typedef struct ShareMemActiveStatus {
     int32_t fileBlockIndex;
 
     void setEvicting() { flags |= 0x00000001; };
-    void setReading() { flags |= 0x00000002; };
+    void setLoading() { flags |= 0x00000002; };
     void setForDelete() { flags |= 0x80000000; };
     void setBucketStolen() { flags |= 0x40000000; };
     void setShouldDestroy() { flags |= 0x20000000; };
     void unsetEvicting() { flags &= 0xFFFFFFFE; };
-    void unsetReading() { flags &= 0xFFFFFFFD; };
+    void unsetLoading() { flags &= 0xFFFFFFFD; };
     void unsetBucketStolen() { flags &= 0xBFFFFFFF; };
     void unsetShouldDestroy() { flags &= 0xDFFFFFFF; };
 

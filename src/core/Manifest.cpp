@@ -151,6 +151,23 @@ void Manifest::logEvcitBlock(Block &block) {
             "New evictBlock log record");
 }
 
+void Manifest::logLoadBlock(Block &block) {
+    /* build load Block Opaque */
+    RecOpaque opaque;
+    opaque.common.padding = 0;
+
+    std::vector<Block> blocks;
+    blocks.push_back(block);
+
+    /* build log record */
+    std::string logRecord = serializeManifestLog(blocks, RecordType::loadBlock, opaque);
+
+    /* flush to log */
+    mfWrite(logRecord);
+    LOG(INFO, "[Manifest]              |"
+            "New loadBlock log record");
+}
+
 void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
     /* truncate existing Manifest file */
     mfTruncate();

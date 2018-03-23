@@ -42,7 +42,7 @@ enum RecordType {
      * transit Shared Memory state from 1 to 0 */
     releaseBlock = 3,
     /* load a block from OSS to local space */
-    cacheBlock = 4,
+    loadBlock = 4,
     /* assign a block to local bucket */
     extendBlock = 5,
     /* evict a block from local space to OSS
@@ -119,6 +119,7 @@ public:
     void logInactivateBucket(std::vector<Block> &blocks);
     void logActivateBucket(Block &block);
     void logEvcitBlock(Block &block);
+    void logLoadBlock(Block &block);
 
     RecordHeader fetchOneLogRecord(std::vector<Block> &blocks);
 

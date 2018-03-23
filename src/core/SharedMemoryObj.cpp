@@ -48,7 +48,7 @@ void ShareMemBucket::reset() {
     fileId.reset();
     fileBlockIndex = InvalidBlockId;
     writeActiveId = InvalidActiveId;
-    evictActiveId = InvalidActiveId;
+    evictLoadActiveId = InvalidActiveId;
     for (short i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
         readActives[i] = InvalidActiveId;
     }

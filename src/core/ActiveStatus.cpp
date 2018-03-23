@@ -150,15 +150,12 @@ void ActiveStatus::adjustActiveBlock(int curBlockId) {
     if (curBlockId + 1 > mNumBlocks) {
         extendOneBlock();
     } else if (!isMyActiveBlock(curBlockId)) {
-        /* need to mark the block to my active block */
-        if (!mBlockArray[curBlockId].isLocal) {
-            loadBlock(curBlockId);
-            THROW(GopherwoodNotImplException, "Not implemented yet!");
-        } else if (mBlockArray[curBlockId].state == BUCKET_USED) {
-            activateBlock(curBlockId);
-        } else if (mBlockArray[curBlockId].state == BUCKET_ACTIVE &&
-                    !isMyActiveBlock(curBlockId)) {
-            activateBlock(curBlockId);
+        /* all blocks not activated by me can not be trusted
+         * Need to lock Shared Memory and catch up logs */
+        activateBlock(curBlockId);
+    } else {
+        if (!mLRUCache->exists(curBlockId)) {
+            THROW(GopherwoodException, "[ActiveStatus] block active status mismatch!");
         }
     }
 }
@@ -225,6 +222,7 @@ void ActiveStatus::acquireNewBlocks() {
                 numToInactivate = numToAcquire;
             } else {
                 /* 3(b) play with current owned buckets */
+                /* TODO: inactivate a number of buckets of my own */
                 numToInactivate = 0;
                 numToAcquire = 0;
             }
@@ -371,6 +369,7 @@ void ActiveStatus::acquireNewBlocks() {
             }
         SHARED_MEM_END
     }
+    assert(mPreAllocatedBuckets.size() > 0);
 }
 
 /* Extend the file to create a new block, the block will get bucket from the
@@ -380,11 +379,6 @@ void ActiveStatus::extendOneBlock() {
 
     if (mPreAllocatedBuckets.size() == 0) {
         acquireNewBlocks();
-    }
-
-    if (mPreAllocatedBuckets.size() == 0) {
-        /* TODO: play with own buckets, evict first */
-        THROW(GopherwoodNotImplException, "Not implemented yet!");
     }
 
     /* build the block */
@@ -415,50 +409,91 @@ void ActiveStatus::extendOneBlock() {
         b.blockId, b.bucketId);
 }
 
-/* activate a block if it's not been marked */
-void ActiveStatus::activateBlock(int blockInd) {
+/* active a block back to my control */
+void ActiveStatus::activateBlock(int blockId) {
+    bool loadBlock = false;
+    int rc = -1;
+
+    /* to eliminate the Shared Memory consistent issues,
+     * We acquire new blocks first, then we activate the block.
+     * Actually only loadBlock need acquire new block, but we
+     * still acquire for all cases to simplify the logic. */
+    if (mPreAllocatedBuckets.size() == 0) {
+        acquireNewBlocks();
+    }
+
+    /* Main logic to activate the block */
     SHARED_MEM_BEGIN
-        /* inactivate first if LRUCache(Quota) is used up */
-        if (mLRUCache->size() == mLRUCache->maxSize()) {
-            std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
-            std::vector<Block> blocksToInactivate;
-            for (int i : blockIds) {
-                blocksToInactivate.push_back(mBlockArray[i]);
+        /* after catched up the log, we can handle cases in a consistent state */
+        if (!mBlockArray[blockId].isLocal) {
+            loadBlock = true;
+            /* build the block */
+            Block block = mPreAllocatedBuckets.front();
+            mPreAllocatedBuckets.pop_front();
+            block.blockId = blockId;
+
+            /* update Shared Memory */
+            mSharedMemoryContext->markBucketLoading(block, mActiveId, mFileId);
+            block.state = BUCKET_ACTIVE;
+
+            /* add to LRU cache */
+            mLRUCache->put(block.blockId, block.bucketId);
+            /* update block info */
+            mBlockArray[blockId] = block;
+            /* mark loading log */
+            mManifest->logLoadBlock(block);
+
+        } else if (mBlockArray[blockId].state == BUCKET_USED ||
+                   mBlockArray[blockId].state == BUCKET_ACTIVE) {
+            /* activate the block */
+            /* inactivate first if LRUCache(Quota) is used up */
+            if (mLRUCache->size() == mLRUCache->maxSize()) {
+                std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
+                std::vector<Block> blocksToInactivate;
+                for (int i : blockIds) {
+                    blocksToInactivate.push_back(mBlockArray[i]);
+                }
+                std::vector<Block> turedToUsedBlocks =
+                        mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
+                                                                mFileId,
+                                                                mActiveId,
+                                                                mIsWrite);
+
+                /* update block status*/
+                for (Block b : turedToUsedBlocks) {
+                    mBlockArray[b.blockId].state = b.state;
+                }
+                /* log inactivate buckets */
+                mManifest->logInactivateBucket(turedToUsedBlocks);
             }
-            std::vector<Block> turedToUsedBlocks =
-                    mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
-                                                            mFileId,
-                                                            mActiveId,
-                                                            mIsWrite);
 
-            /* update block status*/
-            for (Block b : turedToUsedBlocks) {
-                mBlockArray[b.blockId].state = b.state;
+            /* activate the block */
+            /* TODO: add return value that the block is loading, need to wait */
+            rc = mSharedMemoryContext->activateBucket(mFileId,
+                                                      mBlockArray[blockId],
+                                                      mActiveId,
+                                                      mIsWrite);
+            /* the block is activated by me */
+            if (rc == 1) {
+                mManifest->logActivateBucket(mBlockArray[blockId]);
+            } else if (rc == -1) {
+                THROW(GopherwoodException, "[ActiveStatus] activateBucket in SharedMemory got error!");
             }
-            /* log inactivate buckets */
-            mManifest->logInactivateBucket(turedToUsedBlocks);
-        }
 
-        /* activate the block */
-        bool activated = mSharedMemoryContext->activateBucket(mFileId,
-                                                              mBlockArray[blockInd],
-                                                              mActiveId,
-                                                              mIsWrite);
-        mLRUCache->put(mBlockArray[blockInd].blockId, mBlockArray[blockInd].bucketId);
-
-        /* the block is activated by me */
-        if (activated) {
-            mManifest->logActivateBucket(mBlockArray[blockInd]);
+            mLRUCache->put(mBlockArray[blockId].blockId, mBlockArray[blockId].bucketId);
+        } else {
+            THROW(GopherwoodException, "[ActiveStatus] block active status mismatch!");
         }
     SHARED_MEM_END
-}
 
-/* load a block from  */
-void ActiveStatus::loadBlock(int blockInd) {
-    /* mark loading? */
-    /* load */
-    /* mark finish */
-
+    /* load the block */
+    if (loadBlock) {
+        /* TODO: load the block and mark loadFinish */
+    }
+    /* if wait loading, loop to check status */
+    if (rc == 2) {
+        /* TODO: wait loading */
+    }
 }
 
 void ActiveStatus::logEvictBlock(BlockInfo info) {
@@ -634,6 +669,18 @@ void ActiveStatus::catchUpManifestLogs() {
                 } else {
                     THROW(GopherwoodException,
                           "[ActiveStatus] The block %d status is not BUCKET_USED when replaying the evictBlock log ",
+                          blocks[0].blockId);
+                }
+                break;
+            case RecordType::loadBlock:
+                LOG(INFO, "[ActiveStatus]          |"
+                        "Replay loadBlock log record with %lu blocks.", blocks.size());
+                assert(header.numBlocks == 1);
+                if (!mBlockArray[blocks[0].blockId].isLocal) {
+                    mBlockArray[blocks[0].blockId] = blocks[0];
+                } else {
+                    THROW(GopherwoodException,
+                          "[ActiveStatus] The block %d is not remote when replaying the loadBlock log ",
                           blocks[0].blockId);
                 }
                 break;
