@@ -37,6 +37,9 @@ void OutputStream::updateBlockStream() {
 
     /* Update the BlockInfo of the BlockOutputStream */
     mBlockOutputStream->setBlockInfo(mStatus->getCurBlockInfo());
+
+    /* Update the position*/
+    mPos = mStatus->getPosition();
 }
 
 void OutputStream::write(const char *buffer, int64_t length, bool isSeek) {

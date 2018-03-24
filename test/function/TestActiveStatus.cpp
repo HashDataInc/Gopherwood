@@ -86,3 +86,35 @@ TEST_F(TestActiveStatus, TestWriteReadConcurrent) {
 
     free(buffer);
 }
+
+// if the outputStream's position do not sync with the activeStatus's position. the actual writen size is equal the size(input)*writeCount
+TEST_F(TestActiveStatus, TestMutilWrite) {
+    int writeCount = 10;
+    /*1. create the context and open the file*/
+    gwFormatContext(workDir);
+    GWContextConfig config;
+    config.blockSize = 10;
+    config.numBlocks = 1000;
+    config.numPreDefinedConcurrency = 10;
+
+    char *buffer = (char *) malloc(100);
+    char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
+
+    for (int i = 0; i < writeCount; i++) {
+
+        gopherwoodFS gwFS = gwCreateContext(workDir, &config);
+        std::string fileName = "TestMutilWrite";
+        gwFile gwfile = gwOpenFile(gwFS, fileName.c_str(), GW_CREAT | GW_RDWR);
+
+
+        /*2. seek the end of the file*/
+        gwSeek(gwFS, gwfile, 0, SEEK_END);
+
+        /*5. write data to the gopherwood*/
+        gwWrite(gwFS, gwfile, buffer, sizeof(input));
+
+        /*6. close the file*/
+        gwCloseFile(gwFS, gwfile);
+
+    }
+}
