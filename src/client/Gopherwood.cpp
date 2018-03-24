@@ -142,9 +142,15 @@ static void handleException(const Gopherwood::exception_ptr &error) {
 
 gopherwoodFS gwCreateContext(char *workDir, GWContextConfig *config) {
     LOG(Gopherwood::Internal::INFO, "------------------gwCreateContext start------------------");
+    PARAMETER_ASSERT(workDir && strlen(workDir) > 0, NULL, EINVAL);
+
     gopherwoodFS retVal = NULL;
 
     if (config != NULL) {
+        PARAMETER_ASSERT(config->numBlocks > 0, NULL, EINVAL);
+        PARAMETER_ASSERT(config->blockSize > 0, NULL, EINVAL);
+        PARAMETER_ASSERT(config->numPreDefinedConcurrency > 0, NULL, EINVAL);
+
         Configuration::NUMBER_OF_BLOCKS = config->numBlocks;
         Configuration::LOCAL_BUCKET_SIZE = config->blockSize;
         Configuration::CUR_CONNECTION = config->numPreDefinedConcurrency;
@@ -162,6 +168,7 @@ gopherwoodFS gwCreateContext(char *workDir, GWContextConfig *config) {
 
 void gwFormatContext(char *workDir) {
     LOG(Gopherwood::Internal::INFO, "------------------gwFormatContext start------------------");
+
     try {
         FileSystem::Format(workDir);
     } catch (...) {

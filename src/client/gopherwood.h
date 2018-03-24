@@ -46,6 +46,7 @@ extern "C" {
 #define EOSS            105     //GopherwoodOSSException
 
 
+
 /*******************************************
  * AccessFileType - the access file's type
  *******************************************/

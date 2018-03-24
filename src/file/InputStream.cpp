@@ -26,7 +26,7 @@ namespace Internal {
 
 InputStream::InputStream(int fd, shared_ptr<ActiveStatus> status) :
         mLocalSpaceFD(fd), mStatus(status) {
-    mPos = -1;
+    mPos = 0;
     mBlockInputStream = shared_ptr<BlockInputStream>(new BlockInputStream(mLocalSpaceFD));
 }
 
@@ -36,19 +36,15 @@ void InputStream::updateBlockStream() {
 
     /* Update the BlockInfo of the BlockOutputStream */
     mBlockInputStream->setBlockInfo(mStatus->getCurBlockInfo());
+
+    /* Update the position*/
+    mPos = mStatus->getPosition();
 }
 
 void InputStream::read(char *buffer, int64_t length) {
     int64_t bytesToRead = length;
     int64_t bytesRead = 0;
-    bool needUpdate = false;
-
-    /* update OutputStream file level position */
-    int64_t statusPos = mStatus->getPosition();
-    if (mPos != statusPos) {
-        needUpdate = true;
-        mPos = statusPos;
-    }
+    bool needUpdate = true;
 
     /* write the buffer, switch target block if needed */
     while (bytesToRead > 0) {
