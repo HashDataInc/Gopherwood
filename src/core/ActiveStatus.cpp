@@ -51,7 +51,6 @@ ActiveStatus::ActiveStatus(FileId fileId,
     mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(Configuration::getCurQuotaSize()));
     mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(FileSystem::OSS_CONTEXT, localSpaceFD));
 
-    mNumBlocks = 0;
     mPos = 0;
     mEof = 0;
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
@@ -111,6 +110,10 @@ Block ActiveStatus::getCurBlock() {
     return mBlockArray[mPos / mBucketSize];
 }
 
+int32_t ActiveStatus::getNumBlocks() {
+    return mBlockArray.size();
+}
+
 int64_t ActiveStatus::getCurBlockOffset() {
     return mPos % mBucketSize;
 }
@@ -147,7 +150,7 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
 }
 
 void ActiveStatus::adjustActiveBlock(int curBlockId) {
-    if (curBlockId + 1 > mNumBlocks) {
+    if (curBlockId + 1 > getNumBlocks()) {
         extendOneBlock();
     } else if (!isMyActiveBlock(curBlockId)) {
         /* all blocks not activated by me can not be trusted
@@ -386,11 +389,10 @@ void ActiveStatus::extendOneBlock() {
     /* build the block */
     Block b = mPreAllocatedBuckets.front();
     mPreAllocatedBuckets.pop_front();
-    b.blockId = mNumBlocks;
+    b.blockId = getNumBlocks();
 
     /* add to block array */
     mBlockArray.push_back(b);
-    mNumBlocks++;
 
     /* add to LRU cache */
     mLRUCache->put(b.blockId, b.bucketId);
@@ -681,7 +683,6 @@ void ActiveStatus::catchUpManifestLogs() {
                         "Replay assignBlock log record with %lu blocks.", blocks.size());
                 assert(header.numBlocks == 1);
                 mBlockArray.push_back(blocks[0]);
-                mNumBlocks++;
                 mEof = header.opaque.extendBlock.eof;
                 break;
             case RecordType::evictBlock:
@@ -714,7 +715,6 @@ void ActiveStatus::catchUpManifestLogs() {
                     header.opaque.fullStatus.eof);
                 for (Block block : blocks) {
                     mBlockArray.push_back(block);
-                    mNumBlocks++;
                 }
                 mEof = header.opaque.fullStatus.eof;
                 break;

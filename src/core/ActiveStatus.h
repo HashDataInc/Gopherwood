@@ -93,6 +93,7 @@ private:
     void unregistInSharedMem();
 
     Block getCurBlock();
+    int32_t getNumBlocks();
     int64_t getCurBlockOffset();
     std::string getManifestFileName(FileId fileId);
     bool isMyActiveBlock(int blockId);
@@ -120,7 +121,6 @@ private:
     bool mShouldDestroy;
     int64_t mPos;
     int64_t mEof;
-    int32_t mNumBlocks;
     int64_t mBucketSize;
 
     std::vector<Block> mBlockArray;
