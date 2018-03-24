@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(src/
         build/src
+        gtest/include
         /usr/local/Cellar/boost/1.66.0/include
         /usr/local/include)
 
@@ -115,6 +116,7 @@ set(SOURCE_FILES
         src/block/OssBlockReader.h
         src/block/OssBlockReader.cpp
         test/hello.cpp
+        test/function/TestActiveStatus.cpp
         src/core/BlockStatus.h
         src/core/Manifest.h
         src/core/Manifest.cpp

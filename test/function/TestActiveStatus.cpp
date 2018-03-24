@@ -36,11 +36,10 @@ public:
     TestActiveStatus()
     {
         try {
-            gwFormatContext(workDir);
-
             GWContextConfig config;
             config.blockSize = 10;
-            config.numBlocks = 100;
+            config.numBlocks = 50;
+            config.numPreDefinedConcurrency = 10;
 
             fs =  gwCreateContext(workDir, &config);
         } catch (...) {
@@ -60,12 +59,17 @@ protected:
 
 };
 
-TEST_F(TestActiveStatus, TestWriteReadConcurrent) {
-    char* buffer = (char*)malloc(100);
-    char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
+TEST_F(TestActiveStatus, TestFormatWorkDir) {
+    gwFormatContext(workDir);
+}
 
-    gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
-    gwWrite(fs, file, input, sizeof(input));
+TEST_F(TestActiveStatus, TestWriteReadConcurrent) {
+    char *buffer = (char *) malloc(100);
+    char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
+    char fileName[] = "TestWriteReadConcurrent";
+
+    gwFile file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR);
+    gwWrite(fs, file, input, 1);
     gwFlush(fs, file);
 
     gwSeek(fs, file, 10, SEEK_SET);
@@ -74,7 +78,7 @@ TEST_F(TestActiveStatus, TestWriteReadConcurrent) {
     printf("Read From Gopherwood the first time %s \n", buffer);
     buffer[0] = '\0';
 
-    gwFile file1 = gwOpenFile(fs, "/test1", GW_RDONLY);
+    gwFile file1 = gwOpenFile(fs, fileName, GW_RDONLY);
 
     gwSeek(fs, file1, 10, SEEK_SET);
     len = gwRead(fs, file1, buffer, 20);
@@ -83,38 +87,33 @@ TEST_F(TestActiveStatus, TestWriteReadConcurrent) {
 
     gwCloseFile(fs, file1);
     gwCloseFile(fs, file);
+    gwDeleteFile(fs, fileName);
 
     free(buffer);
 }
 
 // if the outputStream's position do not sync with the activeStatus's position. the actual writen size is equal the size(input)*writeCount
 TEST_F(TestActiveStatus, TestMutilWrite) {
+    EXPECT_TRUE(true);
     int writeCount = 10;
-    /*1. create the context and open the file*/
-    gwFormatContext(workDir);
-    GWContextConfig config;
-    config.blockSize = 10;
-    config.numBlocks = 1000;
-    config.numPreDefinedConcurrency = 10;
 
     char *buffer = (char *) malloc(100);
     char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
+    char fileName[] = "TestWriteReadConcurrent";
 
     for (int i = 0; i < writeCount; i++) {
-
-        gopherwoodFS gwFS = gwCreateContext(workDir, &config);
-        std::string fileName = "TestMutilWrite";
-        gwFile gwfile = gwOpenFile(gwFS, fileName.c_str(), GW_CREAT | GW_RDWR);
-
+        gwFile gwfile = gwOpenFile(fs, fileName, GW_CREAT | GW_RDWR);
 
         /*2. seek the end of the file*/
-        gwSeek(gwFS, gwfile, 0, SEEK_END);
+        gwSeek(fs, gwfile, 0, SEEK_END);
 
         /*5. write data to the gopherwood*/
-        gwWrite(gwFS, gwfile, buffer, sizeof(input));
+        gwWrite(fs, gwfile, buffer, sizeof(input));
 
         /*6. close the file*/
-        gwCloseFile(gwFS, gwfile);
-
+        gwCloseFile(fs, gwfile);
     }
+    gwDeleteFile(fs, fileName);
+
+    free(buffer);
 }

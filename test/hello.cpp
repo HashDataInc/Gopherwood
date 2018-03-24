@@ -36,6 +36,7 @@ void testReadWrite(){
     gwCloseFile(fs, file);
 
     gwDeleteFile(fs, "/test1");
+    free(buffer);
 };
 
 void testSeekExceedEof(){
@@ -65,20 +66,20 @@ void testWriteExceedQuota(){
     char* buffer = (char*)malloc(200);
 
     gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
-    for (int i=0; i<12; i++) {
+    for (int i=0; i<5; i++) {
         gwWrite(fs, file, input, 10);
     }
     gwCloseFile(fs, file);
 
     gwFile file1 = gwOpenFile(fs, "/test1", GW_RDONLY);
     int ind = 0;
-    for (int pos = 0; pos <110; pos+=2){
+    for (int pos = 0; pos <30; pos+=2){
         gwSeek(fs, file1, pos, SEEK_SET);
         gwRead(fs, file1, buffer+ind, 1);
         ind+=1;
     }
     buffer[ind] = '\0';
-    printf("Read From file1%s \n", buffer);
+    printf("Read From file %s \n", buffer);
     gwCloseFile(fs, file1);
 
     gwDeleteFile(fs, "/test1");
@@ -91,7 +92,8 @@ int main(int argc, char *argv[])
 
     GWContextConfig config;
     config.blockSize = 10;
-    config.numBlocks = 100;
+    config.numBlocks = 20;
+    config.numPreDefinedConcurrency =10;
 
     fs =  gwCreateContext(workDir, &config);
 

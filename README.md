@@ -39,6 +39,10 @@ Run command "../bootstrap --help" for more configuration.
     make install 
     
 ### Test
+To test all test cases, run command
+
+    make testAll
+
 To do unit test, run command
 
     make unittest

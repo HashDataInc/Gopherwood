@@ -369,7 +369,9 @@ void ActiveStatus::acquireNewBlocks() {
             }
         SHARED_MEM_END
     }
-    assert(mPreAllocatedBuckets.size() > 0);
+    if (mPreAllocatedBuckets.size() <= 0) {
+        THROW(GopherwoodException, "Did not acquire any block!");
+    }
 }
 
 /* Extend the file to create a new block, the block will get bucket from the
