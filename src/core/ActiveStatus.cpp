@@ -196,6 +196,7 @@ void ActiveStatus::acquireNewBlocks() {
         numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
         numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
         numAvailable = numFreeBuckets + numUsedBuckets;
+        assert(quota > 0);
 
         /************************************************
          * Step1: Determine the acquire policy first
@@ -210,11 +211,13 @@ void ActiveStatus::acquireNewBlocks() {
                 numToAcquire = numAvailable > tmpAcquire ? tmpAcquire : numAvailable;
                 /* it might exceed quota after acquired new buckets */
                 numToInactivate = (mLRUCache->size() + numToAcquire) > quota ?
-                                  mLRUCache->size() + numToAcquire - quota : 0;
+                                   mLRUCache->size() + numToAcquire - quota : 0;
             } else {
-                /* 2(b) play with current owned buckets */
-                numToInactivate = 0;
-                numToAcquire = 0;
+                /* 2(b) play with current owned buckets
+                 * evict one block at a time. This will make sure the inactivated block is
+                 * evicted by myself */
+                numToInactivate = 1;
+                numToAcquire = 1;
             }
         } else if (mLRUCache->size() == quota) {
             if (numFreeBuckets > 0) {
@@ -225,14 +228,13 @@ void ActiveStatus::acquireNewBlocks() {
                 numToInactivate = numToAcquire;
             } else {
                 /* 3(b) play with current owned buckets */
-                /* TODO: inactivate a number of buckets of my own */
-                numToInactivate = 0;
-                numToAcquire = 0;
+                numToInactivate = 1;
+                numToAcquire = 1;
             }
         } else {
             /* 4 release blocks and use own quota*/
-            numToInactivate = mLRUCache->size() - quota;
-            numToAcquire = 0;
+            numToInactivate = mLRUCache->size() - quota + 1;
+            numToAcquire = 1;
         }
         LOG(INFO, "[ActiveStatus]          |"
                 "Calculate new quota size, newQuota=%u, curQuota=%ld, numAvailables=%d, "
