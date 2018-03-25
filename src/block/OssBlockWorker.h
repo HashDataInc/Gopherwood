@@ -19,8 +19,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef GOPHERWOOD_BLOCK_OSSBLOCKREADER_H
-#define GOPHERWOOD_BLOCK_OSSBLOCKREADER_H
+#ifndef GOPHERWOOD_BLOCK_OSSBLOCKWORKER_H
+#define GOPHERWOOD_BLOCK_OSSBLOCKWORKER_H
 
 #include "platform.h"
 #include "core/BlockStatus.h"
@@ -29,13 +29,15 @@
 namespace Gopherwood {
 namespace Internal {
 
-class OssBlockReader {
+class OssBlockWorker {
 public:
-    OssBlockReader(context ossCtx, int localSpaceFD);
+    OssBlockWorker(context ossCtx, int localSpaceFD);
+
+    void writeBlock(BlockInfo info);
 
     void readBlock(BlockInfo info);
 
-    ~OssBlockReader();
+    ~OssBlockWorker();
 
 private:
     std::string getOssObjectName(BlockInfo blockInfo);
@@ -46,4 +48,4 @@ private:
 
 }
 }
-#endif //GOPHERWOOD_BLOCK_OSSBLOCKREADER_H
+#endif //GOPHERWOOD_BLOCK_OSSBLOCKWORKER_H

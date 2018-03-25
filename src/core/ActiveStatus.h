@@ -24,8 +24,7 @@
 
 #include "platform.h"
 
-#include "block/OssBlockWriter.h"
-#include "block/OssBlockReader.h"
+#include "block/OssBlockWorker.h"
 #include "common/LRUCache.cpp"
 #include "core/SharedMemoryContext.h"
 #include "core/BlockStatus.h"
@@ -113,8 +112,7 @@ private:
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, int>> mLRUCache;
-    shared_ptr<OssBlockWriter> mOssWriter;
-    shared_ptr<OssBlockReader> mOssReader;
+    shared_ptr<OssBlockWorker> mOssWorker;
 
     bool mIsWrite;
     bool mIsDelete;

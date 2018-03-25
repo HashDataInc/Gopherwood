@@ -29,7 +29,7 @@ namespace Internal {
 
 BlockInputStream::BlockInputStream(int fd) : mLocalSpaceFD(fd) {
     mLocalReader = shared_ptr<LocalBlockReader>(new LocalBlockReader(fd));
-    mOssReader = shared_ptr<OssBlockReader>(new OssBlockReader(FileSystem::OSS_CONTEXT, fd));
+    mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, fd));
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
 }
 

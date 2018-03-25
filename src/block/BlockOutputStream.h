@@ -28,7 +28,7 @@
 #include "core/ActiveStatus.h"
 #include "common/Memory.h"
 #include "oss/oss.h"
-#include "OssBlockWriter.h"
+#include "OssBlockWorker.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -55,7 +55,7 @@ private:
     bool mCached;
 
     shared_ptr<LocalBlockWriter> mLocalWriter;
-    shared_ptr<OssBlockWriter> mOssWriter;
+    shared_ptr<OssBlockWorker> mOssWorker;
 };
 
 }

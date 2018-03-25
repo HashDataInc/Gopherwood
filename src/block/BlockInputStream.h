@@ -25,7 +25,7 @@
 #include "platform.h"
 
 #include "block/LocalBlockReader.h"
-#include "block/OssBlockReader.h"
+#include "block/OssBlockWorker.h"
 #include "core/ActiveStatus.h"
 #include "common/Memory.h"
 #include "oss/oss.h"
@@ -53,7 +53,7 @@ private:
     int64_t mBucketSize;
     BlockInfo mBlockInfo;
     shared_ptr<LocalBlockReader> mLocalReader;
-    shared_ptr<OssBlockReader> mOssReader;
+    shared_ptr<OssBlockWorker> mOssWorker;
 };
 
 }

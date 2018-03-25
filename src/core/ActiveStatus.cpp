@@ -49,7 +49,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
     }
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
     mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(Configuration::getCurQuotaSize()));
-    mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(FileSystem::OSS_CONTEXT, localSpaceFD));
+    mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, localSpaceFD));
 
     mPos = 0;
     mEof = 0;
@@ -308,7 +308,7 @@ void ActiveStatus::acquireNewBlocks() {
     while (numToAcquire > 0 || evicting) {
         /* evict the bucket */
         if (evicting) {
-            mOssWriter->writeBlock(evictBlockInfo);
+            mOssWorker->writeBlock(evictBlockInfo);
         }
 
         SHARED_MEM_BEGIN
@@ -474,7 +474,6 @@ void ActiveStatus::activateBlock(int blockId) {
             }
 
             /* activate the block */
-            /* TODO: add return value that the block is loading, need to wait */
             rc = mSharedMemoryContext->activateBucket(mFileId,
                                                       mBlockArray[blockId],
                                                       mActiveId,
@@ -501,7 +500,7 @@ void ActiveStatus::activateBlock(int blockId) {
         info.isLocal = false;
         info.offset = InvalidBlockOffset;
 
-        mOssReader->readBlock(info);
+        mOssWorker->readBlock(info);
 
         SHARED_MEM_BEGIN
             mSharedMemoryContext->markLoadFinish(mBlockArray[blockId], mActiveId, mFileId);

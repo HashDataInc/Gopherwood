@@ -31,7 +31,7 @@ namespace Internal {
 
 BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd) {
     mLocalWriter = shared_ptr<LocalBlockWriter>(new LocalBlockWriter(fd));
-    mOssWriter = shared_ptr<OssBlockWriter>(new OssBlockWriter(FileSystem::OSS_CONTEXT, fd));
+    mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, fd));
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
     mBlockInfo.reset();
     mCached = false;
@@ -77,8 +77,7 @@ void BlockOutputStream::flush() {
     if (mBlockInfo.isLocal) {
         mLocalWriter->flush();
     } else {
-        /* TODO: Remote flush */
-        THROW(GopherwoodNotImplException, "Not implemented yet!");
+        /* TODO: Remote flush, currently we won't write to OSS directly */
     }
 }
 

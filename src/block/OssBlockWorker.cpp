@@ -19,7 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "block/OssBlockReader.h"
+#include "block/OssBlockWorker.h"
 #include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
@@ -28,12 +28,40 @@
 namespace Gopherwood {
 namespace Internal {
 
-OssBlockReader::OssBlockReader(context ossCtx, int localSpaceFD) :
+OssBlockWorker::OssBlockWorker(context ossCtx, int localSpaceFD) :
         mOssContext(ossCtx),
-        mLocalSpaceFD(localSpaceFD) {
+        mLocalSpaceFD(localSpaceFD){
 }
 
-void OssBlockReader::readBlock(BlockInfo info) {
+void OssBlockWorker::writeBlock(BlockInfo info) {
+    int64_t rc = 0;
+
+    int64_t bucketSize = Configuration::LOCAL_BUCKET_SIZE;
+    char *buffer = (char*)malloc(bucketSize);
+
+    rc = lseek(mLocalSpaceFD, info.bucketId * bucketSize, SEEK_SET);
+    if (rc == -1){
+        THROW(GopherwoodIOException,
+              "[OssBlockWorker] Local file space seek error!");
+    }
+
+    rc = read(mLocalSpaceFD, buffer, bucketSize);
+    if (rc != bucketSize){
+        THROW(GopherwoodIOException,
+              "[OssBlockWorker] Local file space read error!");
+    }
+
+    ossObject remoteBlock = ossPutObject(mOssContext,
+                                         FileSystem::OSS_BUCKET.c_str(),
+                                         getOssObjectName(info).c_str(),
+                                         false);
+
+    ossWrite(mOssContext, remoteBlock, buffer, bucketSize);
+    ossCloseObject(mOssContext, remoteBlock);
+    free(buffer);
+}
+
+void OssBlockWorker::readBlock(BlockInfo info) {
     int64_t rc = 0;
 
     int64_t bucketSize = Configuration::LOCAL_BUCKET_SIZE;
@@ -49,7 +77,7 @@ void OssBlockReader::readBlock(BlockInfo info) {
     ossCloseObject(mOssContext, remoteBlock);
     if (bytesRead != bucketSize) {
         THROW(GopherwoodIOException,
-              "[OssBlockReader] Remote file size mismatch, expect %ld, but got %ld!",
+              "[OssBlockWorker] Remote file size mismatch, expect %ld, but got %ld!",
               bucketSize,
               bytesRead);
     }
@@ -57,18 +85,18 @@ void OssBlockReader::readBlock(BlockInfo info) {
     rc = lseek(mLocalSpaceFD, info.bucketId * bucketSize, SEEK_SET);
     if (rc == -1){
         THROW(GopherwoodIOException,
-              "[OssBlockReader] Local file space seek error!");
+              "[OssBlockWorker] Local file space seek error!");
     }
 
     rc = write(mLocalSpaceFD, buffer, bucketSize);
     if (rc != bucketSize){
         THROW(GopherwoodIOException,
-              "[OssBlockReader] Local file space read error!");
+              "[OssBlockWorker] Local file space read error!");
     }
     free(buffer);
 }
 
-std::string OssBlockReader::getOssObjectName(BlockInfo blockInfo){
+std::string OssBlockWorker::getOssObjectName(BlockInfo blockInfo){
     std::stringstream ss;
     char hostname[1024];
     gethostname(hostname, 1024);
@@ -77,8 +105,7 @@ std::string OssBlockReader::getOssObjectName(BlockInfo blockInfo){
     return ss.str();
 }
 
-
-OssBlockReader::~OssBlockReader() {
+OssBlockWorker::~OssBlockWorker() {
 }
 
 }
