@@ -37,6 +37,8 @@ public:
 
     void readBlock(BlockInfo info);
 
+    void deleteBlock(BlockInfo info);
+
     ~OssBlockWorker();
 
 private:

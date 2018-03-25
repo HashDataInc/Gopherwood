@@ -96,6 +96,14 @@ void OssBlockWorker::readBlock(BlockInfo info) {
     free(buffer);
 }
 
+void OssBlockWorker::deleteBlock(BlockInfo info) {
+    int rc = ossDeleteObject(mOssContext, FileSystem::OSS_BUCKET.c_str(), getOssObjectName(info).c_str());
+    if (rc == -1){
+        THROW(GopherwoodIOException,
+              "[OssBlockWorker] OSS file delete error!");
+    }
+}
+
 std::string OssBlockWorker::getOssObjectName(BlockInfo blockInfo){
     std::stringstream ss;
     char hostname[1024];

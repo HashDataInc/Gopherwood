@@ -338,8 +338,7 @@ void ActiveStatus::acquireNewBlocks() {
                  * 2: the evicted bucket has been activated by it's file owner, give up this one*/
                 if (rc == 1 || rc == 2) {
                     /* the evicted bucket has been activated by it's file owner, give up this one */
-                    /* TODO: remove the bucket since that file has been deleted */
-                    THROW(GopherwoodNotImplException, "Not implemented yet!");
+                    mOssWorker->deleteBlock(evictBlockInfo);
                 }
             }
 
@@ -627,9 +626,17 @@ void ActiveStatus::close() {
     SHARED_MEM_END
 
     if (mShouldDestroy) {
-        /* remove all remote file
-         * TODO: Not implemented yet */
+        /* remove all remote file */
         if (remoteBlocks.size() > 0) {
+            for (Block remoteBlock : remoteBlocks) {
+                BlockInfo info;
+                info.bucketId = remoteBlock.bucketId;
+                info.blockId = remoteBlock.blockId;
+                info.fileId = mFileId;
+                info.isLocal = remoteBlock.isLocal;
+
+                mOssWorker->deleteBlock(info);
+            }
             THROW(GopherwoodNotImplException, "Not implemented yet!");
         }
     }
