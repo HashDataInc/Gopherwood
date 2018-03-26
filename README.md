@@ -37,6 +37,10 @@ Run command "../bootstrap --help" for more configuration.
     
     make 
     make install 
+
+### Configurations of Object Storage Service
+    modify $GOPHERWOOD_HOME/config.properties 
+    export GOPHERWOOD_CONF=$GOPHERWOOD_HOME/config.properties
     
 ### Test
 To test all test cases, run command

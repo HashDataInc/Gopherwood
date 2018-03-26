@@ -25,6 +25,7 @@
 #include "platform.h"
 
 #include "common/Memory.h"
+#include "common/ObjectStorInfo.h"
 #include "common/Unordered.h"
 #include "core/ActiveStatusContext.h"
 #include "core/SharedMemoryManager.h"
@@ -39,7 +40,7 @@ class FileSystem {
 public:
     static void Format(const char *workDir);
 
-    static context OSS_CONTEXT;
+    static ossContext OSS_CONTEXT;
 
     static std::string OSS_BUCKET;
 
@@ -58,12 +59,15 @@ public:
 private:
     FileId makeFileId(const std::string filePath);
 
+    void buildOssInfo();
+    void setObjectStorInfo();
     void initOssContext();
 
     int32_t mLocalSpaceFile = -1;
     const char *workDir;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<ActiveStatusContext> mActiveStatusContext;
+    ObjectStorInfo mOssInfo;
 };
 
 }

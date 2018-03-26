@@ -24,11 +24,12 @@
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Hash.h"
+#include <fstream>
 
 namespace Gopherwood {
 namespace Internal {
 
-context FileSystem::OSS_CONTEXT = NULL;
+ossContext FileSystem::OSS_CONTEXT = NULL;
 std::string FileSystem::OSS_BUCKET = "";
 
 void FileSystem::Format(const char *workDir) {
@@ -85,34 +86,6 @@ FileId FileSystem::makeFileId(const std::string filePath) {
     return id;
 }
 
-void FileSystem::initOssContext() {
-    /* TODO: Dynamically inject these parms */
-    std::string object_stor_type = "QS";
-    std::string liboss_zone = "pek3a";
-    std::string liboss_appid = "";
-    std::string liboss_access_key_id = "UITUBKOLLATHRMDBIMYC";
-    std::string liboss_secret_access_key = "PHxFQ0qA9hWRsvYM0OKPCW6VZxW6PYb9AZ2zZMXF";
-    int64_t liboss_write_buffer = 8 << 20;
-    int64_t liboss_read_buffer = 32 << 20;
-
-    OSS_BUCKET = "Bucket1";
-
-    if (OSS_CONTEXT == NULL) {
-        OSS_CONTEXT = ossInitContext(
-                object_stor_type.c_str(),
-                liboss_zone.c_str(),
-                liboss_appid.c_str(),
-                liboss_access_key_id.c_str(),
-                liboss_secret_access_key.c_str(),
-                liboss_write_buffer,
-                liboss_read_buffer);
-    }
-    if (OSS_CONTEXT == NULL) {
-        THROW(GopherwoodInvalidParmException,
-              "[FileSystem] OSS context initialization failed!");
-    }
-}
-
 File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     FileId fileId;
     shared_ptr<ActiveStatus> status;
@@ -153,6 +126,255 @@ void FileSystem::DeleteFile(const char *fileName) {
     /* call activeStatus destroy */
     status->close();
     status.reset();
+}
+
+void FileSystem::buildOssInfo() {
+    std::string conf_file;
+    std::string properties_path = "/conf/alluxio-site.properties";
+
+    char *gopherwood_conf = getenv("GOPHERWOOD_CONF");
+    char *alluxio_home = getenv("ALLUXIO_HOME");
+
+    if (gopherwood_conf) {
+        conf_file = std::string(gopherwood_conf);
+    }
+    else if (alluxio_home) {
+        conf_file = std::string(alluxio_home) + properties_path;
+    }
+    else {
+        DIR* dir = opendir("/opt/alluxio");
+        if (dir) {
+            closedir(dir);
+            conf_file = "/opt/alluxio" + properties_path;
+        } else {
+            THROW(GopherwoodException,
+                  "Gopherwood conf file not found!");
+            return;
+        }
+    }
+
+    LOG(INFO, "[FileSystem]            |"
+              "Oss configuration file is %s", conf_file.c_str());
+
+    std::ifstream fin(conf_file.c_str());
+    if (!fin) {
+        THROW(GopherwoodException,
+              "Can not open configure file alluxio-site.properties");
+        return;
+    }
+
+    std::string mkey;
+    while (!fin.eof()) {
+        getline(fin, mkey);
+
+        if (mkey[0] == '#')
+            continue;
+
+        /**
+         *  liboss settings
+         *    All OSSs' configuration will be loaded together,
+         *    and set in use according to OSStype parsed
+         *    from ufsPath by setObjectStorInfo().
+         */
+        //oss_type
+        if (mkey.find("oss.type") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.object_stor_type = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("oss.bucket") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            OSS_BUCKET = mkey.substr(eq_c_pos + 1);
+        }
+
+        //qingstor
+        if (mkey.find("fs.qingstor.accessKeyId") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.qs_access_key_id = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.qingstor.secretAccessKey") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.qs_secret_access_key = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.qingstor.zone") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.qs_zone = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.qingstor.write_buffer") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            std::stringstream sstr(mkey.substr(eq_c_pos + 1));
+            sstr >> mOssInfo.qs_write_buffer;
+            LOG(INFO,
+                "FileSystemContext: liboss write buffer size set to %ld",
+                mOssInfo.qs_write_buffer);
+        }
+        if (mkey.find("fs.qingstor.read_buffer") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            std::stringstream sstr(mkey.substr(eq_c_pos + 1));
+            sstr >> mOssInfo.qs_read_buffer;
+            LOG(INFO,
+                "FileSystemContext: liboss read buffer size set to %ld",
+                mOssInfo.qs_read_buffer);
+        }
+
+        //s3
+        if (mkey.find("aws.accessKeyId") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.s3_access_key_id = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("aws.secretKey") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.s3_secret_access_key = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("alluxio.underfs.s3.endpoint") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.s3_zone = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.s3.write_buffer") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            std::stringstream sstr(mkey.substr(eq_c_pos + 1));
+            sstr >> mOssInfo.s3_write_buffer;
+            LOG(INFO,
+                "FileSystemContext: liboss write buffer size set to %ld",
+                mOssInfo.s3_write_buffer);
+        }
+        if (mkey.find("fs.s3.read_buffer") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            std::stringstream sstr(mkey.substr(eq_c_pos + 1));
+            sstr >> mOssInfo.s3_read_buffer;
+            LOG(INFO,
+                "FileSystemContext: liboss read buffer size set to %ld",
+                mOssInfo.s3_read_buffer);
+        }
+
+        //cos
+        if (mkey.find("fs.txcos.accessKeyId") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.txcos_access_key_id = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.txcos.secretAccessKey") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.txcos_secret_access_key = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.txcos.appid") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.txcos_appid = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.txcos.zone") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.txcos_zone = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.txcos.write_buffer") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            std::stringstream sstr(mkey.substr(eq_c_pos + 1));
+            sstr >> mOssInfo.txcos_write_buffer;
+            LOG(INFO,
+                "FileSystemContext: liboss write buffer size set to %ld",
+                mOssInfo.txcos_write_buffer);
+        }
+        if (mkey.find("fs.txcos.read_buffer") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            std::stringstream sstr(mkey.substr(eq_c_pos + 1));
+            sstr >> mOssInfo.txcos_read_buffer;
+            LOG(INFO,
+                "FileSystemContext: liboss read buffer size set to %ld",
+                mOssInfo.txcos_read_buffer);
+        }
+
+        //ali OSS
+        if (mkey.find("fs.oss.accessKeyId") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.alioss_access_key_id = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.oss.accessKeySecret") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.alioss_secret_access_key = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.oss.zone") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            mOssInfo.alioss_zone = mkey.substr(eq_c_pos + 1);
+        }
+        if (mkey.find("fs.oss.write_buffer") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            std::stringstream sstr(mkey.substr(eq_c_pos + 1));
+            sstr >> mOssInfo.alioss_write_buffer;
+            LOG(INFO,
+                "FileSystemContext: liboss write buffer size set to %ld",
+                mOssInfo.alioss_write_buffer);
+        }
+        if (mkey.find("fs.oss.read_buffer") != std::string::npos) {
+            std::string::size_type eq_c_pos = mkey.find('=');
+            std::stringstream sstr(mkey.substr(eq_c_pos + 1));
+            sstr >> mOssInfo.alioss_read_buffer;
+            LOG(INFO,
+                "FileSystemContext: liboss read buffer size set to %ld",
+                mOssInfo.alioss_read_buffer);
+        }
+        // TO DO: ks3
+    }
+    fin.close();
+}
+
+void FileSystem::setObjectStorInfo() {
+    if (strcmp(mOssInfo.object_stor_type.c_str(), "QS") == 0) {
+        mOssInfo.object_stor_type = "QS";
+        mOssInfo.liboss_access_key_id = mOssInfo.qs_access_key_id;
+        mOssInfo.liboss_secret_access_key = mOssInfo.qs_secret_access_key;
+        mOssInfo.liboss_zone = mOssInfo.qs_zone;
+        mOssInfo.liboss_write_buffer = mOssInfo.qs_write_buffer;
+        mOssInfo.liboss_read_buffer = mOssInfo.qs_read_buffer;
+    }
+    else if (strcmp(mOssInfo.object_stor_type.c_str(), "S3") == 0) {
+        mOssInfo.object_stor_type = "S3B";
+        mOssInfo.liboss_access_key_id = mOssInfo.s3_access_key_id;
+        mOssInfo.liboss_secret_access_key = mOssInfo.s3_secret_access_key;
+        mOssInfo.liboss_zone = mOssInfo.s3_zone;
+        mOssInfo.liboss_write_buffer = mOssInfo.s3_write_buffer;
+        mOssInfo.liboss_read_buffer = mOssInfo.s3_read_buffer;
+    }
+    else if (strcmp(mOssInfo.object_stor_type.c_str(), "TXCOS") == 0) {
+        mOssInfo.object_stor_type = "COS";
+        mOssInfo.liboss_access_key_id = mOssInfo.txcos_access_key_id;
+        mOssInfo.liboss_secret_access_key = mOssInfo.txcos_secret_access_key;
+        mOssInfo.liboss_appid = mOssInfo.txcos_appid;
+        mOssInfo.liboss_zone = mOssInfo.txcos_zone;
+        mOssInfo.liboss_write_buffer = mOssInfo.txcos_write_buffer;
+        mOssInfo.liboss_read_buffer = mOssInfo.txcos_read_buffer;
+    }
+    else if (strcmp(mOssInfo.object_stor_type.c_str(), "OSS") == 0) {
+        mOssInfo.object_stor_type = "ALI";
+        mOssInfo.liboss_access_key_id = mOssInfo.alioss_access_key_id;
+        mOssInfo.liboss_secret_access_key = mOssInfo.alioss_secret_access_key;
+        mOssInfo.liboss_zone = mOssInfo.alioss_zone;
+        mOssInfo.liboss_write_buffer = mOssInfo.alioss_write_buffer;
+        mOssInfo.liboss_read_buffer = mOssInfo.alioss_read_buffer;
+    }
+    // TO DO : other OSS
+}
+
+void FileSystem::initOssContext() {
+    buildOssInfo();
+    setObjectStorInfo();
+
+    if (OSS_CONTEXT == NULL) {
+        printf("%s\n%s\n%s\n%s\n%s\n",
+               mOssInfo.object_stor_type.c_str(),
+               mOssInfo.liboss_zone.c_str(),
+               mOssInfo.liboss_appid.c_str(),
+               mOssInfo.liboss_access_key_id.c_str(),
+               mOssInfo.liboss_secret_access_key.c_str());
+        OSS_CONTEXT = ossInitContext(
+                mOssInfo.object_stor_type.c_str(),
+                mOssInfo.liboss_zone.c_str(),
+                mOssInfo.liboss_appid.c_str(),
+                mOssInfo.liboss_access_key_id.c_str(),
+                mOssInfo.liboss_secret_access_key.c_str(),
+                mOssInfo.liboss_write_buffer,
+                mOssInfo.liboss_read_buffer);
+    }
+    if (OSS_CONTEXT == NULL) {
+        THROW(GopherwoodInvalidParmException,
+              "[FileSystem] OSS context initialization failed!");
+    }
 }
 
 FileSystem::~FileSystem() {

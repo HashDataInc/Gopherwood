@@ -31,7 +31,7 @@ namespace Internal {
 
 class OssBlockWorker {
 public:
-    OssBlockWorker(context ossCtx, int localSpaceFD);
+    OssBlockWorker(ossContext ossCtx, int localSpaceFD);
 
     void writeBlock(BlockInfo info);
 
@@ -44,7 +44,7 @@ public:
 private:
     std::string getOssObjectName(BlockInfo blockInfo);
 
-    context mOssContext;
+    ossContext mOssContext;
     int mLocalSpaceFD;
 };
 

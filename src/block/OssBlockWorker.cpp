@@ -28,7 +28,7 @@
 namespace Gopherwood {
 namespace Internal {
 
-OssBlockWorker::OssBlockWorker(context ossCtx, int localSpaceFD) :
+OssBlockWorker::OssBlockWorker(ossContext ossCtx, int localSpaceFD) :
         mOssContext(ossCtx),
         mLocalSpaceFD(localSpaceFD){
 }
@@ -108,7 +108,7 @@ std::string OssBlockWorker::getOssObjectName(BlockInfo blockInfo){
     std::stringstream ss;
     char hostname[1024];
     gethostname(hostname, 1024);
-    ss << '/' << hostname << '/' << blockInfo.fileId.toString() << '/'
+    ss << "/gopherwood/" << hostname << '/' << blockInfo.fileId.toString() << '/'
        << blockInfo.blockId;
     return ss.str();
 }
