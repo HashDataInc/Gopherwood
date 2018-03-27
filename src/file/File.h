@@ -45,7 +45,7 @@ public:
 
     void flush();
 
-    void seek(int64_t pos, int mode);
+    int64_t seek(int64_t pos, int mode);
 
     void close();
 
@@ -53,11 +53,14 @@ public:
 
     FileId getFileId();
 
+    int64_t getFileSize() {return mStatus->getEof();}
+
     ~File();
 
 private:
     FileId id;
     std::string name;
+    std::string nameDigest;
     int mFlags;
     int localFD;
     shared_ptr<ActiveStatus> mStatus;

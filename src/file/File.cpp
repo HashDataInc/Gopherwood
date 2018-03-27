@@ -60,7 +60,7 @@ void File::flush() {
     mStatus->flush();
 }
 
-void File::seek(int64_t pos, int mode) {
+int64_t File::seek(int64_t pos, int mode) {
     int64_t eof = mStatus->getEof();
     int64_t targetPos = -1;
 
@@ -90,6 +90,8 @@ void File::seek(int64_t pos, int mode) {
         THROW(GopherwoodInvalidParmException,
               "[File::seek] invalid seek offset %ld", targetPos);
     }
+
+    return targetPos;
 }
 
 void File::close() {
@@ -106,7 +108,10 @@ void File::close() {
 
 int64_t File::remaining() {
     assert(mStatus->getEof() >= mStatus->getPosition());
+    LOG(INFO, "[File] EOF=%ld POS=%ld",
+    		mStatus->getEof(), mStatus->getPosition());
     return mStatus->getEof() - mStatus->getPosition();
+
 }
 
 FileId File::getFileId() {

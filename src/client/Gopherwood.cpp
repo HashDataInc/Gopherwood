@@ -196,6 +196,9 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
         SetLastException(Gopherwood::current_exception());
         handleException(Gopherwood::current_exception());
     }
+
+    LOG(Gopherwood::Internal::INFO, "------------------gwOpenFile end------------------");
+
     return retVal;
 }
 
@@ -212,11 +215,10 @@ tSize gwRead(gopherwoodFS fs, gwFile file, void *buffer, tSize length) {
     return -1;
 }
 
-int gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int mode) {
+int64_t gwSeek(gopherwoodFS fs, gwFile file, tOffset desiredPos, int mode) {
     LOG(Gopherwood::Internal::INFO, "------------------gwSeek start------------------");
     try {
-        file->getFile().seek(desiredPos, mode);
-        return 0;
+        return file->getFile().seek(desiredPos, mode);
     } catch (...) {
         SetLastException(Gopherwood::current_exception());
         handleException(Gopherwood::current_exception());
@@ -294,6 +296,26 @@ int gwDestroyContext(gopherwoodFS fs) {
     }
 
     return -1;
+}
+
+int gwCancelFile(gopherwoodFS fs, gwFile file)
+{
+	return 0;
+}
+
+int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fi)
+{
+	LOG(Gopherwood::Internal::INFO, "------------------gwStatFile start------------------");
+	int retVal = 0;
+	try{
+		fi->fileSize = file->getFile().getFileSize();
+	}catch (...) {
+		retVal = -1;
+		SetLastException(Gopherwood::current_exception());
+		handleException(Gopherwood::current_exception());
+	}
+
+	return 0;
 }
 
 #ifdef __cplusplus
