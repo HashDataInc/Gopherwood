@@ -77,10 +77,8 @@ typedef struct GWContextConfig {
     int32_t numPreDefinedConcurrency;
 } GWContextConfig;
 
-typedef struct GWFileInfo
-{
+typedef struct GWFileInfo {
 	int64_t fileSize;
-
 }GWFileInfo;
 /**
  * gwCreateContext - Connect to a gopherwood file system.

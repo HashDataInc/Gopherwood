@@ -108,8 +108,6 @@ void File::close() {
 
 int64_t File::remaining() {
     assert(mStatus->getEof() >= mStatus->getPosition());
-    LOG(INFO, "[File] EOF=%ld POS=%ld",
-    		mStatus->getEof(), mStatus->getPosition());
     return mStatus->getEof() - mStatus->getPosition();
 
 }

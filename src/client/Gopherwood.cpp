@@ -197,8 +197,6 @@ gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
         handleException(Gopherwood::current_exception());
     }
 
-    LOG(Gopherwood::Internal::INFO, "------------------gwOpenFile end------------------");
-
     return retVal;
 }
 
@@ -305,17 +303,16 @@ int gwCancelFile(gopherwoodFS fs, gwFile file)
 
 int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fi)
 {
-	LOG(Gopherwood::Internal::INFO, "------------------gwStatFile start------------------");
-	int retVal = 0;
-	try{
-		fi->fileSize = file->getFile().getFileSize();
-	}catch (...) {
-		retVal = -1;
-		SetLastException(Gopherwood::current_exception());
-		handleException(Gopherwood::current_exception());
-	}
-
-	return 0;
+    LOG(Gopherwood::Internal::INFO, "------------------gwStatFile start------------------");
+    int retVal = 0;
+    try{
+        fi->fileSize = file->getFile().getFileSize();
+    }catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+        retVal = -1;
+    }
+    return retVal;
 }
 
 #ifdef __cplusplus
