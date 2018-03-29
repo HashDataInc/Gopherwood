@@ -28,17 +28,17 @@ ADD_SUBDIRECTORY(sample)
 CONFIGURE_FILE(src/libgopherwood.pc.in ${CMAKE_SOURCE_DIR}/src/libgopherwood.pc @ONLY)
 
 ADD_CUSTOM_TARGET(doc
-            COMMAND doxygen ${CMAKE_BINARY_DIR}/src/doxyfile
-            WORKING_DIRECTORY ${DOXYFILE_PATH}
-            COMMENT "Generate documents..."
-            )
+                COMMAND doxygen ${CMAKE_BINARY_DIR}/src/doxyfile
+                WORKING_DIRECTORY ${DOXYFILE_PATH}
+                COMMENT "Generate documents..."
+                )
 
 ADD_CUSTOM_TARGET(style
-            COMMAND astyle --style=attach --indent=spaces=4 --indent-preprocessor --break-blocks --pad-oper --pad-header --unpad-paren --delete-empty-lines --suffix=none --align-pointer=middle --lineend=linux --indent-col1-comments ${libgopherwood_SOURCES}
-            COMMAND astyle --style=attach --indent=spaces=4 --indent-preprocessor --break-blocks --pad-oper --pad-header --unpad-paren --delete-empty-lines --suffix=none --align-pointer=middle --lineend=linux --indent-col1-comments ${unit_SOURCES}
-            COMMAND astyle --style=attach --indent=spaces=4 --indent-preprocessor --break-blocks --pad-oper --pad-header --unpad-paren --delete-empty-lines --suffix=none --align-pointer=middle --lineend=linux --indent-col1-comments ${function_SOURCES}
-            COMMAND astyle --style=attach --indent=spaces=4 --indent-preprocessor --break-blocks --pad-oper --pad-header --unpad-paren --delete-empty-lines --suffix=none --align-pointer=middle --lineend=linux --indent-col1-comments ${secure_SOURCES}
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            COMMENT "format code style..."
-            )
+                COMMAND astyle --style=attach --indent=spaces=4 --indent-preprocessor --break-blocks --pad-oper --pad-header --unpad-paren --delete-empty-lines --suffix=none --align-pointer=middle --lineend=linux --indent-col1-comments ${libgopherwood_SOURCES}
+                COMMAND astyle --style=attach --indent=spaces=4 --indent-preprocessor --break-blocks --pad-oper --pad-header --unpad-paren --delete-empty-lines --suffix=none --align-pointer=middle --lineend=linux --indent-col1-comments ${unit_SOURCES}
+                COMMAND astyle --style=attach --indent=spaces=4 --indent-preprocessor --break-blocks --pad-oper --pad-header --unpad-paren --delete-empty-lines --suffix=none --align-pointer=middle --lineend=linux --indent-col1-comments ${function_SOURCES}
+                COMMAND astyle --style=attach --indent=spaces=4 --indent-preprocessor --break-blocks --pad-oper --pad-header --unpad-paren --delete-empty-lines --suffix=none --align-pointer=middle --lineend=linux --indent-col1-comments ${secure_SOURCES}
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                COMMENT "format code style..."
+                )
 
