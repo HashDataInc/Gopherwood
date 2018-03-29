@@ -148,6 +148,7 @@ private:
     std::string mFilePath;
     int mFD;
     int64_t mPos;
+    int64_t mReadPos;
     char *mBuffer;
 };
 

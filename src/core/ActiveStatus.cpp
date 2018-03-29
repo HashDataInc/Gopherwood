@@ -330,7 +330,7 @@ void ActiveStatus::acquireNewBlocks() {
                 }
 
                 /* add log to the evicted file */
-                if (rc == 1) {
+                if (rc == 0) {
                     logEvictBlock(evictBlockInfo);
                 }
 
@@ -396,7 +396,18 @@ void ActiveStatus::extendOneBlock() {
     mBlockArray.push_back(b);
 
     /* add to LRU cache */
-    mLRUCache->put(b.blockId, b.bucketId);
+    std::vector<int> blockIds = mLRUCache->put(b.blockId, b.bucketId);
+    std::vector<Block> blocksToInactivate;
+    for( int blockID: blockIds){
+        blocksToInactivate.push_back(mBlockArray[blockID]);
+    }
+    std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBuckets(blocksToInactivate,mFileId,mActiveId,mIsWrite);
+    /* update block status*/
+    for (Block b : turedToUsedBlocks) {
+        mBlockArray[b.blockId].state = b.state;
+    }
+    /* log inactivate buckets */
+    mManifest->logInactivateBucket(turedToUsedBlocks);
 
     /* prepare for log */
     blocksModified.push_back(b);
@@ -442,7 +453,19 @@ void ActiveStatus::activateBlock(int blockId) {
             block.state = BUCKET_ACTIVE;
 
             /* add to LRU cache */
-            mLRUCache->put(block.blockId, block.bucketId);
+            std::vector<int> blockIds = mLRUCache->put(block.blockId, block.bucketId);
+            std::vector<Block> blocksToInactivate;
+            for( int blockID: blockIds){
+                blocksToInactivate.push_back(mBlockArray[blockID]);
+            }
+            std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBuckets(blocksToInactivate,mFileId,mActiveId,mIsWrite);
+            /* update block status*/
+            for (Block b : turedToUsedBlocks) {
+                mBlockArray[b.blockId].state = b.state;
+            }
+
+            /* log inactivate buckets */
+            mManifest->logInactivateBucket(turedToUsedBlocks);
             /* update block info */
             mBlockArray[blockId] = block;
             /* mark loading log */
@@ -484,7 +507,20 @@ void ActiveStatus::activateBlock(int blockId) {
                 THROW(GopherwoodException, "[ActiveStatus] activateBucket in SharedMemory got error!");
             }
 
-            mLRUCache->put(mBlockArray[blockId].blockId, mBlockArray[blockId].bucketId);
+            std::vector<int> blockIds =  mLRUCache->put(mBlockArray[blockId].blockId, mBlockArray[blockId].bucketId);
+            std::vector<Block> blocksToInactivate;
+            for( int blockID: blockIds){
+                blocksToInactivate.push_back(mBlockArray[blockID]);
+            }
+            std::vector<Block> turedToUsedBlocks = mSharedMemoryContext->inactivateBuckets(blocksToInactivate,mFileId,mActiveId,mIsWrite);
+            /* update block status*/
+            for (Block b : turedToUsedBlocks) {
+                mBlockArray[b.blockId].state = b.state;
+            }
+
+            /* log inactivate buckets */
+            mManifest->logInactivateBucket(turedToUsedBlocks);
+
         } else {
             THROW(GopherwoodException, "[ActiveStatus] block active status mismatch!");
         }
@@ -500,6 +536,13 @@ void ActiveStatus::activateBlock(int blockId) {
         info.offset = InvalidBlockOffset;
 
         mOssWorker->readBlock(info);
+
+        BlockInfo deleteBlockinfo;
+        deleteBlockinfo.bucketId = -1;
+        deleteBlockinfo.blockId = blockId;
+        deleteBlockinfo.fileId = mFileId;
+        deleteBlockinfo.isLocal = false;
+        mOssWorker->deleteBlock(deleteBlockinfo);
 
         SHARED_MEM_BEGIN
             mSharedMemoryContext->markLoadFinish(mBlockArray[blockId], mActiveId, mFileId);
@@ -637,7 +680,6 @@ void ActiveStatus::close() {
 
                 mOssWorker->deleteBlock(info);
             }
-            THROW(GopherwoodNotImplException, "Not implemented yet!");
         }
     }
 }
@@ -690,8 +732,8 @@ void ActiveStatus::catchUpManifestLogs() {
                 LOG(INFO, "[ActiveStatus]          |"
                         "Replay assignBlock log record with %lu blocks.", blocks.size());
                 assert(header.numBlocks == 1);
-                mBlockArray.push_back(blocks[0]);
-                mEof = header.opaque.extendBlock.eof;
+//                mBlockArray.push_back(blocks[0]);
+//                mEof = header.opaque.extendBlock.eof;
                 break;
             case RecordType::evictBlock:
                 LOG(INFO, "[ActiveStatus]          |"
@@ -709,7 +751,8 @@ void ActiveStatus::catchUpManifestLogs() {
                 LOG(INFO, "[ActiveStatus]          |"
                         "Replay loadBlock log record with %lu blocks.", blocks.size());
                 assert(header.numBlocks == 1);
-                if (!mBlockArray[blocks[0].blockId].isLocal) {
+                /* have been added in the activateBlock, actually don't need do anything */
+                if (mBlockArray[blocks[0].blockId].isLocal) {
                     mBlockArray[blocks[0].blockId] = blocks[0];
                 } else {
                     THROW(GopherwoodException,

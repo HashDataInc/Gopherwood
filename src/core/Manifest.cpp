@@ -284,9 +284,12 @@ void Manifest::mfOpen() {
 
 void Manifest::mfSeek(int64_t offset, int flag) {
     mPos = lseek(mFD, offset, flag);
+    mReadPos = lseek(mFD, offset, flag);
 }
 
 void Manifest::mfWrite(std::string &record) {
+    /* the other process may update the manifest log, so we have to seek to the end of the file to append the log*/
+    mPos = lseek(mFD,0,SEEK_END);
     int len = write(mFD, record.c_str(), record.size());
     if (len == -1 || len != (int) record.size()) {
         THROW(GopherwoodIOException,
@@ -297,7 +300,10 @@ void Manifest::mfWrite(std::string &record) {
 }
 
 inline int64_t Manifest::mfRead(char *buffer, int64_t size) {
-    return read(mFD, buffer, size);
+    lseek(mFD,mReadPos,SEEK_SET);
+    int64_t len = read(mFD, buffer, size);
+    mReadPos+=len;
+    return len;
 }
 
 void Manifest::mfTruncate() {

@@ -73,13 +73,21 @@ void OssBlockWorker::readBlock(BlockInfo info) {
                                          0,
                                          bucketSize - 1);
 
+
     int64_t bytesRead = ossRead(mOssContext, remoteBlock, buffer, bucketSize);
+
+    int64_t totalRead = bytesRead;
+    while(bytesRead>0){
+        bytesRead = ossRead(mOssContext, remoteBlock, buffer+totalRead, bucketSize);
+        totalRead+=bytesRead;
+    }
+
     ossCloseObject(mOssContext, remoteBlock);
-    if (bytesRead != bucketSize) {
+    if (totalRead != bucketSize) {
         THROW(GopherwoodIOException,
               "[OssBlockWorker] Remote file size mismatch, expect %ld, but got %ld!",
               bucketSize,
-              bytesRead);
+              totalRead);
     }
 
     rc = lseek(mLocalSpaceFD, info.bucketId * bucketSize, SEEK_SET);
