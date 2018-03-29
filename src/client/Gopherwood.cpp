@@ -316,6 +316,7 @@ int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fi)
 }
 
 bool gwFileExists(gopherwoodFS fs,const char * fileName){
+    LOG(Gopherwood::Internal::INFO, "------------------gwFileExists start------------------");
     return fs->getFilesystem().checkFileExists(fileName);
 }
 
