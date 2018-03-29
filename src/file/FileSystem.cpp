@@ -128,6 +128,11 @@ void FileSystem::DeleteFile(const char *fileName) {
     status.reset();
 }
 
+bool FileSystem::checkFileExists(const char *fileName){
+    FileId fileId = makeFileId(std::string(fileName));
+    return mActiveStatusContext->checkFileExists(fileId);
+}
+
 void FileSystem::buildOssInfo() {
     std::string conf_file;
     std::string properties_path = "/conf/alluxio-site.properties";

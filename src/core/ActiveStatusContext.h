@@ -43,6 +43,8 @@ public:
 
     shared_ptr<ActiveStatus> deleteFileActiveStatus(FileId fileId, int localSpaceFD);
 
+    bool checkFileExists(FileId fileId);
+
     ~ActiveStatusContext();
 
 private:

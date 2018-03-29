@@ -203,6 +203,9 @@ int gwCancelFile(gopherwoodFS fs, gwFile file);
  */
 int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fi);
 
+
+bool gwFileExists(gopherwoodFS fs,const char * fileName);
+
 #ifdef __cplusplus
 }
 #endif

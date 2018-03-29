@@ -315,6 +315,10 @@ int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fi)
     return retVal;
 }
 
+bool gwFileExists(gopherwoodFS fs,const char * fileName){
+    return fs->getFilesystem().checkFileExists(fileName);
+}
+
 #ifdef __cplusplus
 }
 #endif
