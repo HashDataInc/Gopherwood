@@ -38,7 +38,7 @@ void FileSystem::Format(const char *workDir) {
     system(ss.str().c_str());
     shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
     LOG(INFO, "[FileSystem]            |"
-              "Format SharedMemory %s", Configuration::SHARED_MEMORY_NAME.c_str());
+            "Format SharedMemory %s", Configuration::SHARED_MEMORY_NAME.c_str());
 }
 
 FileSystem::FileSystem(const char *workDir) :
@@ -86,6 +86,20 @@ FileId FileSystem::makeFileId(const std::string filePath) {
     return id;
 }
 
+bool FileSystem::exists(const char *fileName) {
+    FileId fileId = makeFileId(std::string(fileName));
+
+    std::stringstream ss;
+    ss << mSharedMemoryContext->getWorkDir() << Configuration::MANIFEST_FOLDER << "/" << fileId.hashcode << "-"
+       << fileId.collisionId;
+    std::string manifestFileName = ss.str();
+    if (access(manifestFileName.c_str(), F_OK) == -1) {
+        return false;
+    }
+    return true;
+}
+
+
 File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     FileId fileId;
     shared_ptr<ActiveStatus> status;
@@ -94,7 +108,7 @@ File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     status = mActiveStatusContext->initFileActiveStatus(fileId, isWrite, mLocalSpaceFile);
 
     LOG(INFO, "[FileSystem]            |"
-              "Creating file %s", fileId.toString().c_str());
+            "Creating file %s", fileId.toString().c_str());
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status);
 }
@@ -107,7 +121,7 @@ File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
     status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite, mLocalSpaceFile);
 
     LOG(INFO, "[FileSystem]            |"
-              "Opening file %s", fileId.toString().c_str());
+            "Opening file %s", fileId.toString().c_str());
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status);
 }
@@ -137,12 +151,10 @@ void FileSystem::buildOssInfo() {
 
     if (gopherwood_conf) {
         conf_file = std::string(gopherwood_conf);
-    }
-    else if (alluxio_home) {
+    } else if (alluxio_home) {
         conf_file = std::string(alluxio_home) + properties_path;
-    }
-    else {
-        DIR* dir = opendir("/opt/alluxio");
+    } else {
+        DIR *dir = opendir("/opt/alluxio");
         if (dir) {
             closedir(dir);
             conf_file = "/opt/alluxio" + properties_path;
@@ -154,7 +166,7 @@ void FileSystem::buildOssInfo() {
     }
 
     LOG(INFO, "[FileSystem]            |"
-              "Oss configuration file is %s", conf_file.c_str());
+            "Oss configuration file is %s", conf_file.c_str());
 
     std::ifstream fin(conf_file.c_str());
     if (!fin) {
@@ -322,16 +334,14 @@ void FileSystem::setObjectStorInfo() {
         mOssInfo.liboss_zone = mOssInfo.qs_zone;
         mOssInfo.liboss_write_buffer = mOssInfo.qs_write_buffer;
         mOssInfo.liboss_read_buffer = mOssInfo.qs_read_buffer;
-    }
-    else if (strcmp(mOssInfo.object_stor_type.c_str(), "S3") == 0) {
+    } else if (strcmp(mOssInfo.object_stor_type.c_str(), "S3") == 0) {
         mOssInfo.object_stor_type = "S3B";
         mOssInfo.liboss_access_key_id = mOssInfo.s3_access_key_id;
         mOssInfo.liboss_secret_access_key = mOssInfo.s3_secret_access_key;
         mOssInfo.liboss_zone = mOssInfo.s3_zone;
         mOssInfo.liboss_write_buffer = mOssInfo.s3_write_buffer;
         mOssInfo.liboss_read_buffer = mOssInfo.s3_read_buffer;
-    }
-    else if (strcmp(mOssInfo.object_stor_type.c_str(), "TXCOS") == 0) {
+    } else if (strcmp(mOssInfo.object_stor_type.c_str(), "TXCOS") == 0) {
         mOssInfo.object_stor_type = "COS";
         mOssInfo.liboss_access_key_id = mOssInfo.txcos_access_key_id;
         mOssInfo.liboss_secret_access_key = mOssInfo.txcos_secret_access_key;
@@ -339,8 +349,7 @@ void FileSystem::setObjectStorInfo() {
         mOssInfo.liboss_zone = mOssInfo.txcos_zone;
         mOssInfo.liboss_write_buffer = mOssInfo.txcos_write_buffer;
         mOssInfo.liboss_read_buffer = mOssInfo.txcos_read_buffer;
-    }
-    else if (strcmp(mOssInfo.object_stor_type.c_str(), "OSS") == 0) {
+    } else if (strcmp(mOssInfo.object_stor_type.c_str(), "OSS") == 0) {
         mOssInfo.object_stor_type = "ALI";
         mOssInfo.liboss_access_key_id = mOssInfo.alioss_access_key_id;
         mOssInfo.liboss_secret_access_key = mOssInfo.alioss_secret_access_key;

@@ -72,10 +72,22 @@ void OssBlockWorker::readBlock(BlockInfo info) {
                                          getOssObjectName(info).c_str(),
                                          0,
                                          bucketSize - 1);
+    if (!remoteBlock) {
+        THROW(GopherwoodIOException, "OssBlockWorker read failed, reader object is null!");
+    }
 
-    int64_t bytesRead = ossRead(mOssContext, remoteBlock, buffer, bucketSize);
+    int64_t bytesToRead = bucketSize;
+    int64_t bytesRead = 0;
+    int64_t offset = 0;
+
+    do {
+        bytesRead = ossRead(mOssContext, remoteBlock, buffer + offset, bytesToRead);
+        bytesToRead -= bytesRead;
+        offset += bytesRead;
+    } while (bytesRead > 0 && bytesToRead > 0);
+
     ossCloseObject(mOssContext, remoteBlock);
-    if (bytesRead != bucketSize) {
+    if (offset != bucketSize || bytesToRead !=0) {
         THROW(GopherwoodIOException,
               "[OssBlockWorker] Remote file size mismatch, expect %ld, but got %ld!",
               bucketSize,

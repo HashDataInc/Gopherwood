@@ -97,6 +97,15 @@ gopherwoodFS gwCreateContext(char *workDir, GWContextConfig *config);
 void gwFormatContext(char *workDir);
 
 /**
+ * gwFileExists - Check if the file already exists
+ *
+ * @param   fs      The configured filesystem handle.
+ * @param   file    The file name.
+ *
+ */
+bool gwFileExists(gopherwoodFS fs,const char * fileName);
+
+/**
  * gwRead - Read data from an open file.
  *
  * @param   fs      The configured filesystem handle.

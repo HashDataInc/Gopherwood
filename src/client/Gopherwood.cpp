@@ -177,6 +177,11 @@ void gwFormatContext(char *workDir) {
     }
 }
 
+bool gwFileExists(gopherwoodFS fs,const char * fileName) {
+    LOG(Gopherwood::Internal::INFO, "------------------gwFileExists start------------------");
+    return fs->getFilesystem().exists(fileName);
+}
+
 gwFile gwOpenFile(gopherwoodFS fs, const char *fileName, int flags) {
     LOG(Gopherwood::Internal::INFO, "------------------gwOpenFile start------------------");
 

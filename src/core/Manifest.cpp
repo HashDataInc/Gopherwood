@@ -283,7 +283,7 @@ void Manifest::mfOpen() {
 }
 
 void Manifest::mfSeek(int64_t offset, int flag) {
-    mPos = lseek(mFD, offset, flag);
+    lseek(mFD, offset, flag);
 }
 
 void Manifest::mfWrite(std::string &record) {
@@ -293,7 +293,6 @@ void Manifest::mfWrite(std::string &record) {
               "[Manifest::mfWrite] write failed %s.",
               mFilePath.c_str());
     }
-    mPos += len;
 }
 
 inline int64_t Manifest::mfRead(char *buffer, int64_t size) {

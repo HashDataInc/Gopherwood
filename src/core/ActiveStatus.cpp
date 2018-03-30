@@ -330,7 +330,7 @@ void ActiveStatus::acquireNewBlocks() {
                 }
 
                 /* add log to the evicted file */
-                if (rc == 1) {
+                if (rc == 0) {
                     logEvictBlock(evictBlockInfo);
                 }
 
@@ -500,6 +500,14 @@ void ActiveStatus::activateBlock(int blockId) {
         info.offset = InvalidBlockOffset;
 
         mOssWorker->readBlock(info);
+
+        /* delete the remote block */
+        BlockInfo deleteBlockinfo;
+        deleteBlockinfo.bucketId = -1;
+        deleteBlockinfo.blockId = blockId;
+        deleteBlockinfo.fileId = mFileId;
+        deleteBlockinfo.isLocal = false;
+        mOssWorker->deleteBlock(deleteBlockinfo);
 
         SHARED_MEM_BEGIN
             mSharedMemoryContext->markLoadFinish(mBlockArray[blockId], mActiveId, mFileId);

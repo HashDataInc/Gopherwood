@@ -46,6 +46,8 @@ public:
 
     FileSystem(const char *workDir);
 
+    bool exists(const char *fileName);
+
     File *CreateFile(const char *fileName, int flags, bool isWrite);
 
     File *OpenFile(const char *fileName, int flags, bool isWrite);

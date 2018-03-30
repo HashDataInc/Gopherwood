@@ -147,7 +147,6 @@ private:
     /******************** Fields ********************/
     std::string mFilePath;
     int mFD;
-    int64_t mPos;
     char *mBuffer;
 };
 
