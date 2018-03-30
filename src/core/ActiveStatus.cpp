@@ -452,7 +452,7 @@ void ActiveStatus::activateBlock(int blockId) {
                    mBlockArray[blockId].state == BUCKET_ACTIVE) {
             /* activate the block */
             /* inactivate first if LRUCache(Quota) is used up */
-            if (mLRUCache->size() == mLRUCache->maxSize()) {
+            if (mLRUCache->size() + mPreAllocatedBuckets.size() >= mLRUCache->maxSize()) {
                 std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
                 std::vector<Block> blocksToInactivate;
                 for (int i : blockIds) {
