@@ -89,8 +89,8 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
 shared_ptr<shared_memory_object> SharedMemoryManager::createSharedMemory(const char *name) {
     shared_ptr<shared_memory_object> res;
     try {
-        res = shared_ptr<shared_memory_object
-        >(new shared_memory_object(create_only, name, read_write));
+        res = shared_ptr<shared_memory_object>(
+                new shared_memory_object(create_only, name, read_write));
     } catch (const interprocess_exception &e) {
         LOG(WARNING, "[SharedMemoryManager]|"
                      "Got exception when open/create the Shared Memory, error message: %s",

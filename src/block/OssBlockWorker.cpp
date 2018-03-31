@@ -59,6 +59,7 @@ void OssBlockWorker::writeBlock(BlockInfo info) {
     ossWrite(mOssContext, remoteBlock, buffer, bucketSize);
     ossCloseObject(mOssContext, remoteBlock);
     free(buffer);
+    buffer = NULL;
 }
 
 void OssBlockWorker::readBlock(BlockInfo info) {
@@ -106,6 +107,7 @@ void OssBlockWorker::readBlock(BlockInfo info) {
               "[OssBlockWorker] Local file space read error!");
     }
     free(buffer);
+    buffer = NULL;
 }
 
 void OssBlockWorker::deleteBlock(BlockInfo info) {

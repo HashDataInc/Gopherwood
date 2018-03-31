@@ -324,6 +324,10 @@ void Manifest::mfRemove() {
 }
 
 Manifest::~Manifest() {
+    if (mBuffer) {
+        free(mBuffer);
+        mBuffer = NULL;
+    }
     mfClose();
 }
 
