@@ -531,18 +531,22 @@ void ActiveStatus::activateBlock(int blockId) {
 }
 
 void ActiveStatus::logEvictBlock(BlockInfo info) {
-    /* check file exist */
-    std::string manifestFileName = Manifest::getManifestFileName(mSharedMemoryContext->getWorkDir(), info.fileId);
-    if (access(manifestFileName.c_str(), F_OK) == -1) {
-        THROW(GopherwoodInvalidParmException,
-              "[ActiveStatus::ActiveStatus] File does not exist %s",
-              manifestFileName.c_str());
-    }
-    Manifest *manifest = new Manifest(manifestFileName);
-    manifest->mfSeek(0, SEEK_END);
     Block block(InvalidBucketId, info.blockId, false, BUCKET_FREE);
-
-    manifest->logEvcitBlock(block);
+    if(mFileId==info.fileId){
+        mManifest->logEvcitBlock(block);
+        mBlockArray[block.blockId] = block;
+    }else {
+        /* check file exist */
+        std::string manifestFileName = Manifest::getManifestFileName(mSharedMemoryContext->getWorkDir(), info.fileId);
+        if (access(manifestFileName.c_str(), F_OK) == -1) {
+            THROW(GopherwoodInvalidParmException,
+                  "[ActiveStatus::ActiveStatus] File does not exist %s",
+                  manifestFileName.c_str());
+        }
+        Manifest *manifest = new Manifest(manifestFileName);
+        manifest->mfSeek(0, SEEK_END);
+        manifest->logEvcitBlock(block);
+    }
 }
 
 /* flush cached Manifest logs to disk
@@ -645,7 +649,6 @@ void ActiveStatus::close() {
 
                 mOssWorker->deleteBlock(info);
             }
-            THROW(GopherwoodNotImplException, "Not implemented yet!");
         }
     }
 }
