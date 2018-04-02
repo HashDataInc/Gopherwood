@@ -45,6 +45,8 @@ typedef struct Block {
     /* Current bucket status of this block, only
      * meaningful when block is in local cache space */
     uint8_t state;
+    /* The usage count during the activate status */
+    int16_t usageCount;
 
     Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s);
 

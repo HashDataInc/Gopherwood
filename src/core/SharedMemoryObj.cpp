@@ -46,6 +46,7 @@ void ShareMemHeader::exit() {
 void ShareMemBucket::reset() {
     flags = 0;
     fileId.reset();
+    usageCount = 0;
     fileBlockIndex = InvalidBlockId;
     writeActiveId = InvalidActiveId;
     evictLoadActiveId = InvalidActiveId;

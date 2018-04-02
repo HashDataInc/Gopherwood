@@ -192,36 +192,53 @@ BlockInfo SharedMemoryContext::markBucketEvicting(int activeId) {
     BlockInfo info;
     bool found = false;
 
-    /* pick up from used buckets */
-    for (int32_t i = 0; i < header->numBuckets; i++) {
-        if (buckets[i].isUsedBucket() && !buckets[i].isEvictingBucket()) {
-            buckets[i].setBucketEvicting();
-            buckets[i].evictLoadActiveId = activeId;
+    /* Run the "clock sweep" algorithm */
+    int32_t trycounter = header->numBuckets;
+    for (;;)
+    {
+        int32_t bucketId = header->nextVictimBucket;
+        ShareMemBucket* bucket = &buckets[header->nextVictimBucket];
 
-            /* fill ActiveStatus evict info */
-            activeStatus[activeId].evictFileId = buckets[i].fileId;
-            activeStatus[activeId].fileBlockIndex = buckets[i].fileBlockIndex;
-            activeStatus[activeId].setEvicting();
-
-            /* fill result BlockInfo */
-            info.fileId = buckets[i].fileId;
-            info.blockId = buckets[i].fileBlockIndex;
-            info.bucketId = i;
-            info.isLocal = true;
-            info.offset = InvalidBlockOffset;
-
-            /* update statistics */
-            header->numUsedBuckets--;
-            header->numEvictingBuckets++;
-            found = true;
-            break;
+        if (++header->nextVictimBucket >= header->numBuckets) {
+            header->nextVictimBucket = 0;
         }
-    }
 
-    if (!found) {
-        THROW(GopherwoodSharedMemException,
-              "[SharedMemoryContext::acquireBlock] statistic incorrect, there should be %d used"
-                      "buckets.", header->numUsedBuckets);
+        if (bucket->isUsedBucket() && !bucket->isEvictingBucket())
+        {
+            if (bucket->usageCount > 0) {
+                bucket->usageCount--;
+                trycounter = header->numBuckets;
+            }
+            else
+            {
+                /* Found a usable buffer */
+                bucket->setBucketEvicting();
+                bucket->evictLoadActiveId = activeId;
+
+                /* fill ActiveStatus evict info */
+                activeStatus[activeId].evictFileId = bucket->fileId;
+                activeStatus[activeId].fileBlockIndex = bucket->fileBlockIndex;
+                activeStatus[activeId].setEvicting();
+
+                /* fill result BlockInfo */
+                info.fileId = bucket->fileId;
+                info.blockId = bucket->fileBlockIndex;
+                info.bucketId = bucketId;
+                info.isLocal = true;
+                info.offset = InvalidBlockOffset;
+
+                /* update statistics */
+                header->numUsedBuckets--;
+                header->numEvictingBuckets++;
+                found = true;
+                break;
+            }
+        }
+        else if (--trycounter == 0){
+            THROW(GopherwoodSharedMemException,
+                  "[SharedMemoryContext::acquireBlock] statistic incorrect, there should be %d used"
+                          "buckets.", header->numUsedBuckets);
+        }
     }
 
     LOG(INFO, "[SharedMemoryContext]   |"
@@ -420,11 +437,11 @@ int SharedMemoryContext::activateBucket(FileId fileId, Block &block, int activeI
 std::vector<Block>
 SharedMemoryContext::inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite) {
     std::vector<Block> res;
-    for (uint32_t i = 0; i < blocks.size(); i++) {
-        Block b = blocks[i];
+    for (Block b : blocks) {
         if (buckets[b.bucketId].isActiveBucket()) {
             buckets[b.bucketId].fileId = fileId;
             buckets[b.bucketId].fileBlockIndex = b.blockId;
+            buckets[b.bucketId].usageCount += b.usageCount;
             if (isWrite) {
                 buckets[b.bucketId].unmarkWrite(activeId);
             } else {

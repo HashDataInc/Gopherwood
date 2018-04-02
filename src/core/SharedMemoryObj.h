@@ -46,6 +46,8 @@ typedef struct ShareMemHeader {
     int32_t numBuckets;
     /* num max ActiveStatus instances */
     int32_t numMaxActiveStatus;
+    /* Clock sweep hand: index of next bucket to consider grabbing */
+    int32_t nextVictimBucket;
 
     /* Bucket Statistics */
     uint32_t numFreeBuckets;
@@ -61,6 +63,7 @@ typedef struct ShareMemHeader {
         flags = 0;
         numBuckets = totalBucketNum;
         numMaxActiveStatus = maxConn;
+        nextVictimBucket = 0;
         numFreeBuckets = totalBucketNum;
         numActiveBuckets = 0;
         numUsedBuckets = 0;
@@ -78,6 +81,7 @@ typedef struct ShareMemHeader {
 typedef struct ShareMemBucket {
     uint32_t flags;
     FileId fileId;
+    int16_t usageCount;
     int32_t fileBlockIndex;
     int32_t writeActiveId;
     int32_t evictLoadActiveId;

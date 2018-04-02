@@ -138,6 +138,9 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
     /* adjust the active block status */
     adjustActiveBlock(curBlockId);
 
+    /* update the usage count */
+    mBlockArray[curBlockId].usageCount++;
+
     /* build the block info */
     BlockInfo info;
     Block block = getCurBlock();
