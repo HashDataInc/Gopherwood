@@ -306,12 +306,12 @@ int gwCancelFile(gopherwoodFS fs, gwFile file)
 	return 0;
 }
 
-int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fi)
+int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fileInfo)
 {
     LOG(Gopherwood::Internal::INFO, "------------------gwStatFile start------------------");
     int retVal = 0;
     try{
-        fi->fileSize = file->getFile().getFileSize();
+        file->getFile().getFileInfo(fileInfo);
     }catch (...) {
         SetLastException(Gopherwood::current_exception());
         handleException(Gopherwood::current_exception());

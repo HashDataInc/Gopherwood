@@ -24,6 +24,7 @@
 
 #include "platform.h"
 
+#include "client/gopherwood.h"
 #include "core/ActiveStatus.h"
 #include "common/Memory.h"
 #include "file/OutputStream.h"
@@ -53,7 +54,7 @@ public:
 
     FileId getFileId();
 
-    int64_t getFileSize() {return mStatus->getEof();}
+    void getFileInfo(GWFileInfo *fileInfo);
 
     ~File();
 

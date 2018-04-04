@@ -116,6 +116,10 @@ FileId File::getFileId() {
     return id;
 }
 
+void File::getFileInfo(GWFileInfo *fileInfo) {
+    mStatus->getStatistics(fileInfo);
+}
+
 File::~File() {
 }
 

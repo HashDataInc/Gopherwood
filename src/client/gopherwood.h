@@ -79,6 +79,12 @@ typedef struct GWContextConfig {
 
 typedef struct GWFileInfo {
 	int64_t fileSize;
+	uint32_t maxQuota;
+	uint32_t curQuota;
+	uint32_t numBlocks;
+	uint32_t numEvicted;
+	uint32_t numLoaded;
+	uint32_t numActivated;
 }GWFileInfo;
 /**
  * gwCreateContext - Connect to a gopherwood file system.

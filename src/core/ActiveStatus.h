@@ -22,6 +22,7 @@
 #ifndef _GOPHERWOOD_CORE_ACTIVESTATUS_H_
 #define _GOPHERWOOD_CORE_ACTIVESTATUS_H_
 
+#include <client/gopherwood.h>
 #include "platform.h"
 
 #include "block/OssBlockWorker.h"
@@ -81,7 +82,8 @@ public:
 
     /**** The main entry point to adjust block status ****/
     BlockInfo getCurBlockInfo();
-    
+    void getStatistics(GWFileInfo *fileInfo);
+
     void flush();
     void close();
 
@@ -113,6 +115,11 @@ private:
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, int>> mLRUCache;
     shared_ptr<OssBlockWorker> mOssWorker;
+
+    /**************** Statistics ****************/
+    uint32_t mNumEvicted;
+    uint32_t mNumLoaded;
+    uint32_t mNumActivated;
 
     bool mIsWrite;
     bool mIsDelete;

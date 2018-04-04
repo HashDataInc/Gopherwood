@@ -51,9 +51,15 @@ ActiveStatus::ActiveStatus(FileId fileId,
     mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(Configuration::getCurQuotaSize()));
     mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, localSpaceFD));
 
+    /* init file related info */
     mPos = 0;
     mEof = 0;
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
+
+    /* init statistics */
+    mNumEvicted = 0;
+    mNumLoaded = 0;
+    mNumActivated = 0;
 
     SHARED_MEM_BEGIN
         registInSharedMem();
@@ -150,6 +156,16 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
     info.isLocal = block.isLocal;
     info.offset = getCurBlockOffset();
     return info;
+}
+
+void ActiveStatus::getStatistics(GWFileInfo *fileInfo) {
+    fileInfo->fileSize = getEof();
+    fileInfo->maxQuota = mLRUCache->maxSize();
+    fileInfo->curQuota = mLRUCache->size() + mPreAllocatedBuckets.size();
+    fileInfo->numBlocks = mBlockArray.size();
+    fileInfo->numActivated = 1;
+    fileInfo->numEvicted = 1;
+    fileInfo->numLoaded = 1;
 }
 
 void ActiveStatus::adjustActiveBlock(int curBlockId) {
@@ -288,6 +304,8 @@ void ActiveStatus::acquireNewBlocks() {
                                BUCKET_ACTIVE);
                 blocksForLog.push_back(newBlock);
                 mPreAllocatedBuckets.push_back(newBlock);
+                /* update statistics */
+                mNumActivated++;
             }
             numToAcquire -= numAcqurieFree;
 
@@ -330,11 +348,14 @@ void ActiveStatus::acquireNewBlocks() {
                     mPreAllocatedBuckets.push_back(newBlock);
                     evicting = false;
                     numToAcquire--;
+                    /* update statistics */
+                    mNumActivated++;
                 }
 
                 /* add log to the evicted file */
                 if (rc == 0) {
                     logEvictBlock(evictBlockInfo);
+                    mNumEvicted ++;
                 }
 
                 /* 1: the evicted block has been deleted during eviction
@@ -361,6 +382,8 @@ void ActiveStatus::acquireNewBlocks() {
                                    BUCKET_ACTIVE);
                     blocksForLog.push_back(newBlock);
                     mPreAllocatedBuckets.push_back(newBlock);
+                    /* update statistics */
+                    mNumActivated++;
                 }
                 numToAcquire -= numAcqurieFree;
             }
@@ -514,6 +537,8 @@ void ActiveStatus::activateBlock(int blockId) {
 
         SHARED_MEM_BEGIN
             mSharedMemoryContext->markLoadFinish(mBlockArray[blockId], mActiveId, mFileId);
+            /* update statistics */
+            mNumLoaded++;
         SHARED_MEM_END
     }
     /* if the block is loading by other process, wait until it finished */
