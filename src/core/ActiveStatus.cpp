@@ -163,9 +163,9 @@ void ActiveStatus::getStatistics(GWFileInfo *fileInfo) {
     fileInfo->maxQuota = mLRUCache->maxSize();
     fileInfo->curQuota = mLRUCache->size() + mPreAllocatedBuckets.size();
     fileInfo->numBlocks = mBlockArray.size();
-    fileInfo->numActivated = 1;
-    fileInfo->numEvicted = 1;
-    fileInfo->numLoaded = 1;
+    fileInfo->numActivated = mNumActivated;
+    fileInfo->numEvicted = mNumEvicted;
+    fileInfo->numLoaded = mNumLoaded;
 }
 
 void ActiveStatus::adjustActiveBlock(int curBlockId) {
