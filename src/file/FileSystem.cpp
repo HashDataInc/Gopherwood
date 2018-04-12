@@ -47,14 +47,21 @@ FileSystem::FileSystem(const char *workDir) :
     std::stringstream ss;
     ss << workDir << '/' << Configuration::LOCAL_SPACE_FILE;
     std::string filePath = ss.str();
-    int flags = O_CREAT | O_RDWR;
-    mLocalSpaceFile = open(filePath.c_str(), flags, 0644);
+    if( access(filePath.c_str(), F_OK ) != -1 ) {
+        mLocalSpaceFile = open(filePath.c_str(), O_RDWR, 0644);
+    } else {
+        mLocalSpaceFile = open(filePath.c_str(), O_CREAT | O_RDWR, 0644);
+        lseek(mLocalSpaceFile,
+              Configuration::LOCAL_BUCKET_SIZE * Configuration::NUMBER_OF_BLOCKS,
+              SEEK_SET);
+        lseek(mLocalSpaceFile, 0, SEEK_SET);
+    }
 
     /* create lock file */
     ss.str("");
     ss << workDir << "/SmLock";
     filePath = ss.str();
-    int32_t lockFile = open(filePath.c_str(), flags, 0644);
+    int32_t lockFile = open(filePath.c_str(), O_CREAT | O_RDWR, 0644);
 
     /* create Manifest log folder */
     ss.str("");

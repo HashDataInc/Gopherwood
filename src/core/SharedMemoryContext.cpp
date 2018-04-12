@@ -190,7 +190,6 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int nu
  * 2. evictBlockFinish -- finally reset evicting ActiveStatus and activate the bucket */
 BlockInfo SharedMemoryContext::markBucketEvicting(int activeId) {
     BlockInfo info;
-    bool found = false;
 
     /* Run the "clock sweep" algorithm */
     int32_t trycounter = header->numBuckets;
@@ -230,7 +229,6 @@ BlockInfo SharedMemoryContext::markBucketEvicting(int activeId) {
                 /* update statistics */
                 header->numUsedBuckets--;
                 header->numEvictingBuckets++;
-                found = true;
                 break;
             }
         }
