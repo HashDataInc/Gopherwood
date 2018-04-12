@@ -394,7 +394,10 @@ void FileSystem::initOssContext() {
 }
 
 FileSystem::~FileSystem() {
-
+    if (mLocalSpaceFile > 0) {
+        close(mLocalSpaceFile);
+        mLocalSpaceFile = -1;
+    }
 }
 
 }

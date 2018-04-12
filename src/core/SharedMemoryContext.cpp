@@ -541,7 +541,10 @@ void SharedMemoryContext::printStatistics() {
 }
 
 SharedMemoryContext::~SharedMemoryContext() {
-
+    if (mLockFD > 0) {
+        close(mLockFD);
+        mLockFD = -1;
+    }
 }
 
 }
