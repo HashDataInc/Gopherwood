@@ -140,6 +140,10 @@ static void handleException(const Gopherwood::exception_ptr &error) {
     }
 }
 
+const char * gwGetLastError() {
+    return ErrorMessage;
+}
+
 gopherwoodFS gwCreateContext(char *workDir, GWContextConfig *config) {
     LOG(Gopherwood::Internal::INFO, "------------------gwCreateContext start------------------");
     PARAMETER_ASSERT(workDir && strlen(workDir) > 0, NULL, EINVAL);

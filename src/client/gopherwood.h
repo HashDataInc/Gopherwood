@@ -86,6 +86,16 @@ typedef struct GWFileInfo {
 	uint32_t numLoaded;
 	uint32_t numActivated;
 }GWFileInfo;
+
+/**
+ * Return error information of last failed operation.
+ *
+ * @return			A not NULL const string point of last error information.
+ * 					Caller can only read this message and keep it unchanged. No need to free it.
+ * 					If last operation finished successfully, the returned message is undefined.
+ */
+const char * gwGetLastError();
+
 /**
  * gwCreateContext - Connect to a gopherwood file system.
  *
