@@ -307,7 +307,19 @@ int gwDestroyContext(gopherwoodFS fs) {
 
 int gwCancelFile(gopherwoodFS fs, gwFile file)
 {
-	return 0;
+    LOG(Gopherwood::Internal::INFO, "------------------gwCancelFile start------------------");
+
+    try {
+        file->getFile().close(true);
+        delete file;
+        file = NULL;
+        return 0;
+    } catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+    }
+
+    return -1;
 }
 
 int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fileInfo)

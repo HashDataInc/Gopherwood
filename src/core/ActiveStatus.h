@@ -85,13 +85,13 @@ public:
     void getStatistics(GWFileInfo *fileInfo);
 
     void flush();
-    void close();
+    void close(bool isCancel);
 
     ~ActiveStatus();
 
 private:
     void registInSharedMem();
-    void unregistInSharedMem();
+    void unregistInSharedMem(bool isCancel);
 
     Block getCurBlock();
     int32_t getNumBlocks();

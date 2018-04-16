@@ -7,7 +7,7 @@
 #include "client/gopherwood.h"
 
 static gopherwoodFS fs;
-char workDir[] = "/tmp/gopherwood";
+char workDir[] = "/data/gopherwood";
 
 
 void testReadWrite(){
@@ -86,6 +86,18 @@ void testWriteExceedQuota(){
     free(buffer);
 }
 
+void testCancelFile() {
+    printf("===========Test Cancel File When Opening===========\n");
+    char input[] = "0123456789";
+    char* buffer = (char*)malloc(200);
+
+    gwFile file = gwOpenFile(fs, "/test1", GW_CREAT|GW_RDWR);
+    for (int i=0; i<5; i++) {
+        gwWrite(fs, file, input, 10);
+    }
+    gwCancelFile(fs, file);
+}
+
 int main(int argc, char *argv[])
 {
     gwFormatContext(workDir);
@@ -100,8 +112,10 @@ int main(int argc, char *argv[])
     testReadWrite();
     testSeekExceedEof();
     testWriteExceedQuota();
+    testCancelFile();
 
     gwDestroyContext(fs);
+    gwFormatContext(workDir);
 
     return 0;
 }

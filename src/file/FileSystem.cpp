@@ -134,7 +134,7 @@ File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
 }
 
 void FileSystem::CloseFile(File &file) {
-    file.close();
+    file.close(false);
 }
 
 void FileSystem::DeleteFile(const char *fileName) {
@@ -145,7 +145,7 @@ void FileSystem::DeleteFile(const char *fileName) {
     status = mActiveStatusContext->deleteFileActiveStatus(delFileId, mLocalSpaceFile);
 
     /* call activeStatus destroy */
-    status->close();
+    status->close(false);
     status.reset();
 }
 

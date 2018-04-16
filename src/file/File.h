@@ -48,7 +48,7 @@ public:
 
     int64_t seek(int64_t pos, int mode);
 
-    void close();
+    void close(bool isCancel);
 
     int64_t remaining();
 

@@ -78,7 +78,7 @@ void ActiveStatus::registInSharedMem() {
             "Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
 }
 
-void ActiveStatus::unregistInSharedMem() {
+void ActiveStatus::unregistInSharedMem(bool isCancel) {
     if (mActiveId == -1)
         return;
 
@@ -89,6 +89,9 @@ void ActiveStatus::unregistInSharedMem() {
               "[ActiveStatus::unregistInSharedMem] connection info mismatch with SharedMem ActiveId=%d, PID=%d",
               mActiveId, getpid());
     }
+    if (isCancel)
+        mShouldDestroy = true;
+
     LOG(INFO, "[ActiveStatus]          |"
             "Unregistered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
     mActiveId = -1;
@@ -588,7 +591,7 @@ void ActiveStatus::flush() {
 }
 
 /* truncate existing Manifest file and flush latest block status to it */
-void ActiveStatus::close() {
+void ActiveStatus::close(bool isCancel) {
     std::vector<Block> localBlocks;
     std::vector<Block> remoteBlocks;
 
@@ -624,7 +627,7 @@ void ActiveStatus::close() {
         }
 
         /* this will set the shouldDestroy field */
-        unregistInSharedMem();
+        unregistInSharedMem(isCancel);
 
         if (!mSharedMemoryContext->isFileOpening(mFileId)) {
             if (mShouldDestroy) {

@@ -94,8 +94,8 @@ int64_t File::seek(int64_t pos, int mode) {
     return targetPos;
 }
 
-void File::close() {
-    mStatus->close();
+void File::close(bool isCancel) {
+    mStatus->close(isCancel);
 
     if (mOutStream) {
         mOutStream->close();
