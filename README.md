@@ -46,11 +46,11 @@ Run command "../bootstrap --help" for more configuration.
 To test all test cases, run command
 
     make testAll
-
-To do unit test, run command
-
-    make unittest
     
 To do function test, run command
 
     make functiontest
+    
+To show code coverage result, run command. Code coverage result can be found at BUILD_DIR/CodeCoverageReport/index.html
+
+    make ShowCoverage

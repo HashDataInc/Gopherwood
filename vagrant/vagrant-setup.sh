@@ -32,6 +32,7 @@ sudo yum -y install \
 	curl-devel \
 	libyaml-devel \
 	protobuf \
+	lcov \
 
 #add liboss dependency
 
