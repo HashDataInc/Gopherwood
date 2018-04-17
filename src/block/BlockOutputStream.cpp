@@ -38,7 +38,7 @@ BlockOutputStream::BlockOutputStream(int fd) : mLocalSpaceFD(fd) {
 }
 
 void BlockOutputStream::setBlockInfo(BlockInfo info) {
-    LOG(INFO, "[BlockOutputStream]     |"
+    LOG(DEBUG1, "[BlockOutputStream]     |"
               "Set BlockInfo bucketId=%d, new blockOffset=%ld, %s",
         info.bucketId, info.offset, info.isLocal ? "local" : "remote");
     mBlockInfo = info;
@@ -53,7 +53,7 @@ int64_t BlockOutputStream::write(const char *buffer, int64_t length) {
 
     if (mBlockInfo.isLocal) {
         mLocalWriter->seek(getLocalSpaceOffset());
-        LOG(INFO, "[BlockOutputStream]     |"
+        LOG(DEBUG1, "[BlockOutputStream]     |"
                   "Write to local space, bucketId=%d, offset=%ld, length=%ld",
             mBlockInfo.bucketId, mBlockInfo.offset, length);
         written = mLocalWriter->writeLocal(buffer, length);

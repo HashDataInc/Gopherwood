@@ -110,7 +110,7 @@ public:
     const bool get(const key_t &key) {
         auto it = _cache_items_map.find(key);
         if (it == _cache_items_map.end()) {
-            LOG(Gopherwood::Internal::INFO, "There is no such key in cache");
+            LOG(Gopherwood::Internal::DEBUG1, "There is no such key in cache");
             return false;
         } else {
             _cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);

@@ -65,6 +65,10 @@ extern "C" {
 typedef int32_t tSize; /// size of data for read/write io ops
 typedef int64_t tOffset; /// offset within the file
 
+enum GW_LogSeverity {
+	LOG_ERROR, WARNING, INFO, DEBUG1, DEBUG2
+};
+
 struct GWFileSystemInternalWrapper;
 typedef struct GWFileSystemInternalWrapper *gopherwoodFS;
 
@@ -75,6 +79,7 @@ typedef struct GWContextConfig {
     int32_t numBlocks;
     int64_t blockSize;
     int32_t numPreDefinedConcurrency;
+	GW_LogSeverity severity;
 } GWContextConfig;
 
 typedef struct GWFileInfo {

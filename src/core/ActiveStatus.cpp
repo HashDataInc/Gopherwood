@@ -74,7 +74,7 @@ void ActiveStatus::registInSharedMem() {
               "[ActiveStatus::registInSharedMem] Exceed max connection limitation %d",
               mSharedMemoryContext->getNumMaxActiveStatus());
     }
-    LOG(INFO, "[ActiveStatus]          |"
+    LOG(DEBUG1, "[ActiveStatus]          |"
             "Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
 }
 
@@ -92,7 +92,7 @@ void ActiveStatus::unregistInSharedMem(bool isCancel) {
     if (isCancel)
         mShouldDestroy = true;
 
-    LOG(INFO, "[ActiveStatus]          |"
+    LOG(DEBUG1, "[ActiveStatus]          |"
             "Unregistered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
     mActiveId = -1;
 }
@@ -106,7 +106,7 @@ void ActiveStatus::setPosition(int64_t pos) {
     if (mPos > mEof) {
         mEof = mPos;
     }
-    LOG(INFO, "[ActiveStatus]          |"
+    LOG(DEBUG1, "[ActiveStatus]          |"
             "Update ActiveStatus position, pos=%ld, eof=%ld",
         mPos, mEof);
 }
@@ -258,7 +258,7 @@ void ActiveStatus::acquireNewBlocks() {
             numToInactivate = mLRUCache->size() - quota + 1;
             numToAcquire = 1;
         }
-        LOG(INFO, "[ActiveStatus]          |"
+        LOG(DEBUG1, "[ActiveStatus]          |"
                 "Calculate new quota size, newQuota=%u, curQuota=%ld, numAvailables=%d, "
                 "inactivate=%d, acquire %d", quota, mLRUCache->size(), numAvailable,
             numToInactivate, numToAcquire);
@@ -299,7 +299,7 @@ void ActiveStatus::acquireNewBlocks() {
             newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
             /* add free buckets to preAllocatedBlocks */
             for (int32_t bucketId : newBuckets) {
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Pre-allocate bucket %d to pre-allocated bucket array.", bucketId);
                 Block newBlock(bucketId,
                                InvalidBlockId,
@@ -344,7 +344,7 @@ void ActiveStatus::acquireNewBlocks() {
                                                                  mIsWrite);
                 if (rc == 0 || rc == 1) {
                     Block newBlock(evictBlockInfo.bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
-                    LOG(INFO, "[ActiveStatus]          |"
+                    LOG(DEBUG1, "[ActiveStatus]          |"
                             "Add block %d to pre-allocated bucket array.",
                         newBlock.bucketId);
                     blocksForLog.push_back(newBlock);
@@ -377,7 +377,7 @@ void ActiveStatus::acquireNewBlocks() {
                 newBuckets = mSharedMemoryContext->acquireFreeBucket(mActiveId, numAcqurieFree, mFileId, mIsWrite);
                 /* add free buckets to preAllocatedBlocks */
                 for (int32_t bucketId: newBuckets) {
-                    LOG(INFO, "[ActiveStatus]          |"
+                    LOG(DEBUG1, "[ActiveStatus]          |"
                             "Add block %d to pre-allocated bucket array.", bucketId);
                     Block newBlock(bucketId,
                                    InvalidBlockId,
@@ -438,7 +438,7 @@ void ActiveStatus::extendOneBlock() {
         opaque.extendBlock.eof = mEof;
         mManifest->logExtendBlock(blocksModified, opaque);
     SHARED_MEM_END
-    LOG(INFO, "[ActiveStatus]          |"
+    LOG(DEBUG1, "[ActiveStatus]          |"
             "ExtendOneBlock blockId=%d, bucketId=%d",
         b.blockId, b.bucketId);
 }
@@ -698,14 +698,14 @@ void ActiveStatus::catchUpManifestLogs() {
         /* replay the log */
         switch (header.type) {
             case RecordType::activeBlock:
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Replay activeBlock log record with %lu blocks.", blocks.size());
                 for (Block block : blocks) {
                     mBlockArray[block.blockId].state = BUCKET_ACTIVE;
                 }
                 break;
             case RecordType::inactiveBlock:
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Replay inactiveBlock log record with %lu blocks.", blocks.size());
                 for (Block block : blocks) {
                     mBlockArray[block.blockId].state = BUCKET_USED;
@@ -719,24 +719,24 @@ void ActiveStatus::catchUpManifestLogs() {
                  * 2. When Write ActiveStatus do the log replay work, all preAllocatedBuckets should have
                  *    been released
                  * TODO: The only case to replay this log is to check the log integrity */
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Skip acquireNewBlock log record with %lu blocks.", blocks.size());
                 break;
             case RecordType::releaseBlock:
                 /* As described in acquireNewBlock log, the only need to replay this
                  * log is to check the log integrity */
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Skip releaseBlock log record with %lu blocks.", blocks.size());
                 break;
             case RecordType::extendBlock:
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Replay assignBlock log record with %lu blocks.", blocks.size());
                 assert(header.numBlocks == 1);
                 mBlockArray.push_back(blocks[0]);
                 mEof = header.opaque.extendBlock.eof;
                 break;
             case RecordType::evictBlock:
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Replay evictBlock log record with %lu blocks.", blocks.size());
                 assert(header.numBlocks == 1);
                 if (mBlockArray[blocks[0].blockId].isLocal && mBlockArray[blocks[0].blockId].state == BUCKET_USED) {
@@ -748,7 +748,7 @@ void ActiveStatus::catchUpManifestLogs() {
                 }
                 break;
             case RecordType::loadBlock:
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Replay loadBlock log record with %lu blocks.", blocks.size());
                 assert(header.numBlocks == 1);
                 if (!mBlockArray[blocks[0].blockId].isLocal) {
@@ -760,7 +760,7 @@ void ActiveStatus::catchUpManifestLogs() {
                 }
                 break;
             case RecordType::fullStatus:
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Replay fullStatus log record with %lu blocks. EOF=%lu", blocks.size(),
                     header.opaque.fullStatus.eof);
                 for (Block block : blocks) {
@@ -770,7 +770,7 @@ void ActiveStatus::catchUpManifestLogs() {
                 break;
             case RecordType::updateEof:
                 assert(header.numBlocks == 0);
-                LOG(INFO, "[ActiveStatus]          |"
+                LOG(DEBUG1, "[ActiveStatus]          |"
                         "Replay updateEof log record eof=%ld.", header.opaque.updateEof.eof);
                 mEof = header.opaque.updateEof.eof;
                 break;

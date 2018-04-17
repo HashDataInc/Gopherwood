@@ -82,7 +82,7 @@ shared_ptr<SharedMemoryContext> SharedMemoryManager::buildSharedMemoryContext(co
 
     /* release shared memory mutex */
     lockf(lockFD, F_ULOCK, 0);
-    LOG(INFO, "[SharedMemoryManager]   |SharedMemory context built");
+    LOG(DEBUG1, "[SharedMemoryManager]   |SharedMemory context built");
     return ctx;
 }
 
@@ -111,7 +111,7 @@ shared_ptr<shared_memory_object> SharedMemoryManager::openSharedMemory(const cha
     try {
         res = shared_ptr<shared_memory_object>(new shared_memory_object(open_only, name, read_write));
     } catch (const interprocess_exception &e) {
-        LOG(WARNING, "[SharedMemoryManager]|"
+        LOG(DEBUG1, "[SharedMemoryManager]|"
                      "Got exception when opening the Shared Memory, error message: %s", e.what());
         *exist = false;
     }

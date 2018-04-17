@@ -57,7 +57,7 @@ void Manifest::logAcquireNewBlock(std::vector<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
               "New acquireNewBlock log record");
 }
 
@@ -67,7 +67,7 @@ void Manifest::logExtendBlock(std::vector<Block> &blocks, RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
               "New extendBlock log record");
 }
 
@@ -80,7 +80,7 @@ void Manifest::logUpdateEof(RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
               "New updateEof log record");
 }
 
@@ -99,7 +99,7 @@ void Manifest::logReleaseBucket(std::list<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
               "New releaseBlock log record");
 }
 
@@ -113,7 +113,7 @@ void Manifest::logInactivateBucket(std::vector<Block> &blocks) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
               "New inactiveBlock log record");
 }
 
@@ -130,7 +130,7 @@ void Manifest::logActivateBucket(Block &block) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
             "New activeBlock log record");
 }
 
@@ -147,7 +147,7 @@ void Manifest::logEvcitBlock(Block &block) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
             "New evictBlock log record");
 }
 
@@ -164,7 +164,7 @@ void Manifest::logLoadBlock(Block &block) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
             "New loadBlock log record");
 }
 
@@ -177,7 +177,7 @@ void Manifest::logFullStatus(std::vector<Block> &blocks, RecOpaque opaque) {
 
     /* flush to log */
     mfWrite(logRecord);
-    LOG(INFO, "[Manifest]              |"
+    LOG(DEBUG1, "[Manifest]              |"
               "New fullStatus log record");
 }
 

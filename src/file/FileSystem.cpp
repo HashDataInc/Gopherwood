@@ -37,7 +37,7 @@ void FileSystem::Format(const char *workDir) {
     ss << "exec rm -r " << workDir << "/*";
     system(ss.str().c_str());
     shared_memory_object::remove(Configuration::SHARED_MEMORY_NAME.c_str());
-    LOG(INFO, "[FileSystem]            |"
+    LOG(DEBUG1, "[FileSystem]            |"
             "Format SharedMemory %s", Configuration::SHARED_MEMORY_NAME.c_str());
 }
 
@@ -114,7 +114,7 @@ File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     fileId = makeFileId(std::string(fileName));
     status = mActiveStatusContext->initFileActiveStatus(fileId, isWrite, mLocalSpaceFile);
 
-    LOG(INFO, "[FileSystem]            |"
+    LOG(DEBUG1, "[FileSystem]            |"
             "Creating file %s", fileId.toString().c_str());
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status);
@@ -127,7 +127,7 @@ File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
     fileId = makeFileId(std::string(fileName));
     status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite, mLocalSpaceFile);
 
-    LOG(INFO, "[FileSystem]            |"
+    LOG(DEBUG1, "[FileSystem]            |"
             "Opening file %s", fileId.toString().c_str());
     std::string name(fileName);
     return new File(fileId, name, flags, mLocalSpaceFile, status);
@@ -172,7 +172,7 @@ void FileSystem::buildOssInfo() {
         }
     }
 
-    LOG(INFO, "[FileSystem]            |"
+    LOG(DEBUG1, "[FileSystem]            |"
             "Oss configuration file is %s", conf_file.c_str());
 
     std::ifstream fin(conf_file.c_str());
@@ -222,7 +222,7 @@ void FileSystem::buildOssInfo() {
             std::string::size_type eq_c_pos = mkey.find('=');
             std::stringstream sstr(mkey.substr(eq_c_pos + 1));
             sstr >> mOssInfo.qs_write_buffer;
-            LOG(INFO,
+            LOG(DEBUG1,
                 "FileSystemContext: liboss write buffer size set to %ld",
                 mOssInfo.qs_write_buffer);
         }
@@ -230,7 +230,7 @@ void FileSystem::buildOssInfo() {
             std::string::size_type eq_c_pos = mkey.find('=');
             std::stringstream sstr(mkey.substr(eq_c_pos + 1));
             sstr >> mOssInfo.qs_read_buffer;
-            LOG(INFO,
+            LOG(DEBUG1,
                 "FileSystemContext: liboss read buffer size set to %ld",
                 mOssInfo.qs_read_buffer);
         }
@@ -252,7 +252,7 @@ void FileSystem::buildOssInfo() {
             std::string::size_type eq_c_pos = mkey.find('=');
             std::stringstream sstr(mkey.substr(eq_c_pos + 1));
             sstr >> mOssInfo.s3_write_buffer;
-            LOG(INFO,
+            LOG(DEBUG1,
                 "FileSystemContext: liboss write buffer size set to %ld",
                 mOssInfo.s3_write_buffer);
         }
@@ -260,7 +260,7 @@ void FileSystem::buildOssInfo() {
             std::string::size_type eq_c_pos = mkey.find('=');
             std::stringstream sstr(mkey.substr(eq_c_pos + 1));
             sstr >> mOssInfo.s3_read_buffer;
-            LOG(INFO,
+            LOG(DEBUG1,
                 "FileSystemContext: liboss read buffer size set to %ld",
                 mOssInfo.s3_read_buffer);
         }
@@ -286,7 +286,7 @@ void FileSystem::buildOssInfo() {
             std::string::size_type eq_c_pos = mkey.find('=');
             std::stringstream sstr(mkey.substr(eq_c_pos + 1));
             sstr >> mOssInfo.txcos_write_buffer;
-            LOG(INFO,
+            LOG(DEBUG1,
                 "FileSystemContext: liboss write buffer size set to %ld",
                 mOssInfo.txcos_write_buffer);
         }
@@ -294,7 +294,7 @@ void FileSystem::buildOssInfo() {
             std::string::size_type eq_c_pos = mkey.find('=');
             std::stringstream sstr(mkey.substr(eq_c_pos + 1));
             sstr >> mOssInfo.txcos_read_buffer;
-            LOG(INFO,
+            LOG(DEBUG1,
                 "FileSystemContext: liboss read buffer size set to %ld",
                 mOssInfo.txcos_read_buffer);
         }
@@ -316,7 +316,7 @@ void FileSystem::buildOssInfo() {
             std::string::size_type eq_c_pos = mkey.find('=');
             std::stringstream sstr(mkey.substr(eq_c_pos + 1));
             sstr >> mOssInfo.alioss_write_buffer;
-            LOG(INFO,
+            LOG(DEBUG1,
                 "FileSystemContext: liboss write buffer size set to %ld",
                 mOssInfo.alioss_write_buffer);
         }
@@ -324,7 +324,7 @@ void FileSystem::buildOssInfo() {
             std::string::size_type eq_c_pos = mkey.find('=');
             std::stringstream sstr(mkey.substr(eq_c_pos + 1));
             sstr >> mOssInfo.alioss_read_buffer;
-            LOG(INFO,
+            LOG(DEBUG1,
                 "FileSystemContext: liboss read buffer size set to %ld",
                 mOssInfo.alioss_read_buffer);
         }
@@ -372,7 +372,7 @@ void FileSystem::initOssContext() {
     setObjectStorInfo();
 
     if (OSS_CONTEXT == NULL) {
-        printf("%s\n%s\n%s\n%s\n%s\n",
+        LOG(DEBUG1, "%s\n%s\n%s\n%s\n%s\n",
                mOssInfo.object_stor_type.c_str(),
                mOssInfo.liboss_zone.c_str(),
                mOssInfo.liboss_appid.c_str(),
