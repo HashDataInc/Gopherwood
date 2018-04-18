@@ -74,25 +74,32 @@ typedef struct ShareMemHeader {
 /* used in ShareMemBucket to remember ActiveStatus
  * that are using this bucket*/
 typedef struct BucketActiveInfo {
+    /* 0-free, 1-write, 2-read */
     uint16_t flags;
-    uint16_t activeId;
+    int16_t activeId;
+
+    void reset() { flags = 0; activeId = InvalidActiveId; };
+    void setWrite() {flags = 1;};
+    void setRead() {flags = 2;};
 } BucketActiveInfo;
+
+/* Max ActiveStatus number that can mark activate on a bucket
+ * NOTE: max setting is the max_value of int16_t  */
+#define SMBUCKET_MAX_CONCURRENT_OPEN 32
 
 /* Bit usages in flags field (low to high)
  * bit 0~1:     Bucket type 0/1/2
  * bit 29:      Mark the block is loading
  * bit 30:      Mark the evicting block has been deleted
  * bit 31:      Evicting bucket will set this bit to 1
- * */
-#define SMBUCKET_MAX_CONCURRENT_OPEN 10
+ */
 typedef struct ShareMemBucket {
     uint32_t flags;
     FileId fileId;
     int16_t usageCount;
     int32_t fileBlockIndex;
-    int16_t writeActiveId;
     int16_t evictLoadActiveId;
-    int16_t readActives[SMBUCKET_MAX_CONCURRENT_OPEN];
+    BucketActiveInfo activeInfos[SMBUCKET_MAX_CONCURRENT_OPEN];
 
     /* Bucket status operations */
     bool isFreeBucket() { return (flags & 0x00000003) == 0 ? true : false; };

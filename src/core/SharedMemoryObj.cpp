@@ -48,51 +48,60 @@ void ShareMemBucket::reset() {
     fileId.reset();
     usageCount = 0;
     fileBlockIndex = InvalidBlockId;
-    writeActiveId = InvalidActiveId;
     evictLoadActiveId = InvalidActiveId;
-    for (short i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
-        readActives[i] = InvalidActiveId;
+    for (int16_t i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
+        activeInfos[i].reset();
     }
 }
 
 void ShareMemBucket::markWrite(int activeId) {
-    if (writeActiveId != InvalidActiveId) {
-        THROW(GopherwoodSharedMemException,
-              "[ShareMemBucket::markWrite] File %lu-%u exceed the max write concurrent num %d",
-              fileId.hashcode, fileId.collisionId, 1
-        );
-    }
-    writeActiveId = activeId;
-};
-
-void ShareMemBucket::markRead(int activeId) {
     for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
-        if (readActives[i] == InvalidActiveId) {
-            readActives[i] = activeId;
+        if (activeInfos[i].activeId == InvalidActiveId) {
+            activeInfos[i].activeId = activeId;
+            activeInfos[i].setWrite();
             return;
         }
     }
     THROW(GopherwoodSharedMemException,
-          "[ShareMemBucket::markRead] File %lu-%u exceed the max  read concurrent num %d",
+          "[ShareMemBucket::markRead] File %lu-%u exceed the max activate concurrent num %d",
+          fileId.hashcode, fileId.collisionId, SMBUCKET_MAX_CONCURRENT_OPEN
+    );
+    return;
+};
+
+void ShareMemBucket::markRead(int activeId) {
+    for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
+        if (activeInfos[i].activeId == InvalidActiveId) {
+            activeInfos[i].activeId = activeId;
+            activeInfos[i].setRead();
+            return;
+        }
+    }
+    THROW(GopherwoodSharedMemException,
+          "[ShareMemBucket::markRead] File %lu-%u exceed the max activate concurrent num %d",
           fileId.hashcode, fileId.collisionId, SMBUCKET_MAX_CONCURRENT_OPEN
     );
     return;
 };
 
 void ShareMemBucket::unmarkWrite(int16_t activeId) {
-    if (writeActiveId != activeId) {
-        THROW(GopherwoodSharedMemException,
-              "[ShareMemBucket::unmarkWrite] File %lu-%u block %d write active id mismatch expect %d, actually is %d",
-              fileId.hashcode, fileId.collisionId, fileBlockIndex, activeId, writeActiveId
-        );
+    for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
+        if (activeInfos[i].activeId == activeId) {
+            activeInfos[i].reset();
+            return;
+        }
     }
-    writeActiveId = InvalidActiveId;
+    THROW(GopherwoodSharedMemException,
+          "[ShareMemBucket::unmarkRead] File %lu-%u block %d was not opend by activeId %d ",
+          fileId.hashcode, fileId.collisionId, fileBlockIndex, activeId
+    );
+    return;
 }
 
 void ShareMemBucket::unmarkRead(int16_t activeId) {
     for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
-        if (readActives[i] == activeId) {
-            readActives[i] = InvalidActiveId;
+        if (activeInfos[i].activeId == activeId) {
+            activeInfos[i].reset();
             return;
         }
     }
@@ -104,11 +113,8 @@ void ShareMemBucket::unmarkRead(int16_t activeId) {
 }
 
 bool ShareMemBucket::noActiveReadWrite() {
-    if (writeActiveId != InvalidActiveId) {
-        return false;
-    }
     for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
-        if (readActives[i] != InvalidActiveId) {
+        if (activeInfos[i].activeId != InvalidActiveId) {
             return false;
         }
     }

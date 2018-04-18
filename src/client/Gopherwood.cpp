@@ -144,6 +144,26 @@ const char * gwGetLastError() {
     return ErrorMessage;
 }
 
+void gwSetLogSeverity(int severity) {
+    switch (severity) {
+        case LOGSEV_ERROR :
+            Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::LOG_ERROR);
+            break;
+        case LOGSEV_WARNING :
+            Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::WARNING);
+            break;
+        case LOGSEV_INFO :
+            Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::INFO);
+            break;
+        case LOGSEV_DEBUG1 :
+            Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::DEBUG1);
+            break;
+        case LOGSEV_DEBUG2 :
+            Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::DEBUG2);
+            break;
+    }
+}
+
 gopherwoodFS gwCreateContext(char *workDir, GWContextConfig *config) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwCreateContext start------------------");
     PARAMETER_ASSERT(workDir && strlen(workDir) > 0, NULL, EINVAL);
