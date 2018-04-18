@@ -64,8 +64,9 @@ TEST_F(TestCInterface, TestFormatContext) {
 }
 
 TEST_F(TestCInterface, TestCancel_Success) {
-    char input[] = "0123456789";
     char fileName[] = "TestCInterface/TestCancel_Success";
+    char input[] = "0123456789";
+
     gwFile file = NULL;
     int len;
 
@@ -77,3 +78,5 @@ TEST_F(TestCInterface, TestCancel_Success) {
 
     ASSERT_NO_THROW(gwCancelFile(fs, file));
 }
+
+

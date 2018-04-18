@@ -68,8 +68,9 @@ TEST_F(TestActiveStatusLocal, TestFormatContext) {
 
 /* test read while the file is writing by another activeStatus */
 TEST_F(TestActiveStatusLocal, TestWriteReadConcurrent) {
-    char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
     char fileName[] = "TestFormatWorkDir/TestWriteReadConcurrent";
+    char input[] = "aaaaaaaaaabbbbbbbbbbcccccccccc";
+
     int64_t pos;
     int len;
     gwFile file = NULL;
@@ -105,8 +106,9 @@ TEST_F(TestActiveStatusLocal, TestWriteReadConcurrent) {
 
 /* Test Seek Exceed Eof */
 TEST_F(TestActiveStatusLocal, TestSeekExceedEof) {
-    char input[] = "aaaaaaaaaabbbbbbbbbb";
     char fileName[] = "TestFormatWorkDir/TestSeekExceedEof";
+    char input[] = "aaaaaaaaaabbbbbbbbbb";
+
     int64_t pos;
     int len;
     gwFile file = NULL;
@@ -132,9 +134,10 @@ TEST_F(TestActiveStatusLocal, TestSeekExceedEof) {
 }
 
 TEST_F(TestActiveStatusLocal, TestWriteExceedQuota) {
+    char fileName[] = "TestFormatWorkDir/TestWriteExceedQuota";
     char input[] = "0123456789";
     char expect_output[] = "024680246802468";
-    char fileName[] = "TestFormatWorkDir/TestWriteExceedQuota";
+
     gwFile file = NULL;
     gwFile file1 = NULL;
     int64_t pos;
@@ -161,4 +164,20 @@ TEST_F(TestActiveStatusLocal, TestWriteExceedQuota) {
 
     ASSERT_NO_THROW(gwCloseFile(fs, file1));
     ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+}
+
+TEST_F(TestActiveStatusLocal, TestDeleteWhenStillOpen) {
+    char fileName[] = "TestFormatWorkDir/TestDeleteWhenStillOpen";
+    char input[] = "0123456789";
+    int len;
+
+    gwFile file = NULL;
+    ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
+    ASSERT_NO_THROW(len = gwWrite(fs, file, input, 10));
+    EXPECT_EQ(10, len);
+
+    ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_TRUE(gwFileExists(fs, fileName));
+    ASSERT_NO_THROW(gwCloseFile(fs, file));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
 }
