@@ -51,24 +51,24 @@ public:
     SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD, bool reset);
 
     /* Regist/Unregist an ActiveStatus instance */
-    int regist(int pid, FileId fileId, bool isWrite, bool isDelete);
-    int unregist(int activeId, int pid, bool *shouldDestroy);
+    int16_t regist(int pid, FileId fileId, bool isWrite, bool isDelete);
+    int unregist(int16_t activeId, int pid, bool *shouldDestroy);
 
     int calcDynamicQuotaNum();
     bool isFileOpening(FileId fileId);
 
-    std::vector<int32_t> acquireFreeBucket(int activeId, int num, FileId fileId, bool isWrite);
+    std::vector<int32_t> acquireFreeBucket(int16_t activeId, int num, FileId fileId, bool isWrite);
     void releaseBuckets(std::list<Block> &blocks);
-    int activateBucket(FileId fileId, Block &block, int activeId, bool isWrite);
-    std::vector<Block> inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite);
+    int activateBucket(FileId fileId, Block &block, int16_t activeId, bool isWrite);
+    std::vector<Block> inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int16_t activeId, bool isWrite);
     void updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId);
     void deleteBlocks(std::vector<Block> &blocks, FileId fileId);
 
     /* evict/load logic related APIs*/
-    BlockInfo markBucketEvicting(int activeId);
-    int evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite);
-    void markBucketLoading(Block &block, int activeId, FileId fileId);
-    void markLoadFinish(Block &block, int activeId, FileId fileId);
+    BlockInfo markBucketEvicting(int16_t activeId);
+    int evictBucketFinish(int32_t bucketId, int16_t activeId, FileId fileId, int isWrite);
+    void markBucketLoading(Block &block, int16_t activeId, FileId fileId);
+    void markLoadFinish(Block &block, int16_t activeId, FileId fileId);
     bool isBucketLoading(Block &block, FileId fileId);
 
     void reset();

@@ -45,7 +45,7 @@ typedef struct ShareMemHeader {
     /* num buckets */
     int32_t numBuckets;
     /* num max ActiveStatus instances */
-    int32_t numMaxActiveStatus;
+    int16_t numMaxActiveStatus;
     /* Clock sweep hand: index of next bucket to consider grabbing */
     int32_t nextVictimBucket;
 
@@ -59,7 +59,7 @@ typedef struct ShareMemHeader {
 
     void exit();
 
-    void reset(int32_t totalBucketNum, int32_t maxConn) {
+    void reset(int32_t totalBucketNum, uint16_t maxConn) {
         flags = 0;
         numBuckets = totalBucketNum;
         numMaxActiveStatus = maxConn;
@@ -70,6 +70,13 @@ typedef struct ShareMemHeader {
         numEvictingBuckets = 0;
     };
 } ShareMemHeader;
+
+/* used in ShareMemBucket to remember ActiveStatus
+ * that are using this bucket*/
+typedef struct BucketActiveInfo {
+    uint16_t flags;
+    uint16_t activeId;
+} BucketActiveInfo;
 
 /* Bit usages in flags field (low to high)
  * bit 0~1:     Bucket type 0/1/2
@@ -83,9 +90,9 @@ typedef struct ShareMemBucket {
     FileId fileId;
     int16_t usageCount;
     int32_t fileBlockIndex;
-    int32_t writeActiveId;
-    int32_t evictLoadActiveId;
-    int32_t readActives[SMBUCKET_MAX_CONCURRENT_OPEN];
+    int16_t writeActiveId;
+    int16_t evictLoadActiveId;
+    int16_t readActives[SMBUCKET_MAX_CONCURRENT_OPEN];
 
     /* Bucket status operations */
     bool isFreeBucket() { return (flags & 0x00000003) == 0 ? true : false; };
@@ -106,8 +113,8 @@ typedef struct ShareMemBucket {
     void reset();
     void markWrite(int activeId);
     void markRead(int activeId);
-    void unmarkWrite(int activeId);
-    void unmarkRead(int activeId);
+    void unmarkWrite(int16_t activeId);
+    void unmarkRead(int16_t activeId);
     bool noActiveReadWrite();
 } ShareMemBucket;
 

@@ -40,7 +40,7 @@ public:
             config.blockSize = 10;
             config.numBlocks = 50;
             config.numPreDefinedConcurrency = 10;
-            config.severity = GW_LogSeverity::INFO;
+            config.severity = LOGSEV_INFO;
             fs =  gwCreateContext(workDir, &config);
             buffer = (char *) malloc(100);
         } catch (...) {

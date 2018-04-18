@@ -154,25 +154,25 @@ gopherwoodFS gwCreateContext(char *workDir, GWContextConfig *config) {
         PARAMETER_ASSERT(config->numBlocks > 0, NULL, EINVAL);
         PARAMETER_ASSERT(config->blockSize > 0, NULL, EINVAL);
         PARAMETER_ASSERT(config->numPreDefinedConcurrency > 0, NULL, EINVAL);
-        PARAMETER_ASSERT(config->severity >= 0 && config->severity < 5, NULL, EINVAL);
+        PARAMETER_ASSERT(config->severity >= 0 && config->severity < LOGSEV_MAX, NULL, EINVAL);
 
         Configuration::NUMBER_OF_BLOCKS = config->numBlocks;
         Configuration::LOCAL_BUCKET_SIZE = config->blockSize;
         Configuration::CUR_CONNECTION = config->numPreDefinedConcurrency;
         switch (config->severity) {
-            case GW_LogSeverity::LOG_ERROR :
+            case LOGSEV_ERROR :
                 Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::LOG_ERROR);
                 break;
-            case GW_LogSeverity::WARNING :
+            case LOGSEV_WARNING :
                 Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::WARNING);
                 break;
-            case GW_LogSeverity::INFO :
+            case LOGSEV_INFO :
                 Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::INFO);
                 break;
-            case GW_LogSeverity::DEBUG1 :
+            case LOGSEV_DEBUG1 :
                 Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::DEBUG1);
                 break;
-            case GW_LogSeverity::DEBUG2 :
+            case LOGSEV_DEBUG2 :
                 Gopherwood::Internal::RootLogger.setLogSeverity(Gopherwood::Internal::LogSeverity::DEBUG2);
                 break;
         }

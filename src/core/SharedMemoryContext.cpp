@@ -69,17 +69,21 @@ void SharedMemoryContext::unlock() {
     lockf(mLockFD, F_ULOCK, 0);
 }
 
-int SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDelete) {
-    int activeId = -1;
+int16_t SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDelete) {
+    int16_t activeId = -1;
     bool shouldDestroy = isDelete ? true : false;
 
     for (int i = 0; i < header->numMaxActiveStatus; i++) {
-        /* validation */
+        /* validations */
         if (activeStatus[i].fileId == fileId) {
+            /* If the file already marked deleted but still opening by some others,
+             * New open action is still allowed, but the newly created ActiveStatus
+             * should also mark shouldDestroy. */
             if (activeStatus[i].shouldDestroy()) {
                 shouldDestroy = true;
             }
-
+            /* If the current regist requester is for delete, mark shouldDestroy for
+             * all existing openings */
             if (isDelete) {
                 /* mark should destroy on this activestatus */
                 activeStatus[i].setShouldDestroy();
@@ -108,7 +112,7 @@ int SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDel
     return activeId;
 }
 
-int SharedMemoryContext::unregist(int activeId, int pid, bool *shouldDestroy) {
+int SharedMemoryContext::unregist(int16_t activeId, int pid, bool *shouldDestroy) {
     if (activeId < 0 || activeId >= header->numMaxActiveStatus) {
         return -1;
     }
@@ -132,7 +136,7 @@ int SharedMemoryContext::unregist(int activeId, int pid, bool *shouldDestroy) {
  * This is called by ActiveStatus close, manifest log will be truncated if
  * this function returns true */
 bool SharedMemoryContext::isFileOpening(FileId fileId) {
-    for (int i = 0; i < Configuration::MAX_CONNECTION; i++) {
+    for (uint16_t i = 0; i < Configuration::MAX_CONNECTION; i++) {
         if (activeStatus[i].fileId == fileId) {
             return true;
         }
@@ -144,7 +148,7 @@ bool SharedMemoryContext::isFileOpening(FileId fileId) {
 }
 
 /* Activate a number of Free Buckets (0->1)*/
-std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int num, FileId fileId, bool isWrite) {
+std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int16_t activeId, int num, FileId fileId, bool isWrite) {
     std::vector<int32_t> res;
     int count = num;
 
@@ -188,7 +192,7 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int activeId, int nu
  *             This will mark write/read blockId to inform other activestatus
  *             of same File
  * 2. evictBlockFinish -- finally reset evicting ActiveStatus and activate the bucket */
-BlockInfo SharedMemoryContext::markBucketEvicting(int activeId) {
+BlockInfo SharedMemoryContext::markBucketEvicting(int16_t activeId) {
     BlockInfo info;
 
     /* Run the "clock sweep" algorithm */
@@ -251,7 +255,7 @@ BlockInfo SharedMemoryContext::markBucketEvicting(int activeId) {
  * 1 -- the evicted block has been deleted during the eviction
  * 2 -- the evicted bucket has been activated by it's file owner, give up this one
  */
-int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileId fileId, int isWrite) {
+int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int16_t activeId, FileId fileId, int isWrite) {
     int rc = 0;
 
     /* reset activestatus evict info  */
@@ -291,7 +295,7 @@ int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int activeId, FileI
     return rc;
 }
 
-void SharedMemoryContext::markBucketLoading(Block &block, int activeId, FileId fileId) {
+void SharedMemoryContext::markBucketLoading(Block &block, int16_t activeId, FileId fileId) {
     assert(buckets[block.bucketId].isActiveBucket());
     assert(buckets[block.bucketId].fileId == fileId);
 
@@ -309,7 +313,7 @@ void SharedMemoryContext::markBucketLoading(Block &block, int activeId, FileId f
         block.bucketId, fileId.toString().c_str(), block.blockId);
 }
 
-void SharedMemoryContext::markLoadFinish(Block &block, int activeId, FileId fileId) {
+void SharedMemoryContext::markLoadFinish(Block &block, int16_t activeId, FileId fileId) {
     assert(buckets[block.bucketId].isActiveBucket());
     assert(buckets[block.bucketId].isLoadingBucket());
     /* update the bucket info */
@@ -358,7 +362,7 @@ void SharedMemoryContext::releaseBuckets(std::list<Block> &blocks) {
  * return 2  -- The bucket is loading by other process
  * return -1 -- error
  * */
-int SharedMemoryContext::activateBucket(FileId fileId, Block &block, int activeId, bool isWrite) {
+int SharedMemoryContext::activateBucket(FileId fileId, Block &block, int16_t activeId, bool isWrite) {
     int rc = -1;
     int32_t bucketId = block.bucketId;
 
@@ -433,7 +437,7 @@ int SharedMemoryContext::activateBucket(FileId fileId, Block &block, int activeI
 
 /* Transit Bucket State from 1 to 2 */
 std::vector<Block>
-SharedMemoryContext::inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int activeId, bool isWrite) {
+SharedMemoryContext::inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int16_t activeId, bool isWrite) {
     std::vector<Block> res;
     for (Block b : blocks) {
         if (buckets[b.bucketId].isActiveBucket()) {

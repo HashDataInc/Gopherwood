@@ -32,7 +32,7 @@ int32_t Configuration::NUMBER_OF_BLOCKS = 100;
 
 int64_t Configuration::LOCAL_BUCKET_SIZE = 64 * 1024 * 1024;
 
-int Configuration::MAX_CONNECTION = 1024;
+uint16_t Configuration::MAX_CONNECTION = 1024;
 
 int Configuration::CUR_CONNECTION = 10;
 

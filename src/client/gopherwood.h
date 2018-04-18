@@ -62,12 +62,15 @@ extern "C" {
 #define GW_SEQACC   0x00020000     /* sequence access */
 #define GW_RDONCE   0x00040000     /* read once*/
 
-typedef int32_t tSize; /// size of data for read/write io ops
-typedef int64_t tOffset; /// offset within the file
+#define LOGSEV_ERROR   0
+#define LOGSEV_WARNING 1
+#define LOGSEV_INFO    2
+#define LOGSEV_DEBUG1  3
+#define LOGSEV_DEBUG2  4
+#define LOGSEV_MAX	   5  /* used for parm checking */
 
-enum GW_LogSeverity {
-	LOG_ERROR, WARNING, INFO, DEBUG1, DEBUG2
-};
+typedef int32_t tSize; /* size of data for read/write io ops */
+typedef int64_t tOffset; /* offset within the file */
 
 struct GWFileSystemInternalWrapper;
 typedef struct GWFileSystemInternalWrapper *gopherwoodFS;
@@ -79,7 +82,7 @@ typedef struct GWContextConfig {
     int32_t numBlocks;
     int64_t blockSize;
     int32_t numPreDefinedConcurrency;
-	GW_LogSeverity severity;
+	int32_t severity;
 } GWContextConfig;
 
 typedef struct GWFileInfo {

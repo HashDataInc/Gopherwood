@@ -56,14 +56,14 @@ ActiveStatus::ActiveStatus(FileId fileId,
     mEof = 0;
     mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
 
+    SHARED_MEM_BEGIN
+        registInSharedMem();
+    SHARED_MEM_END
+
     /* init statistics */
     mNumEvicted = 0;
     mNumLoaded = 0;
     mNumActivated = 0;
-
-    SHARED_MEM_BEGIN
-        registInSharedMem();
-    SHARED_MEM_END
 }
 
 /* Shared Memroy activeStatus field will maintain all connected files */

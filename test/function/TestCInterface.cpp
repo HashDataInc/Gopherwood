@@ -39,7 +39,7 @@ public:
             config.blockSize = 10;
             config.numBlocks = 50;
             config.numPreDefinedConcurrency = 10;
-            config.severity = GW_LogSeverity::INFO;
+            config.severity = LOGSEV_INFO;
             fs =  gwCreateContext(workDir, &config);
         } catch (...) {
 
@@ -77,6 +77,21 @@ TEST_F(TestCInterface, TestCancel_Success) {
     }
 
     ASSERT_NO_THROW(gwCancelFile(fs, file));
+}
+
+TEST_F(TestCInterface, TestOpen_Fail_OpenSecondWrite) {
+//    char fileName[] = "TestCInterface/TestCancel_Success";
+//    char input[] = "0123456789";
+//
+//    gwFile file = NULL;
+//    gwFile file1 = NULL;
+//    int len;
+//
+//    ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
+//    ASSERT_THROW(file1 = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR), GopherwoodOSSException);
+//
+//
+//    ASSERT_NO_THROW(gwCancelFile(fs, file));
 }
 
 

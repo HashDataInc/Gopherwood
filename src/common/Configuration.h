@@ -35,7 +35,7 @@ public:
     static std::string MANIFEST_FOLDER;
     static int32_t NUMBER_OF_BLOCKS;
     static int64_t LOCAL_BUCKET_SIZE;
-    static int MAX_CONNECTION;
+    static uint16_t MAX_CONNECTION;
     static int CUR_CONNECTION;
     static uint32_t PRE_ALLOCATE_BUCKET_NUM;
 

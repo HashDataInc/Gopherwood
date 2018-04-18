@@ -79,7 +79,7 @@ void ShareMemBucket::markRead(int activeId) {
     return;
 };
 
-void ShareMemBucket::unmarkWrite(int activeId) {
+void ShareMemBucket::unmarkWrite(int16_t activeId) {
     if (writeActiveId != activeId) {
         THROW(GopherwoodSharedMemException,
               "[ShareMemBucket::unmarkWrite] File %lu-%u block %d write active id mismatch expect %d, actually is %d",
@@ -89,7 +89,7 @@ void ShareMemBucket::unmarkWrite(int activeId) {
     writeActiveId = InvalidActiveId;
 }
 
-void ShareMemBucket::unmarkRead(int activeId) {
+void ShareMemBucket::unmarkRead(int16_t activeId) {
     for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
         if (readActives[i] == activeId) {
             readActives[i] = InvalidActiveId;

@@ -110,7 +110,7 @@ private:
 
     /****************** Fields *******************/
     FileId mFileId;
-    int32_t mActiveId;
+    int16_t mActiveId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, int>> mLRUCache;
