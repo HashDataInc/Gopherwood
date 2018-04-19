@@ -125,3 +125,9 @@ TEST_F(TestActiveStatusRemote, TestWriteFileExceedLocalQuota) {
     ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
     EXPECT_FALSE(gwFileExists(fs, fileName));
 }
+
+/* some evict bucket are the ending block of a file, the dataSize might smaller
+ * than Local_Bucket_Size*/
+TEST_F(TestActiveStatusRemote, TestEvictHalfBucket) {
+
+}

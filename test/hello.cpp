@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
     config.blockSize = 10;
     config.numBlocks = 20;
     config.numPreDefinedConcurrency =10;
+    config.severity = LOGSEV_DEBUG1;
 
     fs =  gwCreateContext(workDir, &config);
 

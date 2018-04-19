@@ -82,6 +82,7 @@ typedef struct BlockInfo {
     int32_t blockId;
     int32_t bucketId;
     int64_t offset;
+    int64_t dataSize;
     bool isLocal;
 
     void reset(){
@@ -89,6 +90,7 @@ typedef struct BlockInfo {
         blockId = InvalidBlockId;
         bucketId = -1;
         offset = InvalidBlockOffset;
+        dataSize = 0;
     }
 } BlockInfo;
 

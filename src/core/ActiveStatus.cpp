@@ -315,7 +315,7 @@ void ActiveStatus::acquireNewBlocks() {
                 mBlockArray[b.blockId].state = b.state;
 
                 /* the ending block been inactivated, flush EoF */
-                if (b.blockId + 1 == mBlockArray.size()){
+                if ((uint32_t)b.blockId + 1 == mBlockArray.size()){
                     /* update EoF from SharedMemory */
                     getSharedMemEof();
                     /* add the Eof log */
@@ -535,7 +535,7 @@ void ActiveStatus::activateBlock(int blockId) {
                     mBlockArray[b.blockId].state = b.state;
 
                     /* the ending block been inactivated, flush EoF */
-                    if (b.blockId + 1 == mBlockArray.size()){
+                    if ((uint32_t)b.blockId + 1 == mBlockArray.size()){
                         /* update EoF from SharedMemory */
                         getSharedMemEof();
                         /* add the Eof log */
@@ -697,7 +697,7 @@ void ActiveStatus::close(bool isCancel) {
             mBlockArray[b.blockId].state = b.state;
 
             /* the ending block been inactivated, flush EoF */
-            if (b.blockId + 1 == mBlockArray.size()){
+            if ((uint32_t)b.blockId + 1 == mBlockArray.size()){
                 /* update EoF from SharedMemory */
                 getSharedMemEof();
                 /* add the Eof log */

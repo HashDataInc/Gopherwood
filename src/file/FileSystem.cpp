@@ -51,10 +51,6 @@ FileSystem::FileSystem(const char *workDir) :
         mLocalSpaceFile = open(filePath.c_str(), O_RDWR, 0644);
     } else {
         mLocalSpaceFile = open(filePath.c_str(), O_CREAT | O_RDWR, 0644);
-        lseek(mLocalSpaceFile,
-              Configuration::LOCAL_BUCKET_SIZE * Configuration::NUMBER_OF_BLOCKS,
-              SEEK_SET);
-        lseek(mLocalSpaceFile, 0, SEEK_SET);
     }
 
     /* create lock file */

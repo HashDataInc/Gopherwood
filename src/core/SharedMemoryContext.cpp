@@ -229,6 +229,7 @@ BlockInfo SharedMemoryContext::markBucketEvicting(int16_t activeId) {
                 info.bucketId = bucketId;
                 info.isLocal = true;
                 info.offset = InvalidBlockOffset;
+                info.dataSize = bucket->dataSize;
 
                 /* update statistics */
                 header->numUsedBuckets--;
