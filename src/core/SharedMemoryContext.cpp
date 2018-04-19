@@ -509,6 +509,19 @@ void SharedMemoryContext::deleteBlocks(std::vector<Block> &blocks, FileId fileId
     printStatistics();
 }
 
+void SharedMemoryContext::updateBucketEof(int32_t bucketId, int64_t size, FileId fileId, int16_t activeId) {
+    if (size > Configuration::LOCAL_BUCKET_SIZE ||
+        bucketId < 0 || bucketId > Configuration::NUMBER_OF_BLOCKS ||
+        buckets[bucketId].fileId != fileId ||
+        !buckets[bucketId].isActiveBucket() ||
+        !buckets[bucketId].hasActiveId(activeId)) {
+        THROW(GopherwoodSharedMemException,
+              "[SharedMemoryContext] Bucket %d status mismatch!", bucketId);
+    }
+    if (buckets[bucketId].dataSize < size)
+        buckets[bucketId].dataSize = size;
+}
+
 int SharedMemoryContext::calcDynamicQuotaNum() {
     return Configuration::getCurQuotaSize();
 }

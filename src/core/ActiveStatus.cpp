@@ -105,6 +105,7 @@ void ActiveStatus::setPosition(int64_t pos) {
     mPos = pos;
     if (mPos > mEof) {
         mEof = mPos;
+        updateCurBlockSize();
     }
     LOG(DEBUG1, "[ActiveStatus]          |"
             "Update ActiveStatus position, pos=%ld, eof=%ld",
@@ -125,6 +126,33 @@ int32_t ActiveStatus::getNumBlocks() {
 
 int64_t ActiveStatus::getCurBlockOffset() {
     return mPos % mBucketSize;
+}
+
+/* update the Eof in in current SharedMemBucket */
+void ActiveStatus::updateCurBlockSize() {
+    assert(mEof > 0);
+    int64_t eofBeforeCatchUp = mEof;
+
+    SHARED_MEM_BEGIN
+        if (eofBeforeCatchUp == mEof) {
+            int numBlocks = mBlockArray.size();
+            int32_t endBucketId = mBlockArray[numBlocks-1].bucketId;
+            int64_t blockDataSize = mEof - (numBlocks-1) * Configuration::LOCAL_BUCKET_SIZE;
+
+            LOG(DEBUG1, "[ActiveStatus]          |"
+                    "Update Current bucket Eof, BucketId=%d, BlockEof=%ld",
+                endBucketId, blockDataSize);
+
+            mSharedMemoryContext->updateBucketEof(endBucketId, blockDataSize, mFileId, mActiveId);
+        } else if (eofBeforeCatchUp < mEof) {
+            LOG(DEBUG1, "[ActiveStatus]          |"
+                    "updateCurBlockSize: Someone have write beyond me!");
+        } else {
+            THROW(GopherwoodInternalException,
+                  "[ActiveStatus::updateCurBlockSize] Unexpected File Eof");
+        }
+    SHARED_MEM_END
+
 }
 
 std::string ActiveStatus::getManifestFileName(FileId fileId) {

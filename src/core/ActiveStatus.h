@@ -105,6 +105,7 @@ private:
     void acquireNewBlocks();
     void extendOneBlock();
     void activateBlock(int blockId);
+    void updateCurBlockSize();
 
     void logEvictBlock(BlockInfo info);
 

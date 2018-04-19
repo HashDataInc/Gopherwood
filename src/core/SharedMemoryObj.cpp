@@ -47,6 +47,7 @@ void ShareMemBucket::reset() {
     flags = 0;
     fileId.reset();
     usageCount = 0;
+    dataSize = 0;
     fileBlockIndex = InvalidBlockId;
     evictLoadActiveId = InvalidActiveId;
     for (int16_t i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
@@ -119,6 +120,15 @@ bool ShareMemBucket::noActiveReadWrite() {
         }
     }
     return true;
+}
+
+bool ShareMemBucket::hasActiveId(int16_t activeId) {
+    for (int i = 0; i < SMBUCKET_MAX_CONCURRENT_OPEN; i++) {
+        if (activeInfos[i].activeId == activeId) {
+            return true;
+        }
+    }
+    return false;
 }
 
 }

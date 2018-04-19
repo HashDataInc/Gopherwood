@@ -155,5 +155,16 @@ public:
     }
 };
 
+class GopherwoodInternalException: public GopherwoodException {
+public:
+    GopherwoodInternalException(const std::string & arg, const char * file, int line,
+                               const char * stack) :
+            GopherwoodException(arg, file, line, stack) {
+    }
+
+    ~GopherwoodInternalException() throw () {
+    }
+};
+
 }
 #endif /* _GOPHERWOOD_COMMON_EXCEPTION_H_ */

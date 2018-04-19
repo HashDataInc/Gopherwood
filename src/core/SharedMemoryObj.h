@@ -98,6 +98,7 @@ typedef struct ShareMemBucket {
     FileId fileId;
     int16_t usageCount;
     int32_t fileBlockIndex;
+    int64_t dataSize;
     int16_t evictLoadActiveId;
     BucketActiveInfo activeInfos[SMBUCKET_MAX_CONCURRENT_OPEN];
 
@@ -123,6 +124,7 @@ typedef struct ShareMemBucket {
     void unmarkWrite(int16_t activeId);
     void unmarkRead(int16_t activeId);
     bool noActiveReadWrite();
+    bool hasActiveId(int16_t activeId);
 } ShareMemBucket;
 
 /* This field is to support multiple-read and protect single-wirte

@@ -54,15 +54,18 @@ public:
     int16_t regist(int pid, FileId fileId, bool isWrite, bool isDelete);
     int unregist(int16_t activeId, int pid, bool *shouldDestroy);
 
+    /* support functions */
     int calcDynamicQuotaNum();
     bool isFileOpening(FileId fileId);
 
+    /* bucket allocate/free/update */
     std::vector<int32_t> acquireFreeBucket(int16_t activeId, int num, FileId fileId, bool isWrite);
     void releaseBuckets(std::list<Block> &blocks);
     int activateBucket(FileId fileId, Block &block, int16_t activeId, bool isWrite);
     std::vector<Block> inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int16_t activeId, bool isWrite);
     void updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId);
     void deleteBlocks(std::vector<Block> &blocks, FileId fileId);
+    void updateBucketEof(int32_t bucketId, int64_t size, FileId fileId, int16_t activeId);
 
     /* evict/load logic related APIs*/
     BlockInfo markBucketEvicting(int16_t activeId);
@@ -75,11 +78,11 @@ public:
     void lock();
     void unlock();
 
+    /* getter & setter */
     int32_t getFreeBucketNum();
     int32_t getActiveBucketNum();
     int32_t getUsedBucketNum();
     int32_t getEvictingBucketNum();
-
     std::string &getWorkDir();
     int32_t getNumMaxActiveStatus();
 

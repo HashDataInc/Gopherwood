@@ -119,6 +119,13 @@ static void handleException(const Gopherwood::exception_ptr &error) {
                 "Handle Gopherwood OSS Exception: %s",
                 Gopherwood::Internal::GetExceptionDetail(error, buffer));
         errno = EOSS;
+    } catch (const Gopherwood::GopherwoodInternalException &) {
+        std::string buffer;
+        LOG(
+                Gopherwood::Internal::LOG_ERROR,
+                "Handle Gopherwood internal exception: %s",
+                Gopherwood::Internal::GetExceptionDetail(error, buffer));
+        errno = EINTERNAL;
     } catch (const Gopherwood::GopherwoodException &) {
         std::string buffer;
         LOG(
