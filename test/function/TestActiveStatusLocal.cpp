@@ -185,8 +185,9 @@ TEST_F(TestActiveStatusLocal, TestDeleteWhenStillOpen) {
     EXPECT_FALSE(gwFileExists(fs, fileName));
 }
 
-TEST_F(TestActiveStatusLocal, TestMultiWriteWithFlush) {
-    char fileName[] = "TestFormatWorkDir/TestMultiWriteRead";
+/* Multi write test, flush after each writer finished */
+TEST_F(TestActiveStatusLocal, TestMultiWriteInTimeFlush) {
+    char fileName[] = "TestFormatWorkDir/TestMultiWriteInTimeFlush";
     char input1[] = "11111";
     char input2[] = "22222";
     char expect[] =  "1111122222";
@@ -223,8 +224,10 @@ TEST_F(TestActiveStatusLocal, TestMultiWriteWithFlush) {
     EXPECT_FALSE(gwFileExists(fs, fileName));
 }
 
-TEST_F(TestActiveStatusLocal, TestMultiWriteNoFlush) {
-    char fileName[] = "TestFormatWorkDir/TestMultiWriteRead";
+/* Multi write test, only one writer flush. Check entire EoF flushed
+ * case 1: the flushing file handler does not activate the ending block */
+TEST_F(TestActiveStatusLocal, TestMultiWriteSingleFlush1) {
+    char fileName[] = "TestFormatWorkDir/TestMultiWriteSingleFlush1";
     char input1[] = "11111";
     char input2[] = "2222222222";
     char expect[] =  "111112222222222";
@@ -235,8 +238,6 @@ TEST_F(TestActiveStatusLocal, TestMultiWriteNoFlush) {
 
     int64_t pos;
     int len;
-
-    gwSetLogSeverity(LOGSEV_DEBUG1);
 
     ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
     ASSERT_NO_THROW(len = gwWrite(fs, file, input1, 5));
@@ -256,11 +257,103 @@ TEST_F(TestActiveStatusLocal, TestMultiWriteNoFlush) {
     EXPECT_EQ(info.fileSize, len);
     buffer[len] = '\0';
 
-    gwSetLogSeverity(LOGSEV_INFO);
+    EXPECT_STREQ(expect, buffer);
+
+    ASSERT_NO_THROW(gwCloseFile(fs, file));
+    ASSERT_NO_THROW(gwCloseFile(fs, file1));
+    ASSERT_NO_THROW(gwCloseFile(fs, file2));
+
+    ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
+}
+
+/* Multi write test, only one writer flush. Check entire EoF flushed
+ * case 2: the flushing file handler activated the ending block */
+TEST_F(TestActiveStatusLocal, TestMultiWriteSingleFlush2) {
+    char fileName[] = "TestFormatWorkDir/TestMultiWriteSingleFlush2";
+    char input1[] = "111111111111";
+    char input2[] = "222";
+    char expect[] = "111111111111222";
+
+    gwFile file = NULL;
+    gwFile file1 = NULL;
+    gwFile file2 = NULL;
+
+    int64_t pos;
+    int len;
+
+    ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
+    ASSERT_NO_THROW(len = gwWrite(fs, file, input1, 12));
+    EXPECT_EQ(12, len);
+    ASSERT_NO_THROW(file1 = gwOpenFile(fs, fileName, GW_RDWR));
+    ASSERT_NO_THROW(pos = gwSeek(fs, file1, 12, SEEK_SET));
+    EXPECT_EQ(12, pos);
+    ASSERT_NO_THROW(len = gwWrite(fs, file1, input2, 3));
+    EXPECT_EQ(3, len);
+    ASSERT_NO_THROW(gwFlush(fs, file));
+
+    ASSERT_NO_THROW(file2 = gwOpenFile(fs, fileName, GW_RDONLY));
+    GWFileInfo info;
+    ASSERT_NO_THROW(gwStatFile(fs, file2, &info));
+    EXPECT_EQ(15, info.fileSize);
+    ASSERT_NO_THROW(len = gwRead(fs, file2, buffer, info.fileSize));
+    EXPECT_EQ(info.fileSize, len);
+    buffer[len] = '\0';
 
     EXPECT_STREQ(expect, buffer);
 
     ASSERT_NO_THROW(gwCloseFile(fs, file));
     ASSERT_NO_THROW(gwCloseFile(fs, file1));
     ASSERT_NO_THROW(gwCloseFile(fs, file2));
+
+    ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
+}
+
+/* Multi write test, only one writer flush. Check entire EoF flushed
+ * case 2: the flushing file handler activated the ending block */
+TEST_F(TestActiveStatusLocal, TestAutoFlushTriggerByInactivate) {
+    char fileName[] = "TestFormatWorkDir/TestAutoFlushTriggerByInactivate";
+    char input1[] = "1111111111";
+    char input2[] = "2222222222";
+
+    gwFile file = NULL;
+    gwFile file1 = NULL;
+    GWFileInfo info;
+    int64_t pos;
+    int len;
+
+    /* write 105 bytes */
+    ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
+    for (int i = 0; i < 10; i++) {
+        ASSERT_NO_THROW(len = gwWrite(fs, file, input1, 10));
+        EXPECT_EQ(10, len);
+    }
+    ASSERT_NO_THROW(len = gwWrite(fs, file, input1, 5));
+    EXPECT_EQ(5, len);
+    /* Open second file, it should only seek EoF 100 but not 105 */
+    ASSERT_NO_THROW(file1 = gwOpenFile(fs, fileName, GW_RDONLY));
+    ASSERT_NO_THROW(gwStatFile(fs, file1, &info));
+    EXPECT_EQ(100, info.fileSize);
+    ASSERT_NO_THROW(gwCloseFile(fs, file1));
+
+    /* first file seek back to begin, and write 50 bytes
+     * By this time, the ending block should have been inactivated */
+    ASSERT_NO_THROW(pos = gwSeek(fs, file, 0, SEEK_SET));
+    EXPECT_EQ(0, pos);
+    for (int i = 0; i < 5; i++) {
+        ASSERT_NO_THROW(len = gwWrite(fs, file, input2, 10));
+        EXPECT_EQ(10, len);
+    }
+    /* Open second file, it should only seek EoF 100 but not 105 */
+    ASSERT_NO_THROW(file1 = gwOpenFile(fs, fileName, GW_RDONLY));
+    ASSERT_NO_THROW(gwStatFile(fs, file1, &info));
+    EXPECT_EQ(105, info.fileSize);
+    ASSERT_NO_THROW(gwCloseFile(fs, file1));
+
+    /* clean up */
+    ASSERT_NO_THROW(gwCloseFile(fs, file));
+    ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
+
 }
