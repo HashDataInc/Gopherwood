@@ -106,6 +106,7 @@ private:
     void extendOneBlock();
     void activateBlock(int blockId);
     void updateCurBlockSize();
+    void getSharedMemEof();
 
     void logEvictBlock(BlockInfo info);
 

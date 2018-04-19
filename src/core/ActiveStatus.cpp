@@ -142,8 +142,7 @@ void ActiveStatus::updateCurBlockSize() {
             LOG(DEBUG1, "[ActiveStatus]          |"
                     "Update Current bucket Eof, BucketId=%d, BlockEof=%ld",
                 endBucketId, blockDataSize);
-
-            mSharedMemoryContext->updateBucketEof(endBucketId, blockDataSize, mFileId, mActiveId);
+            mSharedMemoryContext->updateBucketDataSize(endBucketId, blockDataSize, mFileId, mActiveId);
         } else if (eofBeforeCatchUp < mEof) {
             LOG(DEBUG1, "[ActiveStatus]          |"
                     "updateCurBlockSize: Someone have write beyond me!");
@@ -314,6 +313,16 @@ void ActiveStatus::acquireNewBlocks() {
             /* update block status*/
             for (Block b : turedToUsedBlocks) {
                 mBlockArray[b.blockId].state = b.state;
+
+                /* the ending block been inactivated, flush EoF */
+                if (b.blockId + 1 == mBlockArray.size()){
+                    /* update EoF from SharedMemory */
+                    getSharedMemEof();
+                    /* add the Eof log */
+                    RecOpaque opaque;
+                    opaque.updateEof.eof = mEof;
+                    mManifest->logUpdateEof(opaque);
+                }
             }
             /* log inactivate buckets */
             mManifest->logInactivateBucket(turedToUsedBlocks);
@@ -524,6 +533,16 @@ void ActiveStatus::activateBlock(int blockId) {
                 /* update block status*/
                 for (Block b : turedToUsedBlocks) {
                     mBlockArray[b.blockId].state = b.state;
+
+                    /* the ending block been inactivated, flush EoF */
+                    if (b.blockId + 1 == mBlockArray.size()){
+                        /* update EoF from SharedMemory */
+                        getSharedMemEof();
+                        /* add the Eof log */
+                        RecOpaque opaque;
+                        opaque.updateEof.eof = mEof;
+                        mManifest->logUpdateEof(opaque);
+                    }
                 }
                 /* log inactivate buckets */
                 mManifest->logInactivateBucket(turedToUsedBlocks);
@@ -608,13 +627,43 @@ void ActiveStatus::logEvictBlock(BlockInfo info) {
     }
 }
 
-/* flush cached Manifest logs to disk
- * TODO: Currently all log record are flushed immediately, we just add UpdateEof log */
+/* NOTE: You should have acquired the ShareMem lock before calling me */
+void ActiveStatus::getSharedMemEof(){
+    /* Calculate the shared memory file EOF info */
+    int numBlocks = mBlockArray.size();
+    int32_t endBucketId = mBlockArray[numBlocks - 1].bucketId;
+    int64_t lastDataSize = mSharedMemoryContext->getBucketDataSize(endBucketId, mFileId, numBlocks - 1);
+    int64_t shareMemEof = (numBlocks - 1) * Configuration::LOCAL_BUCKET_SIZE + lastDataSize;
+
+    /* update my Eof if others has write beyond me */
+    if (shareMemEof > mEof) {
+        mEof = shareMemEof;
+    }
+}
+
+/* flush cached Manifest logs to disk */
 void ActiveStatus::flush() {
+    int64_t eofBeforeCatchUp = mEof;
     SHARED_MEM_BEGIN
-        RecOpaque opaque;
-        opaque.updateEof.eof = mEof;
-        mManifest->logUpdateEof(opaque);
+        /* no other file exceed my Eof, I should try to flush Eof info */
+        if (eofBeforeCatchUp <= mEof) {
+            int numBlocks = mBlockArray.size();
+            /* if the last block is not in activate status, then the Eof info should have been flushed */
+            if (mBlockArray[numBlocks-1].isLocal && mBlockArray[numBlocks-1].state == BUCKET_ACTIVE) {
+                /* update EoF from SharedMemory */
+                getSharedMemEof();
+                /* add the Eof log */
+                RecOpaque opaque;
+                opaque.updateEof.eof = mEof;
+                mManifest->logUpdateEof(opaque);
+            } else {
+                LOG(DEBUG1, "[ActiveStatus]          |"
+                        "flush: The ending block is inactivated, should have flushed the EoF log!");
+            }
+        } else {
+            THROW(GopherwoodInternalException,
+                  "[ActiveStatus::updateCurBlockSize] Unexpected File Eof");
+        }
     SHARED_MEM_END
 }
 
@@ -644,9 +693,18 @@ void ActiveStatus::close(bool isCancel) {
                                                                                        mActiveId,
                                                                                        mIsWrite);
         /* update block status*/
-        for (Block tunredToUsedBlock : turedToUsedBlocks) {
-            Block b = tunredToUsedBlock;
+        for (Block b : turedToUsedBlocks) {
             mBlockArray[b.blockId].state = b.state;
+
+            /* the ending block been inactivated, flush EoF */
+            if (b.blockId + 1 == mBlockArray.size()){
+                /* update EoF from SharedMemory */
+                getSharedMemEof();
+                /* add the Eof log */
+                RecOpaque opaque;
+                opaque.updateEof.eof = mEof;
+                mManifest->logUpdateEof(opaque);
+            }
         }
 
         if (turedToUsedBlocks.size() > 0) {

@@ -509,7 +509,7 @@ void SharedMemoryContext::deleteBlocks(std::vector<Block> &blocks, FileId fileId
     printStatistics();
 }
 
-void SharedMemoryContext::updateBucketEof(int32_t bucketId, int64_t size, FileId fileId, int16_t activeId) {
+void SharedMemoryContext::updateBucketDataSize(int32_t bucketId, int64_t size, FileId fileId, int16_t activeId) {
     if (size > Configuration::LOCAL_BUCKET_SIZE ||
         bucketId < 0 || bucketId > Configuration::NUMBER_OF_BLOCKS ||
         buckets[bucketId].fileId != fileId ||
@@ -520,6 +520,21 @@ void SharedMemoryContext::updateBucketEof(int32_t bucketId, int64_t size, FileId
     }
     if (buckets[bucketId].dataSize < size)
         buckets[bucketId].dataSize = size;
+}
+
+int64_t SharedMemoryContext::getBucketDataSize(int32_t bucketId, FileId fileId, int32_t blockId) {
+    if (bucketId < 0 || bucketId > Configuration::NUMBER_OF_BLOCKS ||
+        buckets[bucketId].fileId != fileId ||
+        buckets[bucketId].fileBlockIndex != blockId) {
+        THROW(GopherwoodSharedMemException,
+              "[SharedMemoryContext] Bucket %d status mismatch! "
+                      "<input> fileId %s blockId %d "
+                      "<ShareMem> fileId %s blockId %d ",
+              bucketId, fileId.toString().c_str(), blockId,
+              buckets[bucketId].fileId.toString().c_str(),
+              buckets[bucketId].fileBlockIndex);
+    }
+    return buckets[bucketId].dataSize;
 }
 
 int SharedMemoryContext::calcDynamicQuotaNum() {

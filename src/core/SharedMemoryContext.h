@@ -65,7 +65,7 @@ public:
     std::vector<Block> inactivateBuckets(std::vector<Block> &blocks, FileId fileId, int16_t activeId, bool isWrite);
     void updateActiveFileInfo(std::vector<Block> &blocks, FileId fileId);
     void deleteBlocks(std::vector<Block> &blocks, FileId fileId);
-    void updateBucketEof(int32_t bucketId, int64_t size, FileId fileId, int16_t activeId);
+    void updateBucketDataSize(int32_t bucketId, int64_t size, FileId fileId, int16_t activeId);
 
     /* evict/load logic related APIs*/
     BlockInfo markBucketEvicting(int16_t activeId);
@@ -83,8 +83,10 @@ public:
     int32_t getActiveBucketNum();
     int32_t getUsedBucketNum();
     int32_t getEvictingBucketNum();
+
     std::string &getWorkDir();
     int32_t getNumMaxActiveStatus();
+    int64_t getBucketDataSize(int32_t bucketId, FileId fileId, int32_t blockId);
 
     ~SharedMemoryContext();
 

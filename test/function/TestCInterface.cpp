@@ -77,6 +77,7 @@ TEST_F(TestCInterface, TestCancel_Success) {
     }
 
     ASSERT_NO_THROW(gwCancelFile(fs, file));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
 }
 
 TEST_F(TestCInterface, TestOpen_Fail_OpenSecondWrite) {

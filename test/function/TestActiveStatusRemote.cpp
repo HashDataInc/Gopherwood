@@ -123,4 +123,5 @@ TEST_F(TestActiveStatusRemote, TestWriteFileExceedLocalQuota) {
 
     ASSERT_NO_THROW(gwCloseFile(fs, file));
     ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
 }

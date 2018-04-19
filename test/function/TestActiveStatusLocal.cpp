@@ -102,6 +102,7 @@ TEST_F(TestActiveStatusLocal, TestWriteReadConcurrent) {
     ASSERT_NO_THROW(gwCloseFile(fs, file1));
     ASSERT_NO_THROW(gwCloseFile(fs, file));
     ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
 }
 
 /* Test Seek Exceed Eof */
@@ -131,6 +132,7 @@ TEST_F(TestActiveStatusLocal, TestSeekExceedEof) {
 
     ASSERT_NO_THROW(gwCloseFile(fs, file));
     ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
 }
 
 TEST_F(TestActiveStatusLocal, TestWriteExceedQuota) {
@@ -164,14 +166,15 @@ TEST_F(TestActiveStatusLocal, TestWriteExceedQuota) {
 
     ASSERT_NO_THROW(gwCloseFile(fs, file1));
     ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
 }
 
 TEST_F(TestActiveStatusLocal, TestDeleteWhenStillOpen) {
     char fileName[] = "TestFormatWorkDir/TestDeleteWhenStillOpen";
     char input[] = "0123456789";
+    gwFile file = NULL;
     int len;
 
-    gwFile file = NULL;
     ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
     ASSERT_NO_THROW(len = gwWrite(fs, file, input, 10));
     EXPECT_EQ(10, len);
@@ -180,4 +183,84 @@ TEST_F(TestActiveStatusLocal, TestDeleteWhenStillOpen) {
     EXPECT_TRUE(gwFileExists(fs, fileName));
     ASSERT_NO_THROW(gwCloseFile(fs, file));
     EXPECT_FALSE(gwFileExists(fs, fileName));
+}
+
+TEST_F(TestActiveStatusLocal, TestMultiWriteWithFlush) {
+    char fileName[] = "TestFormatWorkDir/TestMultiWriteRead";
+    char input1[] = "11111";
+    char input2[] = "22222";
+    char expect[] =  "1111122222";
+
+    gwFile file = NULL;
+    gwFile file1 = NULL;
+    gwFile file2 = NULL;
+
+    int64_t pos;
+    int len;
+
+    ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
+    ASSERT_NO_THROW(len = gwWrite(fs, file, input1, 5));
+    EXPECT_EQ(5, len);
+    ASSERT_NO_THROW(gwFlush(fs, file));
+    ASSERT_NO_THROW(file1 = gwOpenFile(fs, fileName, GW_RDWR));
+    ASSERT_NO_THROW(pos = gwSeek(fs, file1, 5, SEEK_SET));
+    EXPECT_EQ(5, pos);
+    ASSERT_NO_THROW(len = gwWrite(fs, file1, input2, 5));
+    EXPECT_EQ(5, len);
+    ASSERT_NO_THROW(gwFlush(fs, file1));
+    ASSERT_NO_THROW(file2 = gwOpenFile(fs, fileName, GW_RDONLY));
+    ASSERT_NO_THROW(len = gwRead(fs, file2, buffer, 10));
+    EXPECT_EQ(10, len);
+    buffer[len] = '\0';
+
+    EXPECT_STREQ(expect, buffer);
+
+    ASSERT_NO_THROW(gwCloseFile(fs, file));
+    ASSERT_NO_THROW(gwCloseFile(fs, file1));
+    ASSERT_NO_THROW(gwCloseFile(fs, file2));
+
+    ASSERT_NO_THROW(gwDeleteFile(fs, fileName));
+    EXPECT_FALSE(gwFileExists(fs, fileName));
+}
+
+TEST_F(TestActiveStatusLocal, TestMultiWriteNoFlush) {
+    char fileName[] = "TestFormatWorkDir/TestMultiWriteRead";
+    char input1[] = "11111";
+    char input2[] = "2222222222";
+    char expect[] =  "111112222222222";
+
+    gwFile file = NULL;
+    gwFile file1 = NULL;
+    gwFile file2 = NULL;
+
+    int64_t pos;
+    int len;
+
+    gwSetLogSeverity(LOGSEV_DEBUG1);
+
+    ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
+    ASSERT_NO_THROW(len = gwWrite(fs, file, input1, 5));
+    EXPECT_EQ(5, len);
+    ASSERT_NO_THROW(file1 = gwOpenFile(fs, fileName, GW_RDWR));
+    ASSERT_NO_THROW(pos = gwSeek(fs, file1, 5, SEEK_SET));
+    EXPECT_EQ(5, pos);
+    ASSERT_NO_THROW(len = gwWrite(fs, file1, input2, 10));
+    EXPECT_EQ(10, len);
+    ASSERT_NO_THROW(gwFlush(fs, file));
+
+    ASSERT_NO_THROW(file2 = gwOpenFile(fs, fileName, GW_RDONLY));
+    GWFileInfo info;
+    ASSERT_NO_THROW(gwStatFile(fs, file2, &info));
+    EXPECT_EQ(15, info.fileSize);
+    ASSERT_NO_THROW(len = gwRead(fs, file2, buffer, info.fileSize));
+    EXPECT_EQ(info.fileSize, len);
+    buffer[len] = '\0';
+
+    gwSetLogSeverity(LOGSEV_INFO);
+
+    EXPECT_STREQ(expect, buffer);
+
+    ASSERT_NO_THROW(gwCloseFile(fs, file));
+    ASSERT_NO_THROW(gwCloseFile(fs, file1));
+    ASSERT_NO_THROW(gwCloseFile(fs, file2));
 }
