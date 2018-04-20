@@ -517,35 +517,57 @@ void ActiveStatus::activateBlock(int blockId) {
         } else if (mBlockArray[blockId].state == BUCKET_USED ||
                    mBlockArray[blockId].state == BUCKET_ACTIVE) {
             /* activate the block */
-            /* inactivate first if LRUCache(Quota) is used up */
-            if (mLRUCache->size() + mPreAllocatedBuckets.size() >= mLRUCache->maxSize()) {
-                std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
-                std::vector<Block> blocksToInactivate;
-                for (int i : blockIds) {
-                    blocksToInactivate.push_back(mBlockArray[i]);
-                }
-                std::vector<Block> turedToUsedBlocks =
-                        mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
-                                                                mFileId,
-                                                                mActiveId,
-                                                                mIsWrite);
-
-                /* update block status*/
-                for (Block b : turedToUsedBlocks) {
-                    mBlockArray[b.blockId].state = b.state;
-
-                    /* the ending block been inactivated, flush EoF */
-                    if ((uint32_t)b.blockId + 1 == mBlockArray.size()){
-                        /* update EoF from SharedMemory */
-                        getSharedMemEof();
-                        /* add the Eof log */
-                        RecOpaque opaque;
-                        opaque.updateEof.eof = mEof;
-                        mManifest->logUpdateEof(opaque);
+            /* inactivate first if Current Quota is used up */
+            if (mLRUCache->size() + mPreAllocatedBuckets.size() == mLRUCache->maxSize()) {
+                /* try to inactivate from activate list first. If no active block, then
+                 * free a preAllocatedBucket to make sure we never exceed quota size */
+                if (mLRUCache->size() > 0) {
+                    std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
+                    std::vector<Block> blocksToInactivate;
+                    for (int i : blockIds) {
+                        blocksToInactivate.push_back(mBlockArray[i]);
                     }
+                    std::vector<Block> turedToUsedBlocks =
+                            mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
+                                                                    mFileId,
+                                                                    mActiveId,
+                                                                    mIsWrite);
+
+                    /* update block status*/
+                    for (Block b : turedToUsedBlocks) {
+                        mBlockArray[b.blockId].state = b.state;
+
+                        /* the ending block been inactivated, flush EoF */
+                        if ((uint32_t)b.blockId + 1 == mBlockArray.size()){
+                            /* update EoF from SharedMemory */
+                            getSharedMemEof();
+                            /* add the Eof log */
+                            RecOpaque opaque;
+                            opaque.updateEof.eof = mEof;
+                            mManifest->logUpdateEof(opaque);
+                        }
+                    }
+                    /* log inactivate buckets */
+                    mManifest->logInactivateBucket(turedToUsedBlocks);
+                } else {
+                    /* free a bucket from preAllocatedBucket */
+                    if (mPreAllocatedBuckets.size() == 0) {
+                        THROW(GopherwoodInternalException,
+                              "[ActiveStatus] PreAllocatedBuckets or LRUCacheBuckets should not be both 0!");
+                    }
+
+                    std::list<Block> freeOneList;
+                    Block block = mPreAllocatedBuckets.back();
+                    freeOneList.push_back(block);
+                    mPreAllocatedBuckets.pop_back();
+
+                    mSharedMemoryContext->releaseBuckets(freeOneList);
+                    /* log release buckets */
+                    mManifest->logReleaseBucket(freeOneList);
                 }
-                /* log inactivate buckets */
-                mManifest->logInactivateBucket(turedToUsedBlocks);
+            } else if (mLRUCache->size() + mPreAllocatedBuckets.size() > mLRUCache->maxSize()) {
+                THROW(GopherwoodInternalException,
+                      "[ActiveStatus] Current quoto exceed max quota size!");
             }
 
             /* activate the block */
