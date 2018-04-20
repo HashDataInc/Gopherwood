@@ -32,12 +32,14 @@ namespace Internal {
 ActiveStatus::ActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
                            bool isCreate,
+                           bool isSequence,
                            ActiveStatusType type,
                            int localSpaceFD) :
         mFileId(fileId),
         mSharedMemoryContext(sharedMemoryContext) {
     mIsWrite = (type == ActiveStatusType::writeFile);
     mIsDelete = (type == ActiveStatusType::deleteFile);
+    mIsSequence = isSequence;
     mShouldDestroy = false;
 
     /* check file exist if not creating a new file */
@@ -47,8 +49,19 @@ ActiveStatus::ActiveStatus(FileId fileId,
               "[ActiveStatus::ActiveStatus] File does not exist %s",
               manifestFileName.c_str());
     }
+
+    uint32_t quotaSize;
+    /* for sequence read/write, used block should be inactivated promptly.
+     * Thus we just set the quota to pre-allocate-size */
+    if (mIsSequence)
+        quotaSize = Configuration::getCurQuotaSize() > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
+                    Configuration::PRE_ALLOCATE_BUCKET_NUM :
+                    Configuration::getCurQuotaSize();
+    else
+        quotaSize = Configuration::getCurQuotaSize();
+
+    mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(quotaSize));
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
-    mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(Configuration::getCurQuotaSize()));
     mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, localSpaceFD));
 
     /* init file related info */
@@ -128,6 +141,14 @@ int64_t ActiveStatus::getCurBlockOffset() {
     return mPos % mBucketSize;
 }
 
+int32_t ActiveStatus::getCurQuota() {
+    return mLRUCache->maxSize();
+}
+
+int32_t ActiveStatus::getNumMyActiveBlocks() {
+    return mLRUCache->size() + mPreAllocatedBuckets.size();
+}
+
 /* update the Eof in in current SharedMemBucket */
 void ActiveStatus::updateCurBlockSize() {
     assert(mEof > 0);
@@ -191,7 +212,7 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
 void ActiveStatus::getStatistics(GWFileInfo *fileInfo) {
     fileInfo->fileSize = getEof();
     fileInfo->maxQuota = mLRUCache->maxSize();
-    fileInfo->curQuota = mLRUCache->size() + mPreAllocatedBuckets.size();
+    fileInfo->curQuota = getNumMyActiveBlocks();
     fileInfo->numBlocks = mBlockArray.size();
     fileInfo->numActivated = mNumActivated;
     fileInfo->numEvicted = mNumEvicted;
@@ -241,26 +262,36 @@ void ActiveStatus::acquireNewBlocks() {
     uint32_t numAvailable;
 
     SHARED_MEM_BEGIN
-        uint32_t quota = mSharedMemoryContext->calcDynamicQuotaNum();
+        uint32_t newQuota = mSharedMemoryContext->calcDynamicQuotaNum();
         numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
         numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
         numAvailable = numFreeBuckets + numUsedBuckets;
-        assert(quota > 0);
+        assert(newQuota > 0);
+
+        /****************************************************************
+         * Step0: adjust the new quota size depending on the hint policy
+         ****************************************************************/
+        if (mIsSequence) {
+            newQuota = newQuota > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
+                            Configuration::PRE_ALLOCATE_BUCKET_NUM :
+                            newQuota;
+        }
 
         /************************************************
          * Step1: Determine the acquire policy first
+         * NOTE: The preAllocateList size is 0
          ************************************************/
-        if (mLRUCache->size() < quota) {
+        if ((uint32_t)getNumMyActiveBlocks() < newQuota) {
             if (numAvailable > 0) {
                 /* 2(a) acquire more buckets for preAllocatedBlocks */
-                uint32_t tmpAcquire = quota - mLRUCache->size();
+                uint32_t tmpAcquire = newQuota - mLRUCache->size();
                 if (tmpAcquire > Configuration::PRE_ALLOCATE_BUCKET_NUM) {
                     tmpAcquire = Configuration::PRE_ALLOCATE_BUCKET_NUM;
                 }
                 numToAcquire = numAvailable > tmpAcquire ? tmpAcquire : numAvailable;
                 /* it might exceed quota after acquired new buckets */
-                numToInactivate = (mLRUCache->size() + numToAcquire) > quota ?
-                                   mLRUCache->size() + numToAcquire - quota : 0;
+                numToInactivate = (mLRUCache->size() + numToAcquire) > newQuota ?
+                                   mLRUCache->size() + numToAcquire - newQuota : 0;
             } else {
                 /* 2(b) play with current owned buckets
                  * evict one block at a time. This will make sure the inactivated block is
@@ -268,11 +299,11 @@ void ActiveStatus::acquireNewBlocks() {
                 numToInactivate = 1;
                 numToAcquire = 1;
             }
-        } else if (mLRUCache->size() == quota) {
+        } else if ((uint32_t)getNumMyActiveBlocks() == newQuota) {
             if (numFreeBuckets > 0) {
                 /* 3(a) inactivate blocks from LRU first, then acquire new blocks */
-                uint32_t tmpAcquire = quota > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
-                                      Configuration::PRE_ALLOCATE_BUCKET_NUM : quota;
+                uint32_t tmpAcquire = newQuota > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
+                                      Configuration::PRE_ALLOCATE_BUCKET_NUM : newQuota;
                 numToAcquire = numFreeBuckets > tmpAcquire ? tmpAcquire : numFreeBuckets;
                 numToInactivate = numToAcquire;
             } else {
@@ -281,13 +312,13 @@ void ActiveStatus::acquireNewBlocks() {
                 numToAcquire = 1;
             }
         } else {
-            /* 4 release blocks and use own quota*/
-            numToInactivate = mLRUCache->size() - quota + 1;
+            /* 4 release blocks and use own quota */
+            numToInactivate = mLRUCache->size() - newQuota + 1;
             numToAcquire = 1;
         }
         LOG(DEBUG1, "[ActiveStatus]          |"
                 "Calculate new quota size, newQuota=%u, curQuota=%ld, numAvailables=%d, "
-                "inactivate=%d, acquire %d", quota, mLRUCache->size(), numAvailable,
+                "inactivate=%d, acquire %d", newQuota, mLRUCache->size(), numAvailable,
             numToInactivate, numToAcquire);
 
         /**************************************************************
@@ -326,6 +357,12 @@ void ActiveStatus::acquireNewBlocks() {
             }
             /* log inactivate buckets */
             mManifest->logInactivateBucket(turedToUsedBlocks);
+        }
+
+        /* after released a number of blocks, we can set the new Quota */
+        std::vector<int> overflowBlocks = mLRUCache->adjustSize(newQuota);
+        if (overflowBlocks.size() > 0) {
+            THROW(GopherwoodInternalException, "We should have inactivated these blocks!");
         }
 
         /* acquire new buckets */
@@ -518,7 +555,7 @@ void ActiveStatus::activateBlock(int blockId) {
                    mBlockArray[blockId].state == BUCKET_ACTIVE) {
             /* activate the block */
             /* inactivate first if Current Quota is used up */
-            if (mLRUCache->size() + mPreAllocatedBuckets.size() == mLRUCache->maxSize()) {
+            if (getNumMyActiveBlocks() == getCurQuota()) {
                 /* try to inactivate from activate list first. If no active block, then
                  * free a preAllocatedBucket to make sure we never exceed quota size */
                 if (mLRUCache->size() > 0) {
@@ -565,7 +602,7 @@ void ActiveStatus::activateBlock(int blockId) {
                     /* log release buckets */
                     mManifest->logReleaseBucket(freeOneList);
                 }
-            } else if (mLRUCache->size() + mPreAllocatedBuckets.size() > mLRUCache->maxSize()) {
+            } else if (getNumMyActiveBlocks() > getCurQuota()) {
                 THROW(GopherwoodInternalException,
                       "[ActiveStatus] Current quoto exceed max quota size!");
             }

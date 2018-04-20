@@ -145,7 +145,7 @@ TEST_F(TestActiveStatusLocal, TestWriteExceedQuota) {
     int64_t pos;
     int len;
 
-    ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR));
+    ASSERT_NO_THROW(file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR|GW_SEQACC));
     for (int i=0; i<5; i++) {
         ASSERT_NO_THROW(len = gwWrite(fs, file, input, 10));
         EXPECT_EQ(10, len);

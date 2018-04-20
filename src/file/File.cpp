@@ -20,7 +20,6 @@
  * limitations under the License.
  */
 #include "file/File.h"
-#include "client/gopherwood.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 

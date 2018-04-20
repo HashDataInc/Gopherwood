@@ -108,7 +108,7 @@ File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     shared_ptr<ActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
-    status = mActiveStatusContext->initFileActiveStatus(fileId, isWrite, mLocalSpaceFile);
+    status = mActiveStatusContext->createFileActiveStatus(fileId, isWrite, flags & GW_SEQACC, mLocalSpaceFile);
 
     LOG(DEBUG1, "[FileSystem]            |"
             "Creating file %s", fileId.toString().c_str());
@@ -121,7 +121,7 @@ File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
     shared_ptr<ActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
-    status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite, mLocalSpaceFile);
+    status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite, flags & GW_SEQACC, mLocalSpaceFile);
 
     LOG(DEBUG1, "[FileSystem]            |"
             "Opening file %s", fileId.toString().c_str());

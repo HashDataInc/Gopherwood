@@ -30,25 +30,27 @@ ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedM
         mSharedMemoryContext(sharedMemoryContext) {
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::initFileActiveStatus(FileId fileId, bool isWrite, int localSpaceFD) {
+shared_ptr<ActiveStatus> ActiveStatusContext::createFileActiveStatus(FileId fileId, bool isWrite, bool isSequence, int localSpaceFD) {
     ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
 
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       true, /* isCreate*/
+                                                      isSequence, /* isSequence */
                                                       type,
                                                       localSpaceFD));
     return activeStatus;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId, bool isWrite, int localSpaceFD) {
+shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId, bool isWrite, bool isSequence, int localSpaceFD) {
     ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
 
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       false, /* isCreate*/
+                                                      isSequence, /* isSequence */
                                                       type,
                                                       localSpaceFD));
     return activeStatus;
@@ -59,6 +61,7 @@ shared_ptr<ActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId file
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       false, /* isCreate*/
+                                                      false, /* isSequence */
                                                       ActiveStatusType::deleteFile,
                                                       localSpaceFD));
     return activeStatus;

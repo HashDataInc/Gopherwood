@@ -49,8 +49,6 @@ public:
         if (newSize < currSize) {
             size_t numToRemove = currSize - newSize;
             removeVector = removeNumOfKeys(numToRemove);
-        } else {
-            removeVector = NULL;
         }
         this->_max_size = newSize;
         return removeVector;

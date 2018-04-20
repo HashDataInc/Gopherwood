@@ -71,6 +71,7 @@ public:
     ActiveStatus(FileId fileId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext,
                  bool isCreate,
+                 bool isSequence,
                  ActiveStatusType type,
                  int localSpaceFD
     );
@@ -96,6 +97,8 @@ private:
     Block getCurBlock();
     int32_t getNumBlocks();
     int64_t getCurBlockOffset();
+    int32_t getCurQuota();
+    int32_t getNumMyActiveBlocks();
     std::string getManifestFileName(FileId fileId);
     bool isMyActiveBlock(int blockId);
 
@@ -125,6 +128,7 @@ private:
 
     bool mIsWrite;
     bool mIsDelete;
+    bool mIsSequence;
     bool mShouldDestroy;
     int64_t mPos;
     int64_t mEof;
