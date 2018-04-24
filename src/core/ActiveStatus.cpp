@@ -23,6 +23,7 @@
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Logger.h"
+#include "common/Thread.h"
 #include "core/ActiveStatus.h"
 #include "file/FileSystem.h"
 
@@ -145,7 +146,7 @@ int32_t ActiveStatus::getCurQuota() {
     return mLRUCache->maxSize();
 }
 
-int32_t ActiveStatus::getNumMyActiveBlocks() {
+int32_t ActiveStatus::getNumAcquiredBuckets() {
     return mLRUCache->size() + mPreAllocatedBuckets.size();
 }
 
@@ -212,7 +213,7 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
 void ActiveStatus::getStatistics(GWFileInfo *fileInfo) {
     fileInfo->fileSize = getEof();
     fileInfo->maxQuota = mLRUCache->maxSize();
-    fileInfo->curQuota = getNumMyActiveBlocks();
+    fileInfo->curQuota = getNumAcquiredBuckets();
     fileInfo->numBlocks = mBlockArray.size();
     fileInfo->numActivated = mNumActivated;
     fileInfo->numEvicted = mNumEvicted;
@@ -223,14 +224,19 @@ void ActiveStatus::adjustActiveBlock(int curBlockId) {
     if (curBlockId + 1 > getNumBlocks()) {
         extendOneBlock();
     } else if (!isMyActiveBlock(curBlockId)) {
-        /* all blocks not activated by me can not be trusted
-         * Need to lock Shared Memory and catch up logs */
-        activateBlock(curBlockId);
+        int numToPreActivate = 4;
+        /**/
+        while(numToPreActivate > 0) {
+            activateBlock(curBlockId);
+            activateBlockWithPreload(curBlockId);
+            numToPreActivate--;
+        }
     } else {
         if (!mLRUCache->exists(curBlockId)) {
             THROW(GopherwoodException, "[ActiveStatus] block active status mismatch!");
         }
     }
+    // else is loading, then wait
 }
 
 /* All block activation should follow these steps:
@@ -281,7 +287,7 @@ void ActiveStatus::acquireNewBlocks() {
          * Step1: Determine the acquire policy first
          * NOTE: The preAllocateList size is 0
          ************************************************/
-        if ((uint32_t)getNumMyActiveBlocks() < newQuota) {
+        if ((uint32_t)getNumAcquiredBuckets() < newQuota) {
             if (numAvailable > 0) {
                 /* 2(a) acquire more buckets for preAllocatedBlocks */
                 uint32_t tmpAcquire = newQuota - mLRUCache->size();
@@ -299,7 +305,7 @@ void ActiveStatus::acquireNewBlocks() {
                 numToInactivate = 1;
                 numToAcquire = 1;
             }
-        } else if ((uint32_t)getNumMyActiveBlocks() == newQuota) {
+        } else if ((uint32_t)getNumAcquiredBuckets() == newQuota) {
             if (numFreeBuckets > 0) {
                 /* 3(a) inactivate blocks from LRU first, then acquire new blocks */
                 uint32_t tmpAcquire = newQuota > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
@@ -541,7 +547,7 @@ void ActiveStatus::activateBlock(int blockId) {
             block.blockId = blockId;
 
             /* update Shared Memory */
-            mSharedMemoryContext->markBucketLoading(block, mActiveId, mFileId);
+            //mSharedMemoryContext->markBucketLoading(block, mActiveId, mFileId);
             block.state = BUCKET_ACTIVE;
 
             /* add to LRU cache */
@@ -555,7 +561,7 @@ void ActiveStatus::activateBlock(int blockId) {
                    mBlockArray[blockId].state == BUCKET_ACTIVE) {
             /* activate the block */
             /* inactivate first if Current Quota is used up */
-            if (getNumMyActiveBlocks() == getCurQuota()) {
+            if (getNumAcquiredBuckets() == getCurQuota()) {
                 /* try to inactivate from activate list first. If no active block, then
                  * free a preAllocatedBucket to make sure we never exceed quota size */
                 if (mLRUCache->size() > 0) {
@@ -602,7 +608,7 @@ void ActiveStatus::activateBlock(int blockId) {
                     /* log release buckets */
                     mManifest->logReleaseBucket(freeOneList);
                 }
-            } else if (getNumMyActiveBlocks() > getCurQuota()) {
+            } else if (getNumAcquiredBuckets() > getCurQuota()) {
                 THROW(GopherwoodInternalException,
                       "[ActiveStatus] Current quoto exceed max quota size!");
             }
@@ -655,9 +661,9 @@ void ActiveStatus::activateBlock(int blockId) {
         bool stillLoading = true;
 
         while (true) {
-            sleep(5000);
+            sleep_for(seconds(5));
             SHARED_MEM_BEGIN
-                stillLoading = mSharedMemoryContext->isBucketLoading(mBlockArray[blockId], mFileId);
+                //stillLoading = mSharedMemoryContext->isBlockLoading(mBlockArray[blockId], mFileId);
             SHARED_MEM_END
 
             if (!stillLoading) {
@@ -665,6 +671,161 @@ void ActiveStatus::activateBlock(int blockId) {
             }
         }
     }
+}
+
+void ActiveStatus::activateBlockWithPreload(int blockId) {
+    Block *theLoadingBlock = NULL;
+    bool loadBlock = false;
+    bool loadingByOther = false;
+    int rc = -1;
+
+    /* to eliminate the Shared Memory consistent issues,
+     * We acquire new blocks first, then we activate the block.
+     * Actually only loadBlock need acquire new block, but we
+     * still acquire for all cases to simplify the logic. */
+    if (mPreAllocatedBuckets.size() == 0) {
+        acquireNewBlocks();
+    }
+
+    /* all blocks not activated by me can not be trusted
+     * Need to lock Shared Memory and catch up logs */
+    while (true) {
+        SHARED_MEM_BEGIN
+            if (!mBlockArray[blockId].isLocal) {
+                bool markSuccess;
+
+                /* build the block */
+                theLoadingBlock = &mPreAllocatedBuckets.front();
+
+                /* If the markBucketLoading failed, then it means the block is loading by others */
+                markSuccess = mSharedMemoryContext->markBucketLoading(theLoadingBlock->bucketId, blockId, mActiveId,
+                                                                      mFileId);
+                if (markSuccess) {
+                    mPreAllocatedBuckets.pop_front();
+                    theLoadingBlock->blockId = blockId;
+                    loadBlock = true;
+                } else {
+                    loadingByOther = true;
+                }
+
+            } else if (mBlockArray[blockId].state == BUCKET_USED ||
+                       mBlockArray[blockId].state == BUCKET_ACTIVE) {
+                /* activate the block */
+                /* inactivate first if Current Quota is used up */
+                if (getNumAcquiredBuckets() == getCurQuota()) {
+                    /* try to inactivate from activate list first. If no active block, then
+                     * free a preAllocatedBucket to make sure we never exceed quota size */
+                    if (mLRUCache->size() > 0) {
+                        std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
+                        std::vector<Block> blocksToInactivate;
+                        for (int i : blockIds) {
+                            blocksToInactivate.push_back(mBlockArray[i]);
+                        }
+                        std::vector<Block> turedToUsedBlocks =
+                                mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
+                                                                        mFileId,
+                                                                        mActiveId,
+                                                                        mIsWrite);
+
+                        /* update block status*/
+                        for (Block b : turedToUsedBlocks) {
+                            mBlockArray[b.blockId].state = b.state;
+
+                            /* the ending block been inactivated, flush EoF */
+                            if ((uint32_t)b.blockId + 1 == mBlockArray.size()){
+                                /* update EoF from SharedMemory */
+                                getSharedMemEof();
+                                /* add the Eof log */
+                                RecOpaque opaque;
+                                opaque.updateEof.eof = mEof;
+                                mManifest->logUpdateEof(opaque);
+                            }
+                        }
+                        /* log inactivate buckets */
+                        mManifest->logInactivateBucket(turedToUsedBlocks);
+                    } else {
+                        /* free a bucket from preAllocatedBucket */
+                        if (mPreAllocatedBuckets.size() == 0) {
+                            THROW(GopherwoodInternalException,
+                                  "[ActiveStatus] PreAllocatedBuckets or LRUCacheBuckets should not be both 0!");
+                        }
+
+                        std::list<Block> freeOneList;
+                        Block block = mPreAllocatedBuckets.back();
+                        freeOneList.push_back(block);
+                        mPreAllocatedBuckets.pop_back();
+
+                        mSharedMemoryContext->releaseBuckets(freeOneList);
+                        /* log release buckets */
+                        mManifest->logReleaseBucket(freeOneList);
+                    }
+                } else if (getNumAcquiredBuckets() > getCurQuota()) {
+                    THROW(GopherwoodInternalException,
+                          "[ActiveStatus] Current quoto exceed max quota size!");
+                }
+
+                /* activate the block */
+                rc = mSharedMemoryContext->activateBucket(mFileId,
+                                                          mBlockArray[blockId],
+                                                          mActiveId,
+                                                          mIsWrite);
+                /* the block is activated by me */
+                if (rc == 1) {
+                    mManifest->logActivateBucket(mBlockArray[blockId]);
+                } else if (rc == -1) {
+                    THROW(GopherwoodException, "[ActiveStatus] activateBucket in SharedMemory got error!");
+                }
+
+                mLRUCache->put(mBlockArray[blockId].blockId, mBlockArray[blockId].bucketId);
+            } else {
+                THROW(GopherwoodInternalException, "[ActiveStatus] block active status mismatch!");
+            }
+        SHARED_MEM_END
+
+        if (loadBlock) {
+            BlockInfo info;
+            info.fileId = mFileId;
+            info.blockId = blockId;
+            info.bucketId = theLoadingBlock->bucketId;
+            info.isLocal = false;
+            info.offset = InvalidBlockOffset;
+
+            thread loader;
+            /* create a thread to load this block */
+            CREATE_THREAD(loader, bind(&ActiveStatus::loadBlock, this, info));
+            mLoadingBuckets.push_back(*theLoadingBlock);
+        }
+
+        /* if the block is loading by other process, wait until it finished and try to activate it again */
+        if (loadingByOther) {
+            bool stillLoading = true;
+
+            while (true) {
+                sleep_for(seconds(5));
+                /* we don't need to check the Connection area in ShareMem again.
+                 * If the load finished by others, when we get the ShareMem lock,
+                 * the manifest log should have been replayed in my ActiveStatus
+                 * TODO: There are still risk that the block been evicted again
+                 * TODO: during my waiting time. The probability is so low that
+                 * TODO: we can just lower down the wait time by now. */
+                SHARED_MEM_BEGIN
+                    if (mBlockArray[blockId].isLocal) {
+                        stillLoading = false;
+                    }
+                SHARED_MEM_END
+
+                if (!stillLoading) {
+                    break;
+                }
+            }
+        }
+
+        /* the block been activated, break the loop */
+        break;
+    }
+}
+
+void ActiveStatus::loadBlock(BlockInfo info) {
 }
 
 void ActiveStatus::logEvictBlock(BlockInfo info) {

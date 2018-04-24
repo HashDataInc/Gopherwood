@@ -39,6 +39,9 @@ public:
     static int CUR_CONNECTION;
     static uint32_t PRE_ALLOCATE_BUCKET_NUM;
 
+    /* hard coded parameters */
+    static size_t MAX_LOADER_THREADS;
+
     static uint32_t getCurQuotaSize();
 };
 

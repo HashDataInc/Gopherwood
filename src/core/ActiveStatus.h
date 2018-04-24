@@ -98,7 +98,7 @@ private:
     int32_t getNumBlocks();
     int64_t getCurBlockOffset();
     int32_t getCurQuota();
-    int32_t getNumMyActiveBlocks();
+    int32_t getNumAcquiredBuckets();
     std::string getManifestFileName(FileId fileId);
     bool isMyActiveBlock(int blockId);
 
@@ -108,11 +108,12 @@ private:
     void acquireNewBlocks();
     void extendOneBlock();
     void activateBlock(int blockId);
+    void activateBlockWithPreload(int blockId);
     void updateCurBlockSize();
     void getSharedMemEof();
 
     void logEvictBlock(BlockInfo info);
-
+    void loadBlock(BlockInfo info);
     /****************** Fields *******************/
     FileId mFileId;
     int16_t mActiveId;
@@ -136,6 +137,7 @@ private:
 
     std::vector<Block> mBlockArray;
     std::list<Block> mPreAllocatedBuckets;
+    std::list<Block> mLoadingBuckets;
 };
 
 

@@ -26,6 +26,7 @@
 
 #include "common/Memory.h"
 #include "common/ObjectStorInfo.h"
+#include "common/ThreadPool.h"
 #include "common/Unordered.h"
 #include "core/ActiveStatusContext.h"
 #include "core/SharedMemoryManager.h"
@@ -69,6 +70,7 @@ private:
     const char *workDir;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<ActiveStatusContext> mActiveStatusContext;
+    shared_ptr<ThreadPool> mThreadPool;
     ObjectStorInfo mOssInfo;
 };
 

@@ -38,6 +38,8 @@ int Configuration::CUR_CONNECTION = 10;
 
 uint32_t Configuration::PRE_ALLOCATE_BUCKET_NUM = 3;
 
+size_t Configuration::MAX_LOADER_THREADS = 5;
+
 uint32_t Configuration::getCurQuotaSize(){
     return Configuration::NUMBER_OF_BLOCKS/Configuration::CUR_CONNECTION;
 }

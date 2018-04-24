@@ -70,9 +70,8 @@ public:
     /* evict/load logic related APIs*/
     BlockInfo markBucketEvicting(int16_t activeId);
     int evictBucketFinish(int32_t bucketId, int16_t activeId, FileId fileId, int isWrite);
-    void markBucketLoading(Block &block, int16_t activeId, FileId fileId);
+    bool markBucketLoading(int32_t bucketId, int32_t blockId, int16_t activeId, FileId fileId);
     void markLoadFinish(Block &block, int16_t activeId, FileId fileId);
-    bool isBucketLoading(Block &block, FileId fileId);
 
     void reset();
     void lock();

@@ -19,37 +19,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_COMMON_MEMORY_H_
-#define _GOPHERWOOD_COMMON_MEMORY_H_
+#ifndef GOPHERWOOD_COMMON_THREADPOOL_H
+#define GOPHERWOOD_COMMON_THREADPOOL_H
 
-#include "platform.h"
+#include "common/Thread.h"
 
-#ifdef NEED_BOOST
-
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
+#include <vector>
+#include <queue>
 
 namespace Gopherwood {
 namespace Internal {
 
-using boost::shared_ptr;
-using boost::make_shared;
+class ThreadPool {
+public:
+    ThreadPool(size_t);
+
+    template<class F, class... Args>
+    auto enqueue(F &&f, Args &&... args)
+    -> unique_future<typename result_of<F(Args...)>::type>;
+
+    ~ThreadPool();
+
+private:
+    // need to keep track of threads so we can join them
+    std::vector<thread> workers;
+    // the task queue
+    std::queue<function<void()> > tasks;
+
+    // synchronization
+    mutex queue_mutex;
+    condition_variable condition;
+    bool stop;
+
+    // routine
+    void routine();
+};
 
 }
 }
 
-#else
-
-#include <memory>
-
-namespace Gopherwood {
-    namespace Internal {
-
-        using std::shared_ptr;
-        using std::make_shared;
-
-    }
-}
-#endif
-
-#endif /* _GOPHERWOOD_COMMON_MEMORY_H_ */
+#endif //GOPHERWOOD_THREADPOOL_H

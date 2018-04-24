@@ -109,14 +109,12 @@ set(SOURCE_FILES
         src/block/BlockOutputStream.h
         src/block/LocalBlockWriter.h
         src/block/LocalBlockWriter.cpp
-        src/block/OssBlockWriter.h
-        src/block/OssBlockWriter.cpp
+        src/block/OssBlockWorker.h
+        src/block/OssBlockWorker.cpp
         src/block/LocalBlockReader.h
         src/block/LocalBlockReader.cpp
-        src/block/OssBlockReader.h
-        src/block/OssBlockReader.cpp
         test/hello.cpp
-        test/function/TestActiveStatus.cpp
+        test/function/TestActiveStatusLocal.cpp
         src/core/BlockStatus.h
         src/core/Manifest.h
         src/core/Manifest.cpp
@@ -125,6 +123,9 @@ set(SOURCE_FILES
         src/block/BlockInputStream.h
         src/block/BlockInputStream.cpp
         src/core/SharedMemoryObj.h
-        src/core/SharedMemoryObj.cpp)
+        src/core/SharedMemoryObj.cpp
+        src/common/ObjectStorInfo.h
+        src/common/ThreadPool.h
+        src/common/ThreadPool.cpp)
 
 add_executable(gopherwood ${SOURCE_FILES})

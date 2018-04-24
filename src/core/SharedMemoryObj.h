@@ -160,6 +160,7 @@ typedef struct ShareMemActiveStatus {
     void unsetBucketStolen() { flags &= 0xBFFFFFFF; };
     void unsetShouldDestroy() { flags &= 0xDFFFFFFF; };
 
+    bool isLoading() {return flags & 0x00000002;};
     bool isForDelete() { return flags & 0x80000000; };
     bool isEvictBucketStolen() { return flags & 0x40000000; };
     bool shouldDestroy() { return flags & 0x20000000; };
