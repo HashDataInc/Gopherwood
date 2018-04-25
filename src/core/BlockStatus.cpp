@@ -28,7 +28,12 @@ namespace Gopherwood {
 namespace Internal {
 
 Block::Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s) :
-        bucketId(theBucketId), blockId(theBlockId), isLocal(local), state(s), usageCount(0) {
+        bucketId(theBucketId),
+        blockId(theBlockId),
+        isLocal(local),
+        state(s),
+        loadState(LOAD_INIT),
+        usageCount(0) {
 }
 
 std::string Block::toLogFormat() {

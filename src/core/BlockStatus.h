@@ -34,6 +34,11 @@ namespace Internal {
 #define LocalBlock      true
 #define RemoteBlock     false
 
+#define LOAD_INIT       0
+#define LOAD_START      1
+#define LOAD_FINISHED   2
+#define LOAD_ERROR      3
+
 /* The in-memory file block info */
 typedef struct Block {
     /* The bucket id in local cache space */
@@ -45,6 +50,8 @@ typedef struct Block {
     /* Current bucket status of this block, only
      * meaningful when block is in local cache space */
     uint8_t state;
+    /* loading state */
+    uint8_t loadState;
     /* The usage count during the activate status */
     int16_t usageCount;
 

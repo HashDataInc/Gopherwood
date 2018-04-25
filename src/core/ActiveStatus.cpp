@@ -32,12 +32,15 @@ namespace Internal {
 
 ActiveStatus::ActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
+                           shared_ptr<ThreadPool> threadPool,
                            bool isCreate,
                            bool isSequence,
                            ActiveStatusType type,
                            int localSpaceFD) :
         mFileId(fileId),
-        mSharedMemoryContext(sharedMemoryContext) {
+        mSharedMemoryContext(sharedMemoryContext),
+        mThreadPool(threadPool)
+{
     mIsWrite = (type == ActiveStatusType::writeFile);
     mIsDelete = (type == ActiveStatusType::deleteFile);
     mIsSequence = isSequence;
@@ -227,7 +230,6 @@ void ActiveStatus::adjustActiveBlock(int curBlockId) {
         int numToPreActivate = 4;
         /**/
         while(numToPreActivate > 0) {
-            activateBlock(curBlockId);
             activateBlockWithPreload(curBlockId);
             numToPreActivate--;
         }
@@ -673,6 +675,9 @@ void ActiveStatus::activateBlock(int blockId) {
     }
 }
 
+void ActiveStatus::loadBlock(BlockInfo info) {
+}
+
 void ActiveStatus::activateBlockWithPreload(int blockId) {
     Block *theLoadingBlock = NULL;
     bool loadBlock = false;
@@ -790,10 +795,17 @@ void ActiveStatus::activateBlockWithPreload(int blockId) {
             info.isLocal = false;
             info.offset = InvalidBlockOffset;
 
-            thread loader;
-            /* create a thread to load this block */
-            CREATE_THREAD(loader, bind(&ActiveStatus::loadBlock, this, info));
+            /* acquire a thread to load this block */
+            //mThreadPool->enqueue([this, info] {loadBlock(info);});
+            mThreadPool->enqueue(&ActiveStatus::loadBlock,
+                                 this,
+                                 info
+            );
+            theLoadingBlock->loadState = LOAD_START;
+            /* add the block to loading list */
+            mLoadMutex.lock();
             mLoadingBuckets.push_back(*theLoadingBlock);
+            mLoadMutex.unlock();
         }
 
         /* if the block is loading by other process, wait until it finished and try to activate it again */
@@ -819,13 +831,9 @@ void ActiveStatus::activateBlockWithPreload(int blockId) {
                 }
             }
         }
-
         /* the block been activated, break the loop */
         break;
     }
-}
-
-void ActiveStatus::loadBlock(BlockInfo info) {
 }
 
 void ActiveStatus::logEvictBlock(BlockInfo info) {

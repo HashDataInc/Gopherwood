@@ -22,11 +22,12 @@
 #ifndef _GOPHERWOOD_CORE_ACTIVESTATUS_H_
 #define _GOPHERWOOD_CORE_ACTIVESTATUS_H_
 
-#include <client/gopherwood.h>
+#include "client/gopherwood.h"
 #include "platform.h"
 
 #include "block/OssBlockWorker.h"
 #include "common/LRUCache.cpp"
+#include "common/ThreadPool.h"
 #include "core/SharedMemoryContext.h"
 #include "core/BlockStatus.h"
 #include "core/Manifest.h"
@@ -70,6 +71,7 @@ class ActiveStatus {
 public:
     ActiveStatus(FileId fileId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext,
+                 shared_ptr<ThreadPool> threadPool,
                  bool isCreate,
                  bool isSequence,
                  ActiveStatusType type,
@@ -87,6 +89,9 @@ public:
 
     void flush();
     void close(bool isCancel);
+
+    /* used as a Thread function */
+    void loadBlock(BlockInfo info);
 
     ~ActiveStatus();
 
@@ -113,11 +118,12 @@ private:
     void getSharedMemEof();
 
     void logEvictBlock(BlockInfo info);
-    void loadBlock(BlockInfo info);
+
     /****************** Fields *******************/
     FileId mFileId;
     int16_t mActiveId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
+    shared_ptr<ThreadPool> mThreadPool;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, int>> mLRUCache;
     shared_ptr<OssBlockWorker> mOssWorker;
@@ -138,6 +144,7 @@ private:
     std::vector<Block> mBlockArray;
     std::list<Block> mPreAllocatedBuckets;
     std::list<Block> mLoadingBuckets;
+    mutex mLoadMutex;
 };
 
 

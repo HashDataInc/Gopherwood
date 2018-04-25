@@ -19,6 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "core/ActiveStatusContext.h"
@@ -28,14 +29,19 @@ namespace Internal {
 
 ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext) :
         mSharedMemoryContext(sharedMemoryContext) {
+    mThreadPool = shared_ptr<ThreadPool>(new ThreadPool(Configuration::MAX_LOADER_THREADS));
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::createFileActiveStatus(FileId fileId, bool isWrite, bool isSequence, int localSpaceFD) {
+shared_ptr<ActiveStatus> ActiveStatusContext::createFileActiveStatus(FileId fileId,
+                                                                     bool isWrite,
+                                                                     bool isSequence,
+                                                                     int localSpaceFD) {
     ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
 
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
+                                                      mThreadPool,
                                                       true, /* isCreate*/
                                                       isSequence, /* isSequence */
                                                       type,
@@ -49,6 +55,7 @@ shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
+                                                      mThreadPool,
                                                       false, /* isCreate*/
                                                       isSequence, /* isSequence */
                                                       type,
@@ -60,6 +67,7 @@ shared_ptr<ActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId file
     shared_ptr<ActiveStatus> activeStatus =
             shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
                                                       mSharedMemoryContext,
+                                                      mThreadPool,
                                                       false, /* isCreate*/
                                                       false, /* isSequence */
                                                       ActiveStatusType::deleteFile,

@@ -37,9 +37,16 @@ class ActiveStatusContext {
 public:
     ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
-    shared_ptr<ActiveStatus> createFileActiveStatus(FileId fileId, bool isWrite, bool isSequence, int localSpaceFD);
+    shared_ptr<ActiveStatus> createFileActiveStatus(FileId fileId,
+                                                    bool isWrite,
+                                                    bool isSequence,
+                                                    int localSpaceFD
+    );
 
-    shared_ptr<ActiveStatus> openFileActiveStatus(FileId fileId, bool isWrite, bool isSequence, int localSpaceFD);
+    shared_ptr<ActiveStatus> openFileActiveStatus(FileId fileId,
+                                                  bool isWrite,
+                                                  bool isSequence,
+                                                  int localSpaceFD);
 
     shared_ptr<ActiveStatus> deleteFileActiveStatus(FileId fileId, int localSpaceFD);
 
@@ -47,6 +54,7 @@ public:
 
 private:
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
+    shared_ptr<ThreadPool> mThreadPool;
 };
 
 

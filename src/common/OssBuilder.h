@@ -19,55 +19,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_CORE_FILESYSTEM_H_
-#define _GOPHERWOOD_CORE_FILESYSTEM_H_
+#ifndef GOPHERWOOD_COMMON_OSSBUILDER_H
+#define GOPHERWOOD_COMMON_OSSBUILDER_H
 
-#include "platform.h"
-
-#include "common/Memory.h"
-#include "common/Unordered.h"
-#include "core/ActiveStatusContext.h"
-#include "core/SharedMemoryManager.h"
-#include "core/SharedMemoryContext.h"
-#include "file/File.h"
+#include "common/ObjectStorInfo.h"
 #include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-class FileSystem {
+class OssBuilder {
 public:
-    static void Format(const char *workDir);
+    OssBuilder();
 
-    static ossContext OSS_CONTEXT;
+    ossContext buildContext();
 
-    static std::string OSS_BUCKET;
-
-    FileSystem(const char *workDir);
-
-    bool exists(const char *fileName);
-
-    File *CreateFile(const char *fileName, int flags, bool isWrite);
-
-    File *OpenFile(const char *fileName, int flags, bool isWrite);
-
-    void CloseFile(File &file);
-
-    void DeleteFile(const char *fileName);
-
-    ~FileSystem();
-
+    ~OssBuilder();
 private:
-    FileId makeFileId(const std::string filePath);
-    void initOssContext();
+    void buildOssInfo();
+    void setObjectStorInfo();
 
-    int32_t mLocalSpaceFile = -1;
-    const char *workDir;
-    shared_ptr<SharedMemoryContext> mSharedMemoryContext;
-    shared_ptr<ActiveStatusContext> mActiveStatusContext;
+    ObjectStorInfo mOssInfo;
+    std::string mBucket;
 };
 
+extern OssBuilder ossRootBuilder;
+
 }
 }
 
-#endif //_GOPHERWOOD_CORE_FILESYSTEM_H_
+#endif //GOPHERWOOD_COMMON_OSSBUILDER_H
