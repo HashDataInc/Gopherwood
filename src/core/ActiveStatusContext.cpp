@@ -29,7 +29,7 @@ namespace Internal {
 
 ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext) :
         mSharedMemoryContext(sharedMemoryContext) {
-    mThreadPool = shared_ptr<ThreadPool>(new ThreadPool(Configuration::MAX_LOADER_THREADS));
+    mThreadPool = shared_ptr<ThreadPool1>(new ThreadPool1(Configuration::MAX_LOADER_THREADS));
 }
 
 shared_ptr<ActiveStatus> ActiveStatusContext::createFileActiveStatus(FileId fileId,

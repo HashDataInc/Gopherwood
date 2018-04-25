@@ -36,7 +36,7 @@ public:
 
     template<class F, class... Args>
     auto enqueue(F &&f, Args &&... args)
-    -> unique_future<typename result_of<F(Args...)>::type>;
+    -> future<typename result_of<F(Args...)>::type>;
 
     ~ThreadPool();
 

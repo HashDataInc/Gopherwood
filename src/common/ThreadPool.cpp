@@ -72,14 +72,14 @@ void ThreadPool::routine() {
 // add new work item to the pool
 template<class F, class... Args>
 auto ThreadPool::enqueue(F &&f, Args &&... args)
--> unique_future<typename result_of<F(Args...)>::type> {
+-> future<typename result_of<F(Args...)>::type> {
     using return_type = typename result_of<F(Args...)>::type;
 
     auto task = make_shared<packaged_task<return_type()> >(
             bind(forward<F>(f), forward<Args>(args)...)
     );
 
-    unique_future<return_type> res = task->get_future();
+    future<return_type> res = task->get_future();
     {
         unique_lock<mutex> lock(queue_mutex);
 

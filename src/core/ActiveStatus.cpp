@@ -23,7 +23,6 @@
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Logger.h"
-#include "common/Thread.h"
 #include "core/ActiveStatus.h"
 #include "file/FileSystem.h"
 
@@ -32,7 +31,7 @@ namespace Internal {
 
 ActiveStatus::ActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
-                           shared_ptr<ThreadPool> threadPool,
+                           shared_ptr<ThreadPool1> threadPool,
                            bool isCreate,
                            bool isSequence,
                            ActiveStatusType type,
@@ -680,7 +679,7 @@ void ActiveStatus::loadBlock(BlockInfo info) {
 
 void ActiveStatus::activateBlockWithPreload(int blockId) {
     Block *theLoadingBlock = NULL;
-    bool loadBlock = false;
+    bool isLoadBlock = false;
     bool loadingByOther = false;
     int rc = -1;
 
@@ -708,7 +707,7 @@ void ActiveStatus::activateBlockWithPreload(int blockId) {
                 if (markSuccess) {
                     mPreAllocatedBuckets.pop_front();
                     theLoadingBlock->blockId = blockId;
-                    loadBlock = true;
+                    isLoadBlock = true;
                 } else {
                     loadingByOther = true;
                 }
@@ -787,7 +786,7 @@ void ActiveStatus::activateBlockWithPreload(int blockId) {
             }
         SHARED_MEM_END
 
-        if (loadBlock) {
+        if (isLoadBlock) {
             BlockInfo info;
             info.fileId = mFileId;
             info.blockId = blockId;
@@ -796,11 +795,7 @@ void ActiveStatus::activateBlockWithPreload(int blockId) {
             info.offset = InvalidBlockOffset;
 
             /* acquire a thread to load this block */
-            //mThreadPool->enqueue([this, info] {loadBlock(info);});
-            mThreadPool->enqueue(&ActiveStatus::loadBlock,
-                                 this,
-                                 info
-            );
+            mThreadPool->enqueue([this] (BlockInfo info){loadBlock(info);}, info);
             theLoadingBlock->loadState = LOAD_START;
             /* add the block to loading list */
             mLoadMutex.lock();

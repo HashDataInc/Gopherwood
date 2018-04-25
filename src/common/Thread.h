@@ -26,38 +26,6 @@
 
 #include <signal.h>
 
-#ifdef NEED_BOOST
-
-#include <boost/function.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/future.hpp>
-#include <boost/utility/result_of.hpp>
-#include <boost/move/utility.hpp>
-
-namespace Gopherwood {
-namespace Internal {
-
-using boost::thread;
-using boost::bind;
-using boost::mutex;
-using boost::lock_guard;
-using boost::unique_lock;
-using boost::condition_variable;
-using boost::defer_lock_t;
-using boost::once_flag;
-using boost::call_once;
-using boost::function;
-using boost::result_of;
-using boost::forward;
-using boost::chrono::seconds;
-using boost::unique_future;
-using boost::packaged_task;
-using namespace boost::this_thread;
-}
-}
-
-#else
-
 #include <thread>
 #include <mutex>
 #include <future>
@@ -65,31 +33,24 @@ using namespace boost::this_thread;
 #include <condition_variable>
 
 namespace Gopherwood {
-    namespace Internal {
-
-        using std::thread;
-        using std::bind;
-        using std::mutex;
-        using std::lock_guard;
-        using std::future;
-        using std::unique_lock;
-        using std::condition_variable;
-        using std::defer_lock_t;
-        using std::once_flag;
-        using std::call_once;
-        using std::function;
-        using std::result_of;
-        using std::forward;
-        using std::packaged_task;
-        using std::chrono::seconds;
-        using namespace std::this_thread;
-
-    }
-}
-#endif
-
-namespace Gopherwood {
 namespace Internal {
+
+using std::thread;
+using std::bind;
+using std::mutex;
+using std::lock_guard;
+using std::future;
+using std::unique_lock;
+using std::condition_variable;
+using std::defer_lock_t;
+using std::once_flag;
+using std::call_once;
+using std::function;
+using std::result_of;
+using std::forward;
+using std::packaged_task;
+using std::chrono::seconds;
+using namespace std::this_thread;
 
 /*
  * make the background thread ignore these signals (which should allow that
@@ -112,7 +73,7 @@ void ThreadUnBlockSignal(sigset_t sigs);
             retval = Gopherwood::Internal::thread(fun); \
             Gopherwood::Internal::ThreadUnBlockSignal(sigs); \
         } catch (...) { \
-        	Gopherwood::Internal::ThreadUnBlockSignal(sigs); \
+            Gopherwood::Internal::ThreadUnBlockSignal(sigs); \
             throw; \
         } \
     } while(0)

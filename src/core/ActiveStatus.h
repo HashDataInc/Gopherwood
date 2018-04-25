@@ -27,7 +27,7 @@
 
 #include "block/OssBlockWorker.h"
 #include "common/LRUCache.cpp"
-#include "common/ThreadPool.h"
+#include "common/ThreadPool1.h"
 #include "core/SharedMemoryContext.h"
 #include "core/BlockStatus.h"
 #include "core/Manifest.h"
@@ -71,7 +71,7 @@ class ActiveStatus {
 public:
     ActiveStatus(FileId fileId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext,
-                 shared_ptr<ThreadPool> threadPool,
+                 shared_ptr<ThreadPool1> threadPool,
                  bool isCreate,
                  bool isSequence,
                  ActiveStatusType type,
@@ -123,7 +123,7 @@ private:
     FileId mFileId;
     int16_t mActiveId;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
-    shared_ptr<ThreadPool> mThreadPool;
+    shared_ptr<ThreadPool1> mThreadPool;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, int>> mLRUCache;
     shared_ptr<OssBlockWorker> mOssWorker;
@@ -144,7 +144,7 @@ private:
     std::vector<Block> mBlockArray;
     std::list<Block> mPreAllocatedBuckets;
     std::list<Block> mLoadingBuckets;
-    mutex mLoadMutex;
+    std::mutex mLoadMutex;
 };
 
 

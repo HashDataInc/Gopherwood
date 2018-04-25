@@ -54,7 +54,7 @@ public:
 
 private:
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
-    shared_ptr<ThreadPool> mThreadPool;
+    shared_ptr<ThreadPool1> mThreadPool;
 };
 
 
