@@ -31,7 +31,7 @@ namespace Internal {
 
 ActiveStatus::ActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
-                           shared_ptr<ThreadPool1> threadPool,
+                           shared_ptr<ThreadPool> threadPool,
                            bool isCreate,
                            bool isSequence,
                            ActiveStatusType type,
