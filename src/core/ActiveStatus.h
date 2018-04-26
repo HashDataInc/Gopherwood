@@ -106,14 +106,14 @@ private:
     int32_t getNumAcquiredBuckets();
     std::string getManifestFileName(FileId fileId);
     bool isMyActiveBlock(int blockId);
+    bool isBlockLoading(int blockId);
 
     /***** active status block manipulations *****/
     void catchUpManifestLogs();
     void adjustActiveBlock(int curBlockId);
     void acquireNewBlocks();
     void extendOneBlock();
-    void activateBlock(int blockId);
-    void activateBlockWithPreload(int blockId);
+    int activateBlock(int blockId);
     void updateCurBlockSize();
     void getSharedMemEof();
 
@@ -122,6 +122,7 @@ private:
     /****************** Fields *******************/
     FileId mFileId;
     int16_t mActiveId;
+    int mLocalSpaceFD;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<ThreadPool> mThreadPool;
     shared_ptr<Manifest> mManifest;
@@ -143,7 +144,7 @@ private:
 
     std::vector<Block> mBlockArray;
     std::list<Block> mPreAllocatedBuckets;
-    std::list<Block> mLoadingBuckets;
+    std::vector<Block> mLoadingBuckets;
     std::mutex mLoadMutex;
 };
 

@@ -32,7 +32,6 @@ Block::Block(int32_t theBucketId, int32_t theBlockId, bool local, uint8_t s) :
         blockId(theBlockId),
         isLocal(local),
         state(s),
-        loadState(LOAD_INIT),
         usageCount(0) {
 }
 

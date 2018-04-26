@@ -50,8 +50,6 @@ typedef struct Block {
     /* Current bucket status of this block, only
      * meaningful when block is in local cache space */
     uint8_t state;
-    /* loading state */
-    uint8_t loadState;
     /* The usage count during the activate status */
     int16_t usageCount;
 

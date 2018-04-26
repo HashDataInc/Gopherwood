@@ -342,6 +342,17 @@ void SharedMemoryContext::markLoadFinish(Block &block, int16_t activeId, FileId 
     activeStatus[activeId].unsetLoading();
 }
 
+bool SharedMemoryContext::isBlockLoading(FileId fileId, int32_t blockId) {
+    for (int i = 0; i < header->numMaxActiveStatus; i++) {
+        if (activeStatus[i].isLoading() &&
+            activeStatus[i].fileId == fileId &&
+            activeStatus[i].fileBlockIndex == blockId) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /* Transit Bucket State from 1 to 0 */
 void SharedMemoryContext::releaseBuckets(std::list<Block> &blocks) {
     for (Block block : blocks) {

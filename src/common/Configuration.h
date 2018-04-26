@@ -38,6 +38,7 @@ public:
     static uint16_t MAX_CONNECTION;
     static int CUR_CONNECTION;
     static uint32_t PRE_ALLOCATE_BUCKET_NUM;
+    static int32_t PRE_ACTIVATE_BLOCK_NUM;
 
     /* hard coded parameters */
     static size_t MAX_LOADER_THREADS;

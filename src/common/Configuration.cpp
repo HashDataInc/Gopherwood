@@ -36,7 +36,9 @@ uint16_t Configuration::MAX_CONNECTION = 1024;
 
 int Configuration::CUR_CONNECTION = 10;
 
-uint32_t Configuration::PRE_ALLOCATE_BUCKET_NUM = 3;
+uint32_t Configuration::PRE_ALLOCATE_BUCKET_NUM = 4;
+
+int32_t Configuration::PRE_ACTIVATE_BLOCK_NUM = 4;
 
 size_t Configuration::MAX_LOADER_THREADS = 5;
 

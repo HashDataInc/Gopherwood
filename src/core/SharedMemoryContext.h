@@ -72,6 +72,7 @@ public:
     int evictBucketFinish(int32_t bucketId, int16_t activeId, FileId fileId, int isWrite);
     bool markBucketLoading(int32_t bucketId, int32_t blockId, int16_t activeId, FileId fileId);
     void markLoadFinish(Block &block, int16_t activeId, FileId fileId);
+    bool isBlockLoading(FileId fileId, int32_t blockId);
 
     void reset();
     void lock();

@@ -19,6 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <common/OssBuilder.h>
 #include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
@@ -37,6 +38,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
                            ActiveStatusType type,
                            int localSpaceFD) :
         mFileId(fileId),
+        mLocalSpaceFD(localSpaceFD),
         mSharedMemoryContext(sharedMemoryContext),
         mThreadPool(threadPool)
 {
@@ -65,7 +67,7 @@ ActiveStatus::ActiveStatus(FileId fileId,
 
     mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(quotaSize));
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
-    mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, localSpaceFD));
+    mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, mLocalSpaceFD));
 
     /* init file related info */
     mPos = 0;
@@ -189,6 +191,14 @@ bool ActiveStatus::isMyActiveBlock(int blockId) {
     return mLRUCache->exists(blockId);
 }
 
+bool ActiveStatus::isBlockLoading(int blockId) {
+    for (uint32_t i=0; i<mLoadingBuckets.size(); i++) {
+        if (mLoadingBuckets[i].blockId == blockId)
+            return true;
+    }
+    return false;
+}
+
 /* [IMPORTANT] This is the main entry point of adjusting active status. OutpuStream/InputStream
  * will call this function to write/read to multi blocks. When mPos reaches block not activated
  * by current file instance, ActiveStatus will adjust the block status.*/
@@ -223,21 +233,56 @@ void ActiveStatus::getStatistics(GWFileInfo *fileInfo) {
 }
 
 void ActiveStatus::adjustActiveBlock(int curBlockId) {
+    bool needWait = false;
+
+    /* use load mutex in a big granularity.
+     * This will make our concurrency design quite simple that
+     * all adjustActiveBlock operation are accessing a stable
+     * load bucket list. */
+    mLoadMutex.lock();
     if (curBlockId + 1 > getNumBlocks()) {
         extendOneBlock();
-    } else if (!isMyActiveBlock(curBlockId)) {
-        int numToPreActivate = 4;
-        /**/
-        while(numToPreActivate > 0) {
-            activateBlockWithPreload(curBlockId);
-            numToPreActivate--;
-        }
     } else {
-        if (!mLRUCache->exists(curBlockId)) {
-            THROW(GopherwoodException, "[ActiveStatus] block active status mismatch!");
+        int counter = 0;
+
+        /* calculate the preActivate size */
+        int numPreActivate = getCurQuota() > Configuration::PRE_ACTIVATE_BLOCK_NUM ?
+                             Configuration::PRE_ACTIVATE_BLOCK_NUM : getCurQuota();
+
+        /* try to pre activate a few blocks */
+        while (counter < numPreActivate) {
+            if (curBlockId + counter + 1 > getNumBlocks()) {
+                break;
+            } else if (!isMyActiveBlock(curBlockId + counter) &&
+                       !isBlockLoading(curBlockId + counter)){
+                activateBlock(curBlockId + counter);
+            }
+            counter++;
         }
     }
-    // else is loading, then wait
+
+    /* the block might be loading or loading by others */
+    if (!isMyActiveBlock(curBlockId)) {
+        needWait = true;
+    }
+    mLoadMutex.unlock();
+
+    /* wait until the block is activated by me */
+    while (needWait) {
+        sleep_for(seconds(5));
+        mLoadMutex.lock();
+        if (isMyActiveBlock(curBlockId)) {
+            needWait = false;
+        } else if (!isBlockLoading(curBlockId)) {
+            /* we might waiting for others to load finish，
+             * just retry to load it back by myself */
+            int rc = activateBlock(curBlockId);
+            if (rc == 1) {
+                needWait = false;
+            }
+        }
+        mLoadMutex.unlock();
+    }
 }
 
 /* All block activation should follow these steps:
@@ -524,10 +569,75 @@ void ActiveStatus::extendOneBlock() {
         b.blockId, b.bucketId);
 }
 
-/* active a block back to my control */
-void ActiveStatus::activateBlock(int blockId) {
-    bool loadBlock = false;
+void ActiveStatus::loadBlock(BlockInfo info) {
+    ossContext ctx = ossRootBuilder.buildContext();
+    OssBlockWorker* worker = new OssBlockWorker(ctx, mLocalSpaceFD);
+    bool success = true;
+
+    try {
+        /* load the block back */
+        mOssWorker->readBlock(info);
+
+        /* delete the remote block */
+        BlockInfo deleteBlockinfo = info;
+        deleteBlockinfo.bucketId = -1;
+        mOssWorker->deleteBlock(deleteBlockinfo);
+    } catch (...) {
+        LOG(LOG_ERROR, "Got error in multi-thread load， liboss error!");
+        success = false;
+    }
+
+    /* clean up liboss staff */
+    delete worker;
+    ossDestroyContext(ctx);
+
+    /* lock loadMutex to make sure my thread can communicate with SharedMem */
+    mLoadMutex.lock();
+    if (success) {
+        /* mark block load finish */
+        for (uint32_t i=0; i<mLoadingBuckets.size(); i++){
+            if (mLoadingBuckets[i].blockId == info.blockId){
+                /* update the SharedMem */
+                mSharedMemoryContext->markLoadFinish(mBlockArray[info.blockId], mActiveId, mFileId);
+                /* move out of loading Buckets */
+                Block theBlock = mLoadingBuckets[i];
+                mLoadingBuckets.erase(mLoadingBuckets.begin() + i);
+                /* add to active block list */
+                mLRUCache->put(theBlock.blockId, theBlock.bucketId);
+                mBlockArray[theBlock.blockId] = theBlock;
+                /* wrtie load finish log */
+                mManifest->logLoadBlock(theBlock);
+                /* update statistics */
+                mNumLoaded++;
+            }
+        }
+    } else {
+        /* mark block failed, release back to preAllcoateList */
+        for (uint32_t i=0; i<mLoadingBuckets.size(); i++){
+            if (mLoadingBuckets[i].blockId == info.blockId){
+                /* update the SharedMem */
+                mSharedMemoryContext->markLoadFinish(mBlockArray[info.blockId], mActiveId, mFileId);
+                /* move out of loading Buckets */
+                Block theBlock = mLoadingBuckets[i];
+                theBlock.blockId = InvalidBlockId;
+                mLoadingBuckets.erase(mLoadingBuckets.begin() + i);
+                /* release back to preallocate list */
+                mPreAllocatedBuckets.push_front(theBlock);
+            }
+        }
+    }
+    mLoadMutex.unlock();
+}
+
+/* 1    activated
+ * 2    loading by others
+ * 3    start loading
+ * -1   error */
+int ActiveStatus::activateBlock(int blockId) {
+    Block *theLoadingBlock = NULL;
+    bool isLoadBlock = false;
     int rc = -1;
+    int returnType = -1;
 
     /* to eliminate the Shared Memory consistent issues,
      * We acquire new blocks first, then we activate the block.
@@ -537,26 +647,25 @@ void ActiveStatus::activateBlock(int blockId) {
         acquireNewBlocks();
     }
 
-    /* Main logic to activate the block */
+    /* all blocks not activated by me can not be trusted
+     * Need to lock Shared Memory and catch up logs */
     SHARED_MEM_BEGIN
-        /* after catched up the log, we can handle cases in a consistent state */
         if (!mBlockArray[blockId].isLocal) {
-            loadBlock = true;
+            bool markSuccess;
+
             /* build the block */
-            Block block = mPreAllocatedBuckets.front();
-            mPreAllocatedBuckets.pop_front();
-            block.blockId = blockId;
+            theLoadingBlock = &mPreAllocatedBuckets.front();
 
-            /* update Shared Memory */
-            //mSharedMemoryContext->markBucketLoading(block, mActiveId, mFileId);
-            block.state = BUCKET_ACTIVE;
-
-            /* add to LRU cache */
-            mLRUCache->put(block.blockId, block.bucketId);
-            /* update block info */
-            mBlockArray[blockId] = block;
-            /* mark loading log */
-            mManifest->logLoadBlock(block);
+            /* If the markBucketLoading failed, then it means the block is loading by others */
+            markSuccess = mSharedMemoryContext->markBucketLoading(theLoadingBlock->bucketId, blockId, mActiveId,
+                                                                  mFileId);
+            if (markSuccess) {
+                mPreAllocatedBuckets.pop_front();
+                theLoadingBlock->blockId = blockId;
+                isLoadBlock = true;
+            } else {
+                returnType = 2;
+            }
 
         } else if (mBlockArray[blockId].state == BUCKET_USED ||
                    mBlockArray[blockId].state == BUCKET_ACTIVE) {
@@ -582,7 +691,7 @@ void ActiveStatus::activateBlock(int blockId) {
                         mBlockArray[b.blockId].state = b.state;
 
                         /* the ending block been inactivated, flush EoF */
-                        if ((uint32_t)b.blockId + 1 == mBlockArray.size()){
+                        if ((uint32_t) b.blockId + 1 == mBlockArray.size()) {
                             /* update EoF from SharedMemory */
                             getSharedMemEof();
                             /* add the Eof log */
@@ -627,208 +736,27 @@ void ActiveStatus::activateBlock(int blockId) {
             }
 
             mLRUCache->put(mBlockArray[blockId].blockId, mBlockArray[blockId].bucketId);
+            returnType = 1;
         } else {
-            THROW(GopherwoodException, "[ActiveStatus] block active status mismatch!");
+            THROW(GopherwoodInternalException, "[ActiveStatus] block active status mismatch!");
         }
     SHARED_MEM_END
 
-    /* load the block */
-    if (loadBlock) {
+    if (isLoadBlock) {
         BlockInfo info;
         info.fileId = mFileId;
         info.blockId = blockId;
-        info.bucketId = mBlockArray[blockId].bucketId;
+        info.bucketId = theLoadingBlock->bucketId;
         info.isLocal = false;
         info.offset = InvalidBlockOffset;
 
-        mOssWorker->readBlock(info);
-
-        /* delete the remote block */
-        BlockInfo deleteBlockinfo;
-        deleteBlockinfo.bucketId = -1;
-        deleteBlockinfo.blockId = blockId;
-        deleteBlockinfo.fileId = mFileId;
-        deleteBlockinfo.isLocal = false;
-        mOssWorker->deleteBlock(deleteBlockinfo);
-
-        SHARED_MEM_BEGIN
-            mSharedMemoryContext->markLoadFinish(mBlockArray[blockId], mActiveId, mFileId);
-            /* update statistics */
-            mNumLoaded++;
-        SHARED_MEM_END
-    }
-    /* if the block is loading by other process, wait until it finished */
-    if (rc == 2) {
-        bool stillLoading = true;
-
-        while (true) {
-            sleep_for(seconds(5));
-            SHARED_MEM_BEGIN
-                //stillLoading = mSharedMemoryContext->isBlockLoading(mBlockArray[blockId], mFileId);
-            SHARED_MEM_END
-
-            if (!stillLoading) {
-                break;
-            }
-        }
-    }
-}
-
-void ActiveStatus::loadBlock(BlockInfo info) {
-}
-
-void ActiveStatus::activateBlockWithPreload(int blockId) {
-    Block *theLoadingBlock = NULL;
-    bool isLoadBlock = false;
-    bool loadingByOther = false;
-    int rc = -1;
-
-    /* to eliminate the Shared Memory consistent issues,
-     * We acquire new blocks first, then we activate the block.
-     * Actually only loadBlock need acquire new block, but we
-     * still acquire for all cases to simplify the logic. */
-    if (mPreAllocatedBuckets.size() == 0) {
-        acquireNewBlocks();
+        /* acquire a thread to load this block */
+        mThreadPool->enqueue([this](BlockInfo info) { loadBlock(info); }, info);
+        /* add the block to loading list */
+        mLoadingBuckets.push_back(*theLoadingBlock);
     }
 
-    /* all blocks not activated by me can not be trusted
-     * Need to lock Shared Memory and catch up logs */
-    while (true) {
-        SHARED_MEM_BEGIN
-            if (!mBlockArray[blockId].isLocal) {
-                bool markSuccess;
-
-                /* build the block */
-                theLoadingBlock = &mPreAllocatedBuckets.front();
-
-                /* If the markBucketLoading failed, then it means the block is loading by others */
-                markSuccess = mSharedMemoryContext->markBucketLoading(theLoadingBlock->bucketId, blockId, mActiveId,
-                                                                      mFileId);
-                if (markSuccess) {
-                    mPreAllocatedBuckets.pop_front();
-                    theLoadingBlock->blockId = blockId;
-                    isLoadBlock = true;
-                } else {
-                    loadingByOther = true;
-                }
-
-            } else if (mBlockArray[blockId].state == BUCKET_USED ||
-                       mBlockArray[blockId].state == BUCKET_ACTIVE) {
-                /* activate the block */
-                /* inactivate first if Current Quota is used up */
-                if (getNumAcquiredBuckets() == getCurQuota()) {
-                    /* try to inactivate from activate list first. If no active block, then
-                     * free a preAllocatedBucket to make sure we never exceed quota size */
-                    if (mLRUCache->size() > 0) {
-                        std::vector<int> blockIds = mLRUCache->removeNumOfKeys(1);
-                        std::vector<Block> blocksToInactivate;
-                        for (int i : blockIds) {
-                            blocksToInactivate.push_back(mBlockArray[i]);
-                        }
-                        std::vector<Block> turedToUsedBlocks =
-                                mSharedMemoryContext->inactivateBuckets(blocksToInactivate,
-                                                                        mFileId,
-                                                                        mActiveId,
-                                                                        mIsWrite);
-
-                        /* update block status*/
-                        for (Block b : turedToUsedBlocks) {
-                            mBlockArray[b.blockId].state = b.state;
-
-                            /* the ending block been inactivated, flush EoF */
-                            if ((uint32_t)b.blockId + 1 == mBlockArray.size()){
-                                /* update EoF from SharedMemory */
-                                getSharedMemEof();
-                                /* add the Eof log */
-                                RecOpaque opaque;
-                                opaque.updateEof.eof = mEof;
-                                mManifest->logUpdateEof(opaque);
-                            }
-                        }
-                        /* log inactivate buckets */
-                        mManifest->logInactivateBucket(turedToUsedBlocks);
-                    } else {
-                        /* free a bucket from preAllocatedBucket */
-                        if (mPreAllocatedBuckets.size() == 0) {
-                            THROW(GopherwoodInternalException,
-                                  "[ActiveStatus] PreAllocatedBuckets or LRUCacheBuckets should not be both 0!");
-                        }
-
-                        std::list<Block> freeOneList;
-                        Block block = mPreAllocatedBuckets.back();
-                        freeOneList.push_back(block);
-                        mPreAllocatedBuckets.pop_back();
-
-                        mSharedMemoryContext->releaseBuckets(freeOneList);
-                        /* log release buckets */
-                        mManifest->logReleaseBucket(freeOneList);
-                    }
-                } else if (getNumAcquiredBuckets() > getCurQuota()) {
-                    THROW(GopherwoodInternalException,
-                          "[ActiveStatus] Current quoto exceed max quota size!");
-                }
-
-                /* activate the block */
-                rc = mSharedMemoryContext->activateBucket(mFileId,
-                                                          mBlockArray[blockId],
-                                                          mActiveId,
-                                                          mIsWrite);
-                /* the block is activated by me */
-                if (rc == 1) {
-                    mManifest->logActivateBucket(mBlockArray[blockId]);
-                } else if (rc == -1) {
-                    THROW(GopherwoodException, "[ActiveStatus] activateBucket in SharedMemory got error!");
-                }
-
-                mLRUCache->put(mBlockArray[blockId].blockId, mBlockArray[blockId].bucketId);
-            } else {
-                THROW(GopherwoodInternalException, "[ActiveStatus] block active status mismatch!");
-            }
-        SHARED_MEM_END
-
-        if (isLoadBlock) {
-            BlockInfo info;
-            info.fileId = mFileId;
-            info.blockId = blockId;
-            info.bucketId = theLoadingBlock->bucketId;
-            info.isLocal = false;
-            info.offset = InvalidBlockOffset;
-
-            /* acquire a thread to load this block */
-            mThreadPool->enqueue([this] (BlockInfo info){loadBlock(info);}, info);
-            theLoadingBlock->loadState = LOAD_START;
-            /* add the block to loading list */
-            mLoadMutex.lock();
-            mLoadingBuckets.push_back(*theLoadingBlock);
-            mLoadMutex.unlock();
-        }
-
-        /* if the block is loading by other process, wait until it finished and try to activate it again */
-        if (loadingByOther) {
-            bool stillLoading = true;
-
-            while (true) {
-                sleep_for(seconds(5));
-                /* we don't need to check the Connection area in ShareMem again.
-                 * If the load finished by others, when we get the ShareMem lock,
-                 * the manifest log should have been replayed in my ActiveStatus
-                 * TODO: There are still risk that the block been evicted again
-                 * TODO: during my waiting time. The probability is so low that
-                 * TODO: we can just lower down the wait time by now. */
-                SHARED_MEM_BEGIN
-                    if (mBlockArray[blockId].isLocal) {
-                        stillLoading = false;
-                    }
-                SHARED_MEM_END
-
-                if (!stillLoading) {
-                    break;
-                }
-            }
-        }
-        /* the block been activated, break the loop */
-        break;
-    }
+    return returnType;
 }
 
 void ActiveStatus::logEvictBlock(BlockInfo info) {
