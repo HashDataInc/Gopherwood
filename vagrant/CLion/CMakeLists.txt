@@ -125,7 +125,6 @@ set(SOURCE_FILES
         src/core/SharedMemoryObj.h
         src/core/SharedMemoryObj.cpp
         src/common/ObjectStorInfo.h
-        src/common/ThreadPool.h
-        src/common/ThreadPool.cpp)
+        src/common/ThreadPool.h)
 
 add_executable(gopherwood ${SOURCE_FILES})

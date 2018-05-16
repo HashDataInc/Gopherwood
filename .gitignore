@@ -12,3 +12,4 @@ test/data/functiontest.xml
 test/data/securetest.xml
 /cmake-build-debug/
 /eric.sh
+/.project.bak

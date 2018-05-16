@@ -151,7 +151,7 @@ int32_t ActiveStatus::getCurQuota() {
 }
 
 int32_t ActiveStatus::getNumAcquiredBuckets() {
-    return mLRUCache->size() + mPreAllocatedBuckets.size();
+    return mLRUCache->size() + mPreAllocatedBuckets.size() + mLoadingBuckets.size();
 }
 
 /* update the Eof in in current SharedMemBucket */
@@ -269,7 +269,6 @@ void ActiveStatus::adjustActiveBlock(int curBlockId) {
 
     /* wait until the block is activated by me */
     while (needWait) {
-        sleep_for(seconds(5));
         mLoadMutex.lock();
         if (isMyActiveBlock(curBlockId)) {
             needWait = false;
@@ -282,6 +281,10 @@ void ActiveStatus::adjustActiveBlock(int curBlockId) {
             }
         }
         mLoadMutex.unlock();
+
+        if (needWait) {
+            sleep_for(seconds(5));
+        }
     }
 }
 
@@ -312,12 +315,16 @@ void ActiveStatus::acquireNewBlocks() {
     uint32_t numFreeBuckets;
     uint32_t numUsedBuckets;
     uint32_t numAvailable;
+    uint32_t numAcquiredBuckets;
 
     SHARED_MEM_BEGIN
         uint32_t newQuota = mSharedMemoryContext->calcDynamicQuotaNum();
         numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
         numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
         numAvailable = numFreeBuckets + numUsedBuckets;
+        /* here the preAllocate number is zero, so
+         * numAcquiredBuckets = mLRUCache->size() + mLoadingBuckets.size() */
+        numAcquiredBuckets = getNumAcquiredBuckets();
         assert(newQuota > 0);
 
         /****************************************************************
@@ -325,38 +332,49 @@ void ActiveStatus::acquireNewBlocks() {
          ****************************************************************/
         if (mIsSequence) {
             newQuota = newQuota > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
-                            Configuration::PRE_ALLOCATE_BUCKET_NUM :
-                            newQuota;
+                       Configuration::PRE_ALLOCATE_BUCKET_NUM :
+                       newQuota;
         }
 
         /************************************************
          * Step1: Determine the acquire policy first
          * NOTE: The preAllocateList size is 0
          ************************************************/
-        if ((uint32_t)getNumAcquiredBuckets() < newQuota) {
+
+        if (numAcquiredBuckets < newQuota) {
             if (numAvailable > 0) {
                 /* 2(a) acquire more buckets for preAllocatedBlocks */
-                uint32_t tmpAcquire = newQuota - mLRUCache->size();
+                uint32_t tmpAcquire = newQuota - numAcquiredBuckets;
                 if (tmpAcquire > Configuration::PRE_ALLOCATE_BUCKET_NUM) {
                     tmpAcquire = Configuration::PRE_ALLOCATE_BUCKET_NUM;
                 }
                 numToAcquire = numAvailable > tmpAcquire ? tmpAcquire : numAvailable;
                 /* it might exceed quota after acquired new buckets */
-                numToInactivate = (mLRUCache->size() + numToAcquire) > newQuota ?
-                                   mLRUCache->size() + numToAcquire - newQuota : 0;
+                numToInactivate = (numAcquiredBuckets + numToAcquire) > newQuota ?
+                                   numAcquiredBuckets + numToAcquire - newQuota : 0;
             } else {
+                /* TODO: We should wait loading buckets to finish! */
+                if (mLRUCache->size() == 0) {
+                    THROW(GopherwoodNotImplException, "All buckets are used for loading remote blocks, case 1!");
+                }
                 /* 2(b) play with current owned buckets
                  * evict one block at a time. This will make sure the inactivated block is
                  * evicted by myself */
                 numToInactivate = 1;
                 numToAcquire = 1;
             }
-        } else if ((uint32_t)getNumAcquiredBuckets() == newQuota) {
+        } else if (numAcquiredBuckets == newQuota) {
+            /* TODO: We should wait loading buckets to finish! */
+            if (mLRUCache->size() == 0) {
+                THROW(GopherwoodNotImplException, "All buckets are used for loading remote blocks, case 1!");
+            }
+
             if (numFreeBuckets > 0) {
                 /* 3(a) inactivate blocks from LRU first, then acquire new blocks */
                 uint32_t tmpAcquire = newQuota > Configuration::PRE_ALLOCATE_BUCKET_NUM ?
                                       Configuration::PRE_ALLOCATE_BUCKET_NUM : newQuota;
                 numToAcquire = numFreeBuckets > tmpAcquire ? tmpAcquire : numFreeBuckets;
+                numToAcquire = numToAcquire > mLRUCache->size() ? mLRUCache->size() : numToAcquire;
                 numToInactivate = numToAcquire;
             } else {
                 /* 3(b) play with current owned buckets */
@@ -365,7 +383,10 @@ void ActiveStatus::acquireNewBlocks() {
             }
         } else {
             /* 4 release blocks and use own quota */
-            numToInactivate = mLRUCache->size() - newQuota + 1;
+            if (numAcquiredBuckets - newQuota + 1 > mLRUCache->size()) {
+                THROW(GopherwoodNotImplException, "All buckets are used for loading remote blocks, case 1!");
+            }
+            numToInactivate = numAcquiredBuckets - newQuota + 1;
             numToAcquire = 1;
         }
         LOG(DEBUG1, "[ActiveStatus]          |"
@@ -666,7 +687,6 @@ int ActiveStatus::activateBlock(int blockId) {
             } else {
                 returnType = 2;
             }
-
         } else if (mBlockArray[blockId].state == BUCKET_USED ||
                    mBlockArray[blockId].state == BUCKET_ACTIVE) {
             /* activate the block */
@@ -702,13 +722,8 @@ int ActiveStatus::activateBlock(int blockId) {
                     }
                     /* log inactivate buckets */
                     mManifest->logInactivateBucket(turedToUsedBlocks);
-                } else {
+                } else if (mPreAllocatedBuckets.size() > 0){
                     /* free a bucket from preAllocatedBucket */
-                    if (mPreAllocatedBuckets.size() == 0) {
-                        THROW(GopherwoodInternalException,
-                              "[ActiveStatus] PreAllocatedBuckets or LRUCacheBuckets should not be both 0!");
-                    }
-
                     std::list<Block> freeOneList;
                     Block block = mPreAllocatedBuckets.back();
                     freeOneList.push_back(block);
@@ -717,6 +732,9 @@ int ActiveStatus::activateBlock(int blockId) {
                     mSharedMemoryContext->releaseBuckets(freeOneList);
                     /* log release buckets */
                     mManifest->logReleaseBucket(freeOneList);
+                } else {
+                    THROW(GopherwoodInternalException,
+                          "[ActiveStatus] PreAllocatedBuckets should not be 0!");
                 }
             } else if (getNumAcquiredBuckets() > getCurQuota()) {
                 THROW(GopherwoodInternalException,
