@@ -35,7 +35,7 @@ public:
 
     void writeBlock(BlockInfo info);
 
-    void readBlock(BlockInfo info);
+    int64_t readBlock(BlockInfo info);
 
     void deleteBlock(BlockInfo info);
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -98,22 +99,72 @@ void testCancelFile() {
     gwCancelFile(fs, file);
 }
 
+void testFile() {
+    char fileName[] = "TestActiveStatusRemote/TestWriteFileExceedLocalQuota";
+    char *buffer = (char *) malloc(100);
+    gwFile file = NULL;
+    int len;
+
+    /* write to Gopherwood file */
+    int readFd = open("testfile1.md", O_RDWR);
+    file = gwOpenFile(fs, fileName, GW_CREAT|GW_RDWR|GW_SEQACC);
+    while(true) {
+        len = read(readFd, buffer, 100);
+        if (len > 0) {
+            len = gwWrite(fs, file, buffer, len);
+        }
+        else {
+            break;
+        }
+    }
+    //for(int i = 0; i < MD5_DIGEST_LENGTH; i++) printf("%02x", md5in[i]);
+    close(readFd);
+
+    /* read from Gopherwood file */
+    gwSeek(fs, file, 0, SEEK_SET);
+    int writeFd = open("testfile1_out.md", O_RDWR|GW_SEQACC);
+    while(true)
+    {
+        len = gwRead(fs, file, buffer, 100);
+        if (len > 0) {
+            write(writeFd, buffer, len);
+        }
+        else
+            break;
+    }
+    //for(int i = 0; i < MD5_DIGEST_LENGTH; i++) printf("%02x", md5in[i]);
+    close(writeFd);
+
+
+    gwCloseFile(fs, file);
+    gwDeleteFile(fs, fileName);
+
+    free(buffer);
+}
+
 int main(int argc, char *argv[])
 {
     gwFormatContext(workDir);
 
+//    GWContextConfig config;
+//    config.blockSize = 10;
+//    config.numBlocks = 20;
+//    config.numPreDefinedConcurrency =10;
+//    config.severity = LOGSEV_DEBUG1;
+
     GWContextConfig config;
-    config.blockSize = 10;
-    config.numBlocks = 20;
-    config.numPreDefinedConcurrency =10;
+    config.blockSize = 150;
+    config.numBlocks = 10;
+    config.numPreDefinedConcurrency = 2;
     config.severity = LOGSEV_DEBUG1;
 
     fs =  gwCreateContext(workDir, &config);
 
-    testReadWrite();
-    testSeekExceedEof();
-    testWriteExceedQuota();
-    testCancelFile();
+//    testReadWrite();
+//    testSeekExceedEof();
+//    testWriteExceedQuota();
+//    testCancelFile();
+    testFile();
 
     gwDestroyContext(fs);
     gwFormatContext(workDir);

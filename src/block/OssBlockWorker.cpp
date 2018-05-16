@@ -56,14 +56,23 @@ void OssBlockWorker::writeBlock(BlockInfo info) {
                                          FileSystem::OSS_BUCKET.c_str(),
                                          getOssObjectName(info).c_str(),
                                          false);
+    if (remoteBlock == NULL) {
+        THROW(GopherwoodIOException, "OssBlockWorker ossPutObject failed! errno=%d, errmsg=%s",
+              errno, ossGetLastError());
+    }
 
-    ossWrite(mOssContext, remoteBlock, buffer, info.dataSize);
+    int written = ossWrite(mOssContext, remoteBlock, buffer, info.dataSize);
+    if (written != info.dataSize) {
+        THROW(GopherwoodIOException, "OssBlockWorker ossWrite failed! writeSize=%ld, errno=%d, errmsg=%s",
+              info.dataSize, errno, ossGetLastError());
+    }
+
     ossCloseObject(mOssContext, remoteBlock);
     free(buffer);
     buffer = NULL;
 }
 
-void OssBlockWorker::readBlock(BlockInfo info) {
+int64_t OssBlockWorker::readBlock(BlockInfo info) {
     int64_t rc = 0;
 
     int64_t bucketSize = Configuration::LOCAL_BUCKET_SIZE;
@@ -73,7 +82,8 @@ void OssBlockWorker::readBlock(BlockInfo info) {
                                               FileSystem::OSS_BUCKET.c_str(),
                                               getOssObjectName(info).c_str());
     if (!headResult) {
-        THROW(GopherwoodIOException, "OssBlockWorker head object failed!");
+        THROW(GopherwoodIOException, "OssBlockWorker head object failed! errno=%d, errmsg=%s",
+              errno, ossGetLastError());
     }
 
     /* malloc buffer based on the object size */
@@ -87,7 +97,8 @@ void OssBlockWorker::readBlock(BlockInfo info) {
                                          0,
                                          objectSize - 1);
     if (!remoteBlock) {
-        THROW(GopherwoodIOException, "OssBlockWorker read failed, reader object is null!");
+        THROW(GopherwoodIOException, "OssBlockWorker read failed, reader object is null! errno=%d, errmsg=%s",
+              errno, ossGetLastError());
     }
 
 
@@ -120,16 +131,21 @@ void OssBlockWorker::readBlock(BlockInfo info) {
         THROW(GopherwoodIOException,
               "[OssBlockWorker] Local file space read error!");
     }
+
+    LOG(DEBUG1, "[OssBlockWorker]        | readBlock bucketId=%d, ossPath=%s",
+        info.bucketId, getOssObjectName(info).c_str());
     free(headResult);
     free(buffer);
     buffer = NULL;
+
+    return objectSize;
 }
 
 void OssBlockWorker::deleteBlock(BlockInfo info) {
     int rc = ossDeleteObject(mOssContext, FileSystem::OSS_BUCKET.c_str(), getOssObjectName(info).c_str());
     if (rc == -1){
-        THROW(GopherwoodIOException,
-              "[OssBlockWorker] OSS file delete error!");
+        THROW(GopherwoodIOException,  "[OssBlockWorker] ossDeleteObject failed! errno=%d, errmsg=%s",
+              errno, ossGetLastError());
     }
 }
 

@@ -390,8 +390,8 @@ void ActiveStatus::acquireNewBlocks() {
             numToAcquire = 1;
         }
         LOG(DEBUG1, "[ActiveStatus]          |"
-                "Calculate new quota size, newQuota=%u, curQuota=%ld, numAvailables=%d, "
-                "inactivate=%d, acquire %d", newQuota, mLRUCache->size(), numAvailable,
+                "Calculate new quota size, newQuota=%u, curQuota=%u, numAvailables=%d, "
+                "inactivate=%d, acquire %d", newQuota, numAcquiredBuckets, numAvailable,
             numToInactivate, numToAcquire);
 
         /**************************************************************
@@ -585,32 +585,35 @@ void ActiveStatus::extendOneBlock() {
         opaque.extendBlock.eof = mEof;
         mManifest->logExtendBlock(blocksModified, opaque);
     SHARED_MEM_END
-    LOG(DEBUG1, "[ActiveStatus]          |"
+        LOG(DEBUG1, "[ActiveStatus]          |"
             "ExtendOneBlock blockId=%d, bucketId=%d",
         b.blockId, b.bucketId);
 }
 
 void ActiveStatus::loadBlock(BlockInfo info) {
-    ossContext ctx = ossRootBuilder.buildContext();
-    OssBlockWorker* worker = new OssBlockWorker(ctx, mLocalSpaceFD);
     bool success = true;
+    int64_t blockSize = -1;
 
     try {
-        /* load the block back */
-        mOssWorker->readBlock(info);
+        ossContext ctx = ossRootBuilder.buildContext();
+        OssBlockWorker* worker = new OssBlockWorker(ctx, mLocalSpaceFD);
 
+        /* load the block back */
+        blockSize = mOssWorker->readBlock(info);
         /* delete the remote block */
         BlockInfo deleteBlockinfo = info;
         deleteBlockinfo.bucketId = -1;
         mOssWorker->deleteBlock(deleteBlockinfo);
+
+        /* clean up liboss staff */
+        delete worker;
+        ossDestroyContext(ctx);
     } catch (...) {
-        LOG(LOG_ERROR, "Got error in multi-thread load， liboss error!");
+        std::string errBuffer;
+        LOG(LOG_ERROR, "Got error in multi-thread load: %s",
+                GetExceptionDetail(current_exception(), errBuffer));
         success = false;
     }
-
-    /* clean up liboss staff */
-    delete worker;
-    ossDestroyContext(ctx);
 
     /* lock loadMutex to make sure my thread can communicate with SharedMem */
     mLoadMutex.lock();
@@ -620,6 +623,7 @@ void ActiveStatus::loadBlock(BlockInfo info) {
             if (mLoadingBuckets[i].blockId == info.blockId){
                 /* update the SharedMem */
                 mSharedMemoryContext->markLoadFinish(mBlockArray[info.blockId], mActiveId, mFileId);
+                mSharedMemoryContext->updateBucketDataSize(info.bucketId, blockSize, mFileId, mActiveId);
                 /* move out of loading Buckets */
                 Block theBlock = mLoadingBuckets[i];
                 mLoadingBuckets.erase(mLoadingBuckets.begin() + i);
@@ -630,6 +634,9 @@ void ActiveStatus::loadBlock(BlockInfo info) {
                 mManifest->logLoadBlock(theBlock);
                 /* update statistics */
                 mNumLoaded++;
+                LOG(DEBUG1, "[ActiveStatus]          |"
+                        "Load block success, BucketId=%d, BlockId=%d, BlockEof=%ld",
+                    info.bucketId, info.blockId, blockSize);
             }
         }
     } else {
@@ -644,6 +651,9 @@ void ActiveStatus::loadBlock(BlockInfo info) {
                 mLoadingBuckets.erase(mLoadingBuckets.begin() + i);
                 /* release back to preallocate list */
                 mPreAllocatedBuckets.push_front(theBlock);
+                LOG(DEBUG1, "[ActiveStatus]          |"
+                        "Load block failed, BucketId=%d, BlockId=%d, BlockEof=%ld",
+                    info.bucketId, info.blockId, blockSize);
             }
         }
     }

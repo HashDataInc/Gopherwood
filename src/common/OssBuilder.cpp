@@ -41,7 +41,7 @@ OssBuilder::OssBuilder() {
 ossContext OssBuilder::buildContext() {
     ossContext ctx = NULL;
 
-    LOG(DEBUG1, "%s\n%s\n%s\n%s\n%s\n",
+    LOG(DEBUG2, "%s\n%s\n%s\n%s\n%s\n",
         mOssInfo.object_stor_type.c_str(),
         mOssInfo.liboss_zone.c_str(),
         mOssInfo.liboss_appid.c_str(),
@@ -61,6 +61,10 @@ ossContext OssBuilder::buildContext() {
               "[OssBuilder] OSS context initialization failed!");
     }
     return ctx;
+}
+
+std::string OssBuilder::getBucketName() {
+    return mBucket;
 }
 
 void OssBuilder::buildOssInfo() {

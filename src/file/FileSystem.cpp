@@ -151,6 +151,7 @@ void FileSystem::DeleteFile(const char *fileName) {
 
 void FileSystem::initOssContext() {
     OSS_CONTEXT = ossRootBuilder.buildContext();
+    OSS_BUCKET = ossRootBuilder.getBucketName();
 }
 
 FileSystem::~FileSystem() {

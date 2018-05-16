@@ -34,6 +34,8 @@ public:
 
     ossContext buildContext();
 
+    std::string getBucketName();
+
     ~OssBuilder();
 private:
     void buildOssInfo();
