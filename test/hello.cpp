@@ -122,7 +122,7 @@ void testFile() {
 
     /* read from Gopherwood file */
     gwSeek(fs, file, 0, SEEK_SET);
-    int writeFd = open("testfile1_out.md", O_RDWR|GW_SEQACC);
+    int writeFd = open("testfile1_out.md", O_RDWR);
     while(true)
     {
         len = gwRead(fs, file, buffer, 100);
@@ -152,10 +152,16 @@ int main(int argc, char *argv[])
 //    config.numPreDefinedConcurrency =10;
 //    config.severity = LOGSEV_DEBUG1;
 
+//    GWContextConfig config;
+//    config.blockSize = 150;
+//    config.numBlocks = 10;
+//    config.numPreDefinedConcurrency = 2;
+//    config.severity = LOGSEV_DEBUG1;
+
     GWContextConfig config;
-    config.blockSize = 150;
-    config.numBlocks = 10;
-    config.numPreDefinedConcurrency = 2;
+    config.blockSize = 40;
+    config.numBlocks = 50;
+    config.numPreDefinedConcurrency = 10;
     config.severity = LOGSEV_DEBUG1;
 
     fs =  gwCreateContext(workDir, &config);

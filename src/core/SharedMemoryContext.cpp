@@ -331,11 +331,11 @@ bool SharedMemoryContext::markBucketLoading(int32_t bucketId, int32_t blockId, i
     return true;
 }
 
-void SharedMemoryContext::markLoadFinish(Block &block, int16_t activeId, FileId fileId) {
-    assert(buckets[block.bucketId].isActiveBucket());
-    assert(buckets[block.bucketId].isLoadingBucket());
+void SharedMemoryContext::markLoadFinish(int32_t bucketId, int16_t activeId, FileId fileId) {
+    assert(buckets[bucketId].isActiveBucket());
+    assert(buckets[bucketId].isLoadingBucket());
     /* update the bucket info */
-    buckets[block.bucketId].setBucketLoadFinish();
+    buckets[bucketId].setBucketLoadFinish();
 
     /* clear ActiveStatus loading info */
     activeStatus[activeId].fileBlockIndex = InvalidBlockId;

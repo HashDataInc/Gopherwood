@@ -622,7 +622,7 @@ void ActiveStatus::loadBlock(BlockInfo info) {
         for (uint32_t i=0; i<mLoadingBuckets.size(); i++){
             if (mLoadingBuckets[i].blockId == info.blockId){
                 /* update the SharedMem */
-                mSharedMemoryContext->markLoadFinish(mBlockArray[info.blockId], mActiveId, mFileId);
+                mSharedMemoryContext->markLoadFinish(info.bucketId, mActiveId, mFileId);
                 mSharedMemoryContext->updateBucketDataSize(info.bucketId, blockSize, mFileId, mActiveId);
                 /* move out of loading Buckets */
                 Block theBlock = mLoadingBuckets[i];
@@ -644,7 +644,7 @@ void ActiveStatus::loadBlock(BlockInfo info) {
         for (uint32_t i=0; i<mLoadingBuckets.size(); i++){
             if (mLoadingBuckets[i].blockId == info.blockId){
                 /* update the SharedMem */
-                mSharedMemoryContext->markLoadFinish(mBlockArray[info.blockId], mActiveId, mFileId);
+                mSharedMemoryContext->markLoadFinish(info.bucketId, mActiveId, mFileId);
                 /* move out of loading Buckets */
                 Block theBlock = mLoadingBuckets[i];
                 theBlock.blockId = InvalidBlockId;
