@@ -19,10 +19,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "common/Configuration.h"
 #include "core/BaseActiveStatus.h"
+#include "file/FileSystem.h"
 
 namespace Gopherwood {
 namespace Internal {
+
+BaseActiveStatus::BaseActiveStatus(shared_ptr<SharedMemoryContext> sharedMemoryContext,
+                                   int localSpaceFD) :
+        mSharedMemoryContext(sharedMemoryContext),
+        mLocalSpaceFD(localSpaceFD) {
+    mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, mLocalSpaceFD));
+
+    mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
+
+    /* init statistics */
+    mNumEvicted = 0;
+    mNumLoaded = 0;
+    mNumActivated = 0;
+
+}
+
+BaseActiveStatus::~BaseActiveStatus() {
+
+}
 
 
 }

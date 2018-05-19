@@ -382,14 +382,18 @@ int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fileInfo) {
 
 GWSysInfo gwGetSysStat(gopherwoodFS fs) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwGetSysStat start------------------");
+    GWSysInfo info;
+    return info;
 }
 
 int gwEvictBlocks(gopherwoodFS fs, int num) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwEvictBlocks start------------------");
+    return 0;
 }
 
 int gwHealthCheck(gopherwoodFS fs) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwHealthCheck start------------------");
+    return 0;
 }
 
 #ifdef __cplusplus

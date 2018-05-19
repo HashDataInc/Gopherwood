@@ -29,6 +29,7 @@
 #include "common/LRUCache.cpp"
 #include "common/ThreadPool.h"
 #include "core/SharedMemoryContext.h"
+#include "core/BaseActiveStatus.h"
 #include "core/BlockStatus.h"
 #include "core/Manifest.h"
 #include "file/FileId.h"
@@ -56,7 +57,7 @@ enum ActiveStatusType {
  * @SharedMemoryContext The filesystem level Shared Memory instance to control
  * bucket operations.
  */
-class ActiveStatus {
+class ActiveStatus : BaseActiveStatus{
 public:
     ActiveStatus(FileId fileId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext,
@@ -111,17 +112,9 @@ private:
     /****************** Fields *******************/
     FileId mFileId;
     int16_t mActiveId;
-    int mLocalSpaceFD;
-    shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<ThreadPool> mThreadPool;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, int>> mLRUCache;
-    shared_ptr<OssBlockWorker> mOssWorker;
-
-    /**************** Statistics ****************/
-    uint32_t mNumEvicted;
-    uint32_t mNumLoaded;
-    uint32_t mNumActivated;
 
     bool mIsWrite;
     bool mIsDelete;
@@ -129,7 +122,6 @@ private:
     bool mShouldDestroy;
     int64_t mPos;
     int64_t mEof;
-    int64_t mBucketSize;
 
     std::vector<Block> mBlockArray;
     std::list<Block> mPreAllocatedBuckets;

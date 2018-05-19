@@ -49,9 +49,8 @@ ActiveStatus::ActiveStatus(FileId fileId,
                            bool isSequence,
                            ActiveStatusType type,
                            int localSpaceFD) :
+        BaseActiveStatus(sharedMemoryContext, localSpaceFD),
         mFileId(fileId),
-        mLocalSpaceFD(localSpaceFD),
-        mSharedMemoryContext(sharedMemoryContext),
         mThreadPool(threadPool)
 {
     mIsWrite = (type == ActiveStatusType::writeFile);
@@ -79,21 +78,14 @@ ActiveStatus::ActiveStatus(FileId fileId,
 
     mLRUCache = shared_ptr<LRUCache<int, int>>(new LRUCache<int, int>(quotaSize));
     mManifest = shared_ptr<Manifest>(new Manifest(manifestFileName));
-    mOssWorker = shared_ptr<OssBlockWorker>(new OssBlockWorker(FileSystem::OSS_CONTEXT, mLocalSpaceFD));
 
     /* init file related info */
     mPos = 0;
     mEof = 0;
-    mBucketSize = Configuration::LOCAL_BUCKET_SIZE;
 
     SHARED_MEM_BEGIN
         registInSharedMem();
     SHARED_MEM_END
-
-    /* init statistics */
-    mNumEvicted = 0;
-    mNumLoaded = 0;
-    mNumActivated = 0;
 }
 
 /* Shared Memroy activeStatus field will maintain all connected files */
@@ -295,7 +287,7 @@ void ActiveStatus::adjustActiveBlock(int curBlockId) {
         mLoadMutex.unlock();
 
         if (needWait) {
-            sleep_for(seconds(5));
+            sleep_for(seconds(1));
         }
     }
 }

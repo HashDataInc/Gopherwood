@@ -22,15 +22,31 @@
 #ifndef _GOPHERWOOD_CORE_BASEACTIVESTATUS_H_
 #define _GOPHERWOOD_CORE_BASEACTIVESTATUS_H_
 
+#include "block/OssBlockWorker.h"
+#include "core/SharedMemoryContext.h"
+
 namespace Gopherwood {
 namespace Internal {
 
 class BaseActiveStatus {
 public:
 
-    ActiveStatus();
-private:
+    BaseActiveStatus(shared_ptr<SharedMemoryContext> sharedMemoryContext,
+                     int localSpaceFD);
 
+    virtual ~BaseActiveStatus();
+
+protected:
+    shared_ptr<SharedMemoryContext> mSharedMemoryContext;
+    shared_ptr<OssBlockWorker> mOssWorker;
+
+    int mLocalSpaceFD;
+    int64_t mBucketSize;
+
+    /**************** Statistics ****************/
+    uint32_t mNumEvicted;
+    uint32_t mNumLoaded;
+    uint32_t mNumActivated;
 };
 
 }
