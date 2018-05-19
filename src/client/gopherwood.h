@@ -85,6 +85,15 @@ typedef struct GWContextConfig {
 	int32_t severity;
 } GWContextConfig;
 
+typedef struct GWSysInfo {
+    uint32_t numFreeBuckets;
+    uint32_t numActiveBuckets;
+    uint32_t numUsedBuckets;
+    uint32_t numLoadingBuckets;
+    uint32_t numEvictingBuckets;
+    uint32_t numActiveStatus;
+}GWSysInfo;
+
 typedef struct GWFileInfo {
 	int64_t fileSize;
 	uint32_t maxQuota;
@@ -240,6 +249,32 @@ int gwCancelFile(gopherwoodFS fs, gwFile file);
  * @return  Returns 0 on success, -1 on error.
  */
 int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fi);
+
+/**
+ * gwGetSysStat - get the Gopherwood system statistics
+ *
+ * @param   fs      The configured filesystem handle.
+ * @return  Returns 0 on success, -1 on error.
+ */
+GWSysInfo gwGetSysStat(gopherwoodFS fs);
+
+/**
+ * gwEvictBlocks - Evict a number of blocks to OSS
+ *
+ * @param   fs      The configured filesystem handle.
+ * @param   num     Num blocks to evict.
+ * @return  Returns Num blocks been evicted, -1 on error.
+ */
+int gwEvictBlocks(gopherwoodFS fs, int num);
+
+/**
+ * gwHealthCheck - Check GW System Status, clean up broken files
+ *
+ * @param   fs      The configured filesystem handle.
+ * @return  Returns 0 on success, -1 on error.
+ */
+int gwHealthCheck(gopherwoodFS fs);
+
 
 #ifdef __cplusplus
 }

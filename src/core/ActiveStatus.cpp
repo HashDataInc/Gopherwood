@@ -30,6 +30,18 @@
 namespace Gopherwood {
 namespace Internal {
 
+#define SHARED_MEM_BEGIN    try { \
+                                mSharedMemoryContext->lock(); \
+                                catchUpManifestLogs();
+
+#define SHARED_MEM_END          mSharedMemoryContext->unlock();\
+                            } catch (...) { \
+                                SetLastException(Gopherwood::current_exception()); \
+                                mSharedMemoryContext->unlock(); \
+                                Gopherwood::rethrow_exception(Gopherwood::current_exception()); \
+                            }
+
+
 ActiveStatus::ActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
                            shared_ptr<ThreadPool> threadPool,

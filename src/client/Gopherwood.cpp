@@ -351,8 +351,7 @@ int gwDestroyContext(gopherwoodFS fs) {
     return -1;
 }
 
-int gwCancelFile(gopherwoodFS fs, gwFile file)
-{
+int gwCancelFile(gopherwoodFS fs, gwFile file) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwCancelFile start------------------");
 
     try {
@@ -368,8 +367,7 @@ int gwCancelFile(gopherwoodFS fs, gwFile file)
     return -1;
 }
 
-int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fileInfo)
-{
+int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fileInfo) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwStatFile start------------------");
     int retVal = 0;
     try{
@@ -380,6 +378,18 @@ int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fileInfo)
         retVal = -1;
     }
     return retVal;
+}
+
+GWSysInfo gwGetSysStat(gopherwoodFS fs) {
+    LOG(Gopherwood::Internal::DEBUG1, "------------------gwGetSysStat start------------------");
+}
+
+int gwEvictBlocks(gopherwoodFS fs, int num) {
+    LOG(Gopherwood::Internal::DEBUG1, "------------------gwEvictBlocks start------------------");
+}
+
+int gwHealthCheck(gopherwoodFS fs) {
+    LOG(Gopherwood::Internal::DEBUG1, "------------------gwHealthCheck start------------------");
 }
 
 #ifdef __cplusplus

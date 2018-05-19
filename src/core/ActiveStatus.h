@@ -36,17 +36,6 @@
 namespace Gopherwood {
 namespace Internal {
 
-#define SHARED_MEM_BEGIN    try { \
-                                mSharedMemoryContext->lock(); \
-                                catchUpManifestLogs();
-
-#define SHARED_MEM_END          mSharedMemoryContext->unlock();\
-                            } catch (...) { \
-                                SetLastException(Gopherwood::current_exception()); \
-                                mSharedMemoryContext->unlock(); \
-                                Gopherwood::rethrow_exception(Gopherwood::current_exception()); \
-                            }
-
 enum ActiveStatusType {
     writeFile = 1,
     readFile = 2,
