@@ -54,6 +54,11 @@ typedef struct ShareMemHeader {
     uint32_t numActiveBuckets;
     uint32_t numUsedBuckets;
     uint32_t numEvictingBuckets;
+    uint32_t numLoadingBuckets;
+
+    /* ActiveStatus Statistics */
+    uint32_t numFileActiveStatus;
+    uint32_t numAdminActiveStatus;
 
     void enter();
 
@@ -68,6 +73,9 @@ typedef struct ShareMemHeader {
         numActiveBuckets = 0;
         numUsedBuckets = 0;
         numEvictingBuckets = 0;
+        numLoadingBuckets = 0;
+        numFileActiveStatus = 0;
+        numAdminActiveStatus = 0;
     };
 } ShareMemHeader;
 

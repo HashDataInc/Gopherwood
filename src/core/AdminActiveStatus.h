@@ -22,6 +22,7 @@
 #ifndef _GOPHERWOOD_CORE_ADMINACTIVESTATUS_H_
 #define _GOPHERWOOD_CORE_ADMINACTIVESTATUS_H_
 
+#include "client/gopherwood.h"
 #include "core/BaseActiveStatus.h"
 
 namespace Gopherwood {
@@ -31,6 +32,11 @@ class AdminActiveStatus : BaseActiveStatus{
 public:
     AdminActiveStatus(shared_ptr<SharedMemoryContext> sharedMemoryContext,
                       int localSpaceFD);
+
+    void getShareMemStatistic(GWSysInfo* sysInfo);
+
+
+
 
     ~AdminActiveStatus();
 

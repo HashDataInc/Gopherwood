@@ -91,7 +91,8 @@ typedef struct GWSysInfo {
     uint32_t numUsedBuckets;
     uint32_t numLoadingBuckets;
     uint32_t numEvictingBuckets;
-    uint32_t numActiveStatus;
+    uint32_t numAdminActiveStatus;
+	uint32_t numFileActiveStatus;
 }GWSysInfo;
 
 typedef struct GWFileInfo {
@@ -248,15 +249,16 @@ int gwCancelFile(gopherwoodFS fs, gwFile file);
  * @param fi[in/out] content the file information
  * @return  Returns 0 on success, -1 on error.
  */
-int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fi);
+int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fileInfo);
 
 /**
  * gwGetSysStat - get the Gopherwood system statistics
  *
  * @param   fs      The configured filesystem handle.
+ * @param   sysInfo content of the system information
  * @return  Returns 0 on success, -1 on error.
  */
-GWSysInfo gwGetSysStat(gopherwoodFS fs);
+int gwGetSysStat(gopherwoodFS fs, GWSysInfo* sysInfo);
 
 /**
  * gwEvictBlocks - Evict a number of blocks to OSS

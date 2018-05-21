@@ -85,6 +85,9 @@ public:
     int32_t getActiveBucketNum();
     int32_t getUsedBucketNum();
     int32_t getEvictingBucketNum();
+    int32_t getLoadingBucketNum();
+    int32_t getFileActiveStatusNum();
+    int32_t getAdminActiveStatusNum();
 
     std::string &getWorkDir();
     int32_t getNumMaxActiveStatus();

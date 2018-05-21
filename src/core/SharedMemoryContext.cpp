@@ -99,6 +99,8 @@ int16_t SharedMemoryContext::registFile(int pid, FileId fileId, bool isWrite, bo
                 activeStatus[i].setForDelete();
             }
             activeId = i;
+            /* update statistics */
+            header->numFileActiveStatus++;
         }
     }
     if (shouldDestroy && activeId != -1) {
@@ -119,8 +121,9 @@ int16_t SharedMemoryContext::registAdmin(int pid) {
         if (activeStatus[i].pid == InvalidPid) {
             activeStatus[i].pid = pid;
             activeStatus[i].setIsAdmin();
-
             activeId = i;
+            /* update statistics */
+            header->numAdminActiveStatus++;
             break;
         }
     }
@@ -144,6 +147,8 @@ int SharedMemoryContext::unregistFile(int16_t activeId, int pid, bool *shouldDes
             activeId, activeStatus[activeId].pid,
             *shouldDestroy ? "should destroy":"no need to destroy");
         activeStatus[activeId].reset();
+        /* update statistics */
+        header->numFileActiveStatus--;
         return 0;
     }
     return -1;
@@ -158,6 +163,8 @@ int SharedMemoryContext::unregistAdmin(int16_t activeId, int pid) {
         LOG(DEBUG1, "[SharedMemoryContext]   |Unregist Admin, pid=%d",
             activeStatus[activeId].pid);
         activeStatus[activeId].reset();
+        /* update statistics */
+        header->numAdminActiveStatus--;
         return 0;
     }
     return -1;
@@ -355,6 +362,10 @@ bool SharedMemoryContext::markBucketLoading(int32_t bucketId, int32_t blockId, i
     activeStatus[activeId].fileBlockIndex = blockId;
     activeStatus[activeId].setLoading();
 
+    /* update statistics */
+    header->numActiveBuckets--;
+    header->numLoadingBuckets++;
+
     LOG(DEBUG1, "[SharedMemoryContext]   |"
             "Start loading bucketId %d, FileId %s, BlockId %d",
         bucketId, fileId.toString().c_str(), blockId);
@@ -371,6 +382,10 @@ void SharedMemoryContext::markLoadFinish(int32_t bucketId, int16_t activeId, Fil
     /* clear ActiveStatus loading info */
     activeStatus[activeId].fileBlockIndex = InvalidBlockId;
     activeStatus[activeId].unsetLoading();
+
+    /* update statistics */
+    header->numLoadingBuckets--;
+    header->numActiveBuckets++;
 }
 
 bool SharedMemoryContext::isBlockLoading(FileId fileId, int32_t blockId) {
@@ -607,6 +622,19 @@ int32_t SharedMemoryContext::getUsedBucketNum() {
 int32_t SharedMemoryContext::getEvictingBucketNum() {
     return header->numEvictingBuckets;
 }
+
+int32_t SharedMemoryContext::getLoadingBucketNum() {
+    return header->numLoadingBuckets;
+}
+
+int32_t SharedMemoryContext::getFileActiveStatusNum() {
+    return header->numFileActiveStatus;
+}
+
+int32_t SharedMemoryContext::getAdminActiveStatusNum() {
+    return header->numAdminActiveStatus;
+}
+
 
 void SharedMemoryContext::printStatistics() {
     LOG(DEBUG1, "[SharedMemoryContext]   |"

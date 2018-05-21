@@ -380,14 +380,25 @@ int gwStatFile(gopherwoodFS fs, gwFile file, GWFileInfo* fileInfo) {
     return retVal;
 }
 
-GWSysInfo gwGetSysStat(gopherwoodFS fs) {
+int gwGetSysStat(gopherwoodFS fs, GWSysInfo* sysInfo) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwGetSysStat start------------------");
-    GWSysInfo info;
-    return info;
+    PARAMETER_ASSERT(sysInfo != NULL, -1, EINVAL);
+
+    int retVal = 0;
+    try{
+        fs->getFilesystem().getStatistics(sysInfo);
+    }catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+        retVal = -1;
+    }
+    return retVal;
 }
 
 int gwEvictBlocks(gopherwoodFS fs, int num) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwEvictBlocks start------------------");
+    PARAMETER_ASSERT(num > 0 && num < Configuration::NUMBER_OF_BLOCKS, -1, EINVAL);
+
     return 0;
 }
 

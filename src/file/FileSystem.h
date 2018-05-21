@@ -56,6 +56,8 @@ public:
 
     void DeleteFile(const char *fileName);
 
+    void getStatistics(GWSysInfo* sysInfo);
+
     ~FileSystem();
 
 private:

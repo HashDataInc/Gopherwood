@@ -79,6 +79,11 @@ FileSystem::FileSystem(const char *workDir) :
     mAdminActiveStatus = shared_ptr<AdminActiveStatus>(new AdminActiveStatus(mSharedMemoryContext, mLocalSpaceFile));
 }
 
+void FileSystem::initOssContext() {
+    OSS_CONTEXT = ossRootBuilder.buildContext();
+    OSS_BUCKET = ossRootBuilder.getBucketName();
+}
+
 FileId FileSystem::makeFileId(const std::string filePath) {
     FileId id;
 
@@ -152,10 +157,10 @@ void FileSystem::DeleteFile(const char *fileName) {
     status.reset();
 }
 
-void FileSystem::initOssContext() {
-    OSS_CONTEXT = ossRootBuilder.buildContext();
-    OSS_BUCKET = ossRootBuilder.getBucketName();
+void FileSystem::getStatistics(GWSysInfo* sysInfo) {
+    mAdminActiveStatus->getShareMemStatistic(sysInfo);
 }
+
 
 FileSystem::~FileSystem() {
     if (mLocalSpaceFile > 0) {

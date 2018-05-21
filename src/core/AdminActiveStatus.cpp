@@ -58,6 +58,7 @@ void AdminActiveStatus::registInSharedMem() {
     LOG(DEBUG1, "[ActiveStatus]          |"
             "Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
 }
+
 void AdminActiveStatus::unregistInSharedMem() {
     if (mActiveId == -1)
         return;
@@ -74,6 +75,19 @@ void AdminActiveStatus::unregistInSharedMem() {
             "Unregistered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
     mActiveId = -1;
 }
+
+void AdminActiveStatus::getShareMemStatistic(GWSysInfo* sysInfo) {
+    SHARED_MEM_BEGIN
+        sysInfo->numActiveBuckets = mSharedMemoryContext->getActiveBucketNum();
+        sysInfo->numEvictingBuckets = mSharedMemoryContext->getEvictingBucketNum();
+        sysInfo->numUsedBuckets = mSharedMemoryContext->getUsedBucketNum();
+        sysInfo->numFreeBuckets = mSharedMemoryContext->getFreeBucketNum();
+        sysInfo->numLoadingBuckets = mSharedMemoryContext->getLoadingBucketNum();
+        sysInfo->numAdminActiveStatus = mSharedMemoryContext->getAdminActiveStatusNum();
+        sysInfo->numFileActiveStatus = mSharedMemoryContext->getFileActiveStatusNum();
+    SHARED_MEM_END
+}
+
 
 AdminActiveStatus::~AdminActiveStatus() {
     unregistInSharedMem();
