@@ -74,6 +74,9 @@ FileSystem::FileSystem(const char *workDir) :
 
     /* init liboss context */
     initOssContext();
+
+    /* init AdminActiveStatus */
+    mAdminActiveStatus = shared_ptr<AdminActiveStatus>(new AdminActiveStatus(mSharedMemoryContext, mLocalSpaceFile));
 }
 
 FileId FileSystem::makeFileId(const std::string filePath) {
@@ -106,7 +109,7 @@ bool FileSystem::exists(const char *fileName) {
 
 File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
     FileId fileId;
-    shared_ptr<ActiveStatus> status;
+    shared_ptr<FileActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
     status = mActiveStatusContext->createFileActiveStatus(fileId,
@@ -122,7 +125,7 @@ File *FileSystem::CreateFile(const char *fileName, int flags, bool isWrite) {
 
 File *FileSystem::OpenFile(const char *fileName, int flags, bool isWrite) {
     FileId fileId;
-    shared_ptr<ActiveStatus> status;
+    shared_ptr<FileActiveStatus> status;
 
     fileId = makeFileId(std::string(fileName));
     status = mActiveStatusContext->openFileActiveStatus(fileId, isWrite, flags & GW_SEQACC, mLocalSpaceFile);
@@ -139,7 +142,7 @@ void FileSystem::CloseFile(File &file) {
 
 void FileSystem::DeleteFile(const char *fileName) {
     FileId delFileId = makeFileId(std::string(fileName));
-    shared_ptr<ActiveStatus> status;
+    shared_ptr<FileActiveStatus> status;
 
     /* open file with delete type */
     status = mActiveStatusContext->deleteFileActiveStatus(delFileId, mLocalSpaceFile);

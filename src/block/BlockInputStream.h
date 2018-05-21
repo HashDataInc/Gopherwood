@@ -26,7 +26,7 @@
 
 #include "block/LocalBlockReader.h"
 #include "block/OssBlockWorker.h"
-#include "core/ActiveStatus.h"
+#include "core/FileActiveStatus.h"
 #include "common/Memory.h"
 #include "oss/oss.h"
 

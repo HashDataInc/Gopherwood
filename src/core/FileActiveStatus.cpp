@@ -24,7 +24,7 @@
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Logger.h"
-#include "core/ActiveStatus.h"
+#include "core/FileActiveStatus.h"
 #include "file/FileSystem.h"
 
 namespace Gopherwood {
@@ -42,7 +42,7 @@ namespace Internal {
                             }
 
 
-ActiveStatus::ActiveStatus(FileId fileId,
+FileActiveStatus::FileActiveStatus(FileId fileId,
                            shared_ptr<SharedMemoryContext> sharedMemoryContext,
                            shared_ptr<ThreadPool> threadPool,
                            bool isCreate,
@@ -89,8 +89,8 @@ ActiveStatus::ActiveStatus(FileId fileId,
 }
 
 /* Shared Memroy activeStatus field will maintain all connected files */
-void ActiveStatus::registInSharedMem() {
-    mActiveId = mSharedMemoryContext->regist(getpid(), mFileId, mIsWrite, mIsDelete);
+void FileActiveStatus::registInSharedMem() {
+    mActiveId = mSharedMemoryContext->registFile(getpid(), mFileId, mIsWrite, mIsDelete);
     if (mActiveId == -1) {
         THROW(GopherwoodSharedMemException,
               "[ActiveStatus::registInSharedMem] Exceed max connection limitation %d",
@@ -100,11 +100,11 @@ void ActiveStatus::registInSharedMem() {
             "Registered successfully, ActiveID=%d, PID=%d", mActiveId, getpid());
 }
 
-void ActiveStatus::unregistInSharedMem(bool isCancel) {
+void FileActiveStatus::unregistInSharedMem(bool isCancel) {
     if (mActiveId == -1)
         return;
 
-    int rc = mSharedMemoryContext->unregist(mActiveId, getpid(), &mShouldDestroy);
+    int rc = mSharedMemoryContext->unregistFile(mActiveId, getpid(), &mShouldDestroy);
     if (rc != 0) {
         mSharedMemoryContext->unlock();
         THROW(GopherwoodSharedMemException,
@@ -119,11 +119,11 @@ void ActiveStatus::unregistInSharedMem(bool isCancel) {
     mActiveId = -1;
 }
 
-int64_t ActiveStatus::getPosition() {
+int64_t FileActiveStatus::getPosition() {
     return mPos;
 }
 
-void ActiveStatus::setPosition(int64_t pos) {
+void FileActiveStatus::setPosition(int64_t pos) {
     mPos = pos;
     if (mPos > mEof) {
         mEof = mPos;
@@ -134,32 +134,32 @@ void ActiveStatus::setPosition(int64_t pos) {
         mPos, mEof);
 }
 
-int64_t ActiveStatus::getEof() {
+int64_t FileActiveStatus::getEof() {
     return mEof;
 }
 
-Block ActiveStatus::getCurBlock() {
+Block FileActiveStatus::getCurBlock() {
     return mBlockArray[mPos / mBucketSize];
 }
 
-int32_t ActiveStatus::getNumBlocks() {
+int32_t FileActiveStatus::getNumBlocks() {
     return mBlockArray.size();
 }
 
-int64_t ActiveStatus::getCurBlockOffset() {
+int64_t FileActiveStatus::getCurBlockOffset() {
     return mPos % mBucketSize;
 }
 
-int32_t ActiveStatus::getCurQuota() {
+int32_t FileActiveStatus::getCurQuota() {
     return mLRUCache->maxSize();
 }
 
-int32_t ActiveStatus::getNumAcquiredBuckets() {
+int32_t FileActiveStatus::getNumAcquiredBuckets() {
     return mLRUCache->size() + mPreAllocatedBuckets.size() + mLoadingBuckets.size();
 }
 
 /* update the Eof in in current SharedMemBucket */
-void ActiveStatus::updateCurBlockSize() {
+void FileActiveStatus::updateCurBlockSize() {
     assert(mEof > 0);
     int64_t eofBeforeCatchUp = mEof;
 
@@ -184,18 +184,18 @@ void ActiveStatus::updateCurBlockSize() {
 
 }
 
-std::string ActiveStatus::getManifestFileName(FileId fileId) {
+std::string FileActiveStatus::getManifestFileName(FileId fileId) {
     std::stringstream ss;
     ss << mSharedMemoryContext->getWorkDir() << Configuration::MANIFEST_FOLDER << '/' << mFileId.hashcode << '-'
        << mFileId.collisionId;
     return ss.str();
 }
 
-bool ActiveStatus::isMyActiveBlock(int blockId) {
+bool FileActiveStatus::isMyActiveBlock(int blockId) {
     return mLRUCache->exists(blockId);
 }
 
-bool ActiveStatus::isBlockLoading(int blockId) {
+bool FileActiveStatus::isBlockLoading(int blockId) {
     for (uint32_t i=0; i<mLoadingBuckets.size(); i++) {
         if (mLoadingBuckets[i].blockId == blockId)
             return true;
@@ -206,7 +206,7 @@ bool ActiveStatus::isBlockLoading(int blockId) {
 /* [IMPORTANT] This is the main entry point of adjusting active status. OutpuStream/InputStream
  * will call this function to write/read to multi blocks. When mPos reaches block not activated
  * by current file instance, ActiveStatus will adjust the block status.*/
-BlockInfo ActiveStatus::getCurBlockInfo() {
+BlockInfo FileActiveStatus::getCurBlockInfo() {
     int curBlockId = mPos / mBucketSize;
 
     /* adjust the active block status */
@@ -226,7 +226,7 @@ BlockInfo ActiveStatus::getCurBlockInfo() {
     return info;
 }
 
-void ActiveStatus::getStatistics(GWFileInfo *fileInfo) {
+void FileActiveStatus::getStatistics(GWFileInfo *fileInfo) {
     fileInfo->fileSize = getEof();
     fileInfo->maxQuota = mLRUCache->maxSize();
     fileInfo->curQuota = getNumAcquiredBuckets();
@@ -236,7 +236,7 @@ void ActiveStatus::getStatistics(GWFileInfo *fileInfo) {
     fileInfo->numLoaded = mNumLoaded;
 }
 
-void ActiveStatus::adjustActiveBlock(int curBlockId) {
+void FileActiveStatus::adjustActiveBlock(int curBlockId) {
     bool needWait = false;
 
     /* use load mutex in a big granularity.
@@ -306,7 +306,7 @@ void ActiveStatus::adjustActiveBlock(int curBlockId) {
  *       Then -> release blocks and use own quota
  * Notes: When got chance to acquire new blocks, active status will try to
  *        pre acquire a number of buckets to reduce the Shared Memory contention. */
-void ActiveStatus::acquireNewBlocks() {
+void FileActiveStatus::acquireNewBlocks() {
     std::vector<Block> blocksForLog;
     std::vector<int32_t> newBuckets;
     BlockInfo evictBlockInfo;
@@ -560,7 +560,7 @@ void ActiveStatus::acquireNewBlocks() {
 
 /* Extend the file to create a new block, the block will get bucket from the
  * pre allocated bucket array */
-void ActiveStatus::extendOneBlock() {
+void FileActiveStatus::extendOneBlock() {
     std::vector<Block> blocksModified;
 
     if (mPreAllocatedBuckets.size() == 0) {
@@ -594,7 +594,7 @@ void ActiveStatus::extendOneBlock() {
         b.blockId, b.bucketId);
 }
 
-void ActiveStatus::loadBlock(BlockInfo info) {
+void FileActiveStatus::loadBlock(BlockInfo info) {
     bool success = true;
     int64_t blockSize = -1;
 
@@ -668,7 +668,7 @@ void ActiveStatus::loadBlock(BlockInfo info) {
  * 2    loading by others
  * 3    start loading
  * -1   error */
-int ActiveStatus::activateBlock(int blockId) {
+int FileActiveStatus::activateBlock(int blockId) {
     Block *theLoadingBlock = NULL;
     bool isLoadBlock = false;
     int rc = -1;
@@ -791,7 +791,7 @@ int ActiveStatus::activateBlock(int blockId) {
     return returnType;
 }
 
-void ActiveStatus::logEvictBlock(BlockInfo info) {
+void FileActiveStatus::logEvictBlock(BlockInfo info) {
     Block block(InvalidBucketId, info.blockId, false, BUCKET_FREE);
     if(mFileId==info.fileId){
         mManifest->logEvcitBlock(block);
@@ -811,7 +811,7 @@ void ActiveStatus::logEvictBlock(BlockInfo info) {
 }
 
 /* NOTE: You should have acquired the ShareMem lock before calling me */
-void ActiveStatus::getSharedMemEof(){
+void FileActiveStatus::getSharedMemEof(){
     /* Calculate the shared memory file EOF info */
     int numBlocks = mBlockArray.size();
     int32_t endBucketId = mBlockArray[numBlocks - 1].bucketId;
@@ -825,7 +825,7 @@ void ActiveStatus::getSharedMemEof(){
 }
 
 /* flush cached Manifest logs to disk */
-void ActiveStatus::flush() {
+void FileActiveStatus::flush() {
     int64_t eofBeforeCatchUp = mEof;
     SHARED_MEM_BEGIN
         /* no other file exceed my Eof, I should try to flush Eof info */
@@ -851,7 +851,7 @@ void ActiveStatus::flush() {
 }
 
 /* truncate existing Manifest file and flush latest block status to it */
-void ActiveStatus::close(bool isCancel) {
+void FileActiveStatus::close(bool isCancel) {
     std::vector<Block> localBlocks;
     std::vector<Block> remoteBlocks;
 
@@ -953,7 +953,7 @@ void ActiveStatus::close(bool isCancel) {
     }
 }
 
-void ActiveStatus::catchUpManifestLogs() {
+void FileActiveStatus::catchUpManifestLogs() {
     std::vector<Block> blocks;
 
     while (true) {
@@ -1052,7 +1052,7 @@ void ActiveStatus::catchUpManifestLogs() {
     }
 }
 
-ActiveStatus::~ActiveStatus() {
+FileActiveStatus::~FileActiveStatus() {
 }
 
 }

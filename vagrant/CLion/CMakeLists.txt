@@ -101,8 +101,8 @@ set(SOURCE_FILES
         src/file/File.h
         src/file/FileId.h
         src/file/File.cpp
-        src/core/ActiveStatus.cpp
-        src/core/ActiveStatus.h
+        src/core/FileActiveStatus.cpp
+        src/core/FileActiveStatus.h
         src/core/ActiveStatusContext.h
         src/core/ActiveStatusContext.cpp
         src/block/BlockOutputStream.cpp
@@ -127,6 +127,10 @@ set(SOURCE_FILES
         src/common/ObjectStorInfo.h
         src/common/ThreadPool.h
         src/common/OssBuilder.h
-        src/common/OssBuilder.cpp)
+        src/common/OssBuilder.cpp
+        src/core/BaseActiveStatus.h
+        src/core/BaseActiveStatus.cpp
+        src/core/AdminActiveStatus.h
+        src/core/AdminActiveStatus.cpp)
 
 add_executable(gopherwood ${SOURCE_FILES})

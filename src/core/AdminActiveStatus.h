@@ -19,39 +19,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _GOPHERWOOD_FILE_INPUTSTREAM_H_
-#define _GOPHERWOOD_FILE_INPUTSTREAM_H_
+#ifndef _GOPHERWOOD_CORE_ADMINACTIVESTATUS_H_
+#define _GOPHERWOOD_CORE_ADMINACTIVESTATUS_H_
 
-#include "platform.h"
-
-#include "block/BlockInputStream.h"
-#include "common/Memory.h"
-#include "core/FileActiveStatus.h"
-#include "oss/oss.h"
+#include "core/BaseActiveStatus.h"
 
 namespace Gopherwood {
 namespace Internal {
 
-class InputStream {
+class AdminActiveStatus : BaseActiveStatus{
 public:
-    InputStream(int fd, shared_ptr<FileActiveStatus> status);
+    AdminActiveStatus(shared_ptr<SharedMemoryContext> sharedMemoryContext,
+                      int localSpaceFD);
 
-    void read(char *buffer, int64_t length);
-
-    void close();
-
-    ~InputStream();
+    ~AdminActiveStatus();
 
 private:
-    void updateBlockStream();
-
-    int mLocalSpaceFD;
-    shared_ptr<FileActiveStatus> mStatus;
-    shared_ptr<BlockInputStream> mBlockInputStream;
-    int64_t mPos;
+    void registInSharedMem();
+    void unregistInSharedMem();
 };
 
 }
 }
 
-#endif //_GOPHERWOOD_FILE_INPUTSTREAM_H_
+#endif //_GOPHERWOOD_CORE_ADMINACTIVESTATUS_H_

@@ -146,31 +146,25 @@ int main(int argc, char *argv[])
 {
     gwFormatContext(workDir);
 
-//    GWContextConfig config;
-//    config.blockSize = 10;
-//    config.numBlocks = 20;
-//    config.numPreDefinedConcurrency =10;
-//    config.severity = LOGSEV_DEBUG1;
-
-//    GWContextConfig config;
-//    config.blockSize = 150;
-//    config.numBlocks = 10;
-//    config.numPreDefinedConcurrency = 2;
-//    config.severity = LOGSEV_DEBUG1;
-
     GWContextConfig config;
-    config.blockSize = 40;
-    config.numBlocks = 50;
-    config.numPreDefinedConcurrency = 10;
+    config.blockSize = 10;
+    config.numBlocks = 20;
+    config.numPreDefinedConcurrency =10;
     config.severity = LOGSEV_DEBUG1;
+
+//    GWContextConfig config;
+//    config.blockSize = 40;
+//    config.numBlocks = 50;
+//    config.numPreDefinedConcurrency = 10;
+//    config.severity = LOGSEV_DEBUG1;
 
     fs =  gwCreateContext(workDir, &config);
 
-//    testReadWrite();
-//    testSeekExceedEof();
-//    testWriteExceedQuota();
-//    testCancelFile();
-    testFile();
+    testReadWrite();
+    testSeekExceedEof();
+    testWriteExceedQuota();
+    testCancelFile();
+//    testFile();
 
     gwDestroyContext(fs);
     gwFormatContext(workDir);

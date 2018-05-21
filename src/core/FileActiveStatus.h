@@ -57,9 +57,9 @@ enum ActiveStatusType {
  * @SharedMemoryContext The filesystem level Shared Memory instance to control
  * bucket operations.
  */
-class ActiveStatus : BaseActiveStatus{
+class FileActiveStatus : BaseActiveStatus{
 public:
-    ActiveStatus(FileId fileId,
+    FileActiveStatus(FileId fileId,
                  shared_ptr<SharedMemoryContext> sharedMemoryContext,
                  shared_ptr<ThreadPool> threadPool,
                  bool isCreate,
@@ -83,7 +83,7 @@ public:
     /* used as a Thread function */
     void loadBlock(BlockInfo info);
 
-    ~ActiveStatus();
+    ~FileActiveStatus();
 
 private:
     void registInSharedMem();
@@ -111,7 +111,6 @@ private:
 
     /****************** Fields *******************/
     FileId mFileId;
-    int16_t mActiveId;
     shared_ptr<ThreadPool> mThreadPool;
     shared_ptr<Manifest> mManifest;
     shared_ptr<LRUCache<int, int>> mLRUCache;

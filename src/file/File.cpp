@@ -26,7 +26,7 @@
 namespace Gopherwood {
 namespace Internal {
 
-File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status) :
+File::File(FileId id, std::string fileName, int flags, int fd, shared_ptr<FileActiveStatus> status) :
         id(id), name(fileName), mFlags(flags), localFD(fd), mStatus(status) {
     if ((flags & GW_WRONLY) || (flags & GW_RDWR)) {
         mOutStream = shared_ptr<OutputStream>(new OutputStream(localFD, status));

@@ -26,14 +26,14 @@
 
 #include "block/BlockOutputStream.h"
 #include "common/Memory.h"
-#include "core/ActiveStatus.h"
+#include "core/FileActiveStatus.h"
 #include "oss/oss.h"
 
 namespace Gopherwood {
 namespace Internal {
 class OutputStream {
 public:
-    OutputStream(int fd, shared_ptr<ActiveStatus> status);
+    OutputStream(int fd, shared_ptr<FileActiveStatus> status);
 
     void write(const char *buffer, int64_t length, bool isSeek);
 
@@ -48,7 +48,7 @@ private:
 
     int mLocalSpaceFD;
     shared_ptr<BlockOutputStream> mBlockOutputStream;
-    shared_ptr<ActiveStatus> mStatus;
+    shared_ptr<FileActiveStatus> mStatus;
     int64_t mPos;
 };
 

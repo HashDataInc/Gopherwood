@@ -29,6 +29,7 @@
 #include "core/ActiveStatusContext.h"
 #include "core/SharedMemoryManager.h"
 #include "core/SharedMemoryContext.h"
+#include "core/AdminActiveStatus.h"
 #include "file/File.h"
 #include "oss/oss.h"
 
@@ -65,6 +66,7 @@ private:
     const char *workDir;
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<ActiveStatusContext> mActiveStatusContext;
+    shared_ptr<AdminActiveStatus> mAdminActiveStatus;
 };
 
 }

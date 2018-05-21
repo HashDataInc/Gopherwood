@@ -39,7 +39,7 @@ public:
 protected:
     shared_ptr<SharedMemoryContext> mSharedMemoryContext;
     shared_ptr<OssBlockWorker> mOssWorker;
-
+    int16_t mActiveId;
     int mLocalSpaceFD;
     int64_t mBucketSize;
 

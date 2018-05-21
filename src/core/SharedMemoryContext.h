@@ -51,8 +51,10 @@ public:
     SharedMemoryContext(std::string dir, shared_ptr<mapped_region> region, int lockFD, bool reset);
 
     /* Regist/Unregist an ActiveStatus instance */
-    int16_t regist(int pid, FileId fileId, bool isWrite, bool isDelete);
-    int unregist(int16_t activeId, int pid, bool *shouldDestroy);
+    int16_t registFile(int pid, FileId fileId, bool isWrite, bool isDelete);
+    int16_t registAdmin(int pid);
+    int unregistFile(int16_t activeId, int pid, bool *shouldDestroy);
+    int unregistAdmin(int16_t activeId, int pid);
 
     /* support functions */
     int calcDynamicQuotaNum();

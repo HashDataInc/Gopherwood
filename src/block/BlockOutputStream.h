@@ -25,7 +25,7 @@
 #include "platform.h"
 
 #include "block/LocalBlockWriter.h"
-#include "core/ActiveStatus.h"
+#include "core/FileActiveStatus.h"
 #include "common/Memory.h"
 #include "oss/oss.h"
 #include "OssBlockWorker.h"

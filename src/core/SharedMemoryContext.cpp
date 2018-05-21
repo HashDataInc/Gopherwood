@@ -69,7 +69,7 @@ void SharedMemoryContext::unlock() {
     lockf(mLockFD, F_ULOCK, 0);
 }
 
-int16_t SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool isDelete) {
+int16_t SharedMemoryContext::registFile(int pid, FileId fileId, bool isWrite, bool isDelete) {
     int16_t activeId = -1;
     bool shouldDestroy = isDelete ? true : false;
 
@@ -112,7 +112,24 @@ int16_t SharedMemoryContext::regist(int pid, FileId fileId, bool isWrite, bool i
     return activeId;
 }
 
-int SharedMemoryContext::unregist(int16_t activeId, int pid, bool *shouldDestroy) {
+int16_t SharedMemoryContext::registAdmin(int pid) {
+    int16_t activeId = -1;
+
+    for (int i = 0; i < header->numMaxActiveStatus; i++) {
+        if (activeStatus[i].pid == InvalidPid) {
+            activeStatus[i].pid = pid;
+            activeStatus[i].setIsAdmin();
+
+            activeId = i;
+            break;
+        }
+    }
+    LOG(DEBUG1, "[SharedMemoryContext]   |"
+            "Regist admin, pid=%d", activeStatus[activeId].pid);
+    return activeId;
+}
+
+int SharedMemoryContext::unregistFile(int16_t activeId, int pid, bool *shouldDestroy) {
     if (activeId < 0 || activeId >= header->numMaxActiveStatus) {
         return -1;
     }
@@ -126,6 +143,20 @@ int SharedMemoryContext::unregist(int16_t activeId, int pid, bool *shouldDestroy
             activeStatus[activeId].fileId.toString().c_str(),
             activeId, activeStatus[activeId].pid,
             *shouldDestroy ? "should destroy":"no need to destroy");
+        activeStatus[activeId].reset();
+        return 0;
+    }
+    return -1;
+}
+
+int SharedMemoryContext::unregistAdmin(int16_t activeId, int pid) {
+    if (activeId < 0 || activeId >= header->numMaxActiveStatus) {
+        return -1;
+    }
+
+    if (activeStatus[activeId].pid == pid && activeStatus[activeId].isAdmin()) {
+        LOG(DEBUG1, "[SharedMemoryContext]   |Unregist Admin, pid=%d",
+            activeStatus[activeId].pid);
         activeStatus[activeId].reset();
         return 0;
     }

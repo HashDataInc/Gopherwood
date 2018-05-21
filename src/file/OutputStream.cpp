@@ -26,7 +26,7 @@
 namespace Gopherwood {
 namespace Internal {
 
-OutputStream::OutputStream(int fd, shared_ptr<ActiveStatus> status) :
+OutputStream::OutputStream(int fd, shared_ptr<FileActiveStatus> status) :
         mLocalSpaceFD(fd), mStatus(status) {
     mPos = 0;
     mBlockOutputStream = shared_ptr<BlockOutputStream>(new BlockOutputStream(mLocalSpaceFD));

@@ -25,7 +25,7 @@
 #include "platform.h"
 
 #include "client/gopherwood.h"
-#include "core/ActiveStatus.h"
+#include "core/FileActiveStatus.h"
 #include "common/Memory.h"
 #include "file/OutputStream.h"
 #include "file/InputStream.h"
@@ -38,7 +38,7 @@ namespace Internal {
 
 class File {
 public:
-    File(FileId id, std::string fileName, int flags, int fd, shared_ptr<ActiveStatus> status);
+    File(FileId id, std::string fileName, int flags, int fd, shared_ptr<FileActiveStatus> status);
 
     int64_t read(char *buffer, int64_t length);
 
@@ -64,7 +64,7 @@ private:
     std::string nameDigest;
     int mFlags;
     int localFD;
-    shared_ptr<ActiveStatus> mStatus;
+    shared_ptr<FileActiveStatus> mStatus;
     shared_ptr<OutputStream> mOutStream;
     shared_ptr<InputStream> mInStream;
 };

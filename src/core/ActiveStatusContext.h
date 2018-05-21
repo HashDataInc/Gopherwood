@@ -25,7 +25,7 @@
 #include "platform.h"
 
 #include "file/FileId.h"
-#include "core/ActiveStatus.h"
+#include "core/FileActiveStatus.h"
 #include "core/SharedMemoryContext.h"
 #include "common/Memory.h"
 #include "common/Unordered.h"
@@ -37,18 +37,18 @@ class ActiveStatusContext {
 public:
     ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedMemoryContext);
 
-    shared_ptr<ActiveStatus> createFileActiveStatus(FileId fileId,
+    shared_ptr<FileActiveStatus> createFileActiveStatus(FileId fileId,
                                                     bool isWrite,
                                                     bool isSequence,
                                                     int localSpaceFD
     );
 
-    shared_ptr<ActiveStatus> openFileActiveStatus(FileId fileId,
+    shared_ptr<FileActiveStatus> openFileActiveStatus(FileId fileId,
                                                   bool isWrite,
                                                   bool isSequence,
                                                   int localSpaceFD);
 
-    shared_ptr<ActiveStatus> deleteFileActiveStatus(FileId fileId, int localSpaceFD);
+    shared_ptr<FileActiveStatus> deleteFileActiveStatus(FileId fileId, int localSpaceFD);
 
     ~ActiveStatusContext();
 

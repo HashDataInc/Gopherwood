@@ -32,14 +32,14 @@ ActiveStatusContext::ActiveStatusContext(shared_ptr<SharedMemoryContext> sharedM
     mThreadPool = shared_ptr<ThreadPool>(new ThreadPool(Configuration::MAX_LOADER_THREADS));
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::createFileActiveStatus(FileId fileId,
+shared_ptr<FileActiveStatus> ActiveStatusContext::createFileActiveStatus(FileId fileId,
                                                                      bool isWrite,
                                                                      bool isSequence,
                                                                      int localSpaceFD) {
     ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
 
-    shared_ptr<ActiveStatus> activeStatus =
-            shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
+    shared_ptr<FileActiveStatus> activeStatus =
+            shared_ptr<FileActiveStatus>(new FileActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       mThreadPool,
                                                       true, /* isCreate*/
@@ -49,11 +49,11 @@ shared_ptr<ActiveStatus> ActiveStatusContext::createFileActiveStatus(FileId file
     return activeStatus;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId, bool isWrite, bool isSequence, int localSpaceFD) {
+shared_ptr<FileActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId, bool isWrite, bool isSequence, int localSpaceFD) {
     ActiveStatusType type = isWrite ? ActiveStatusType::writeFile : ActiveStatusType::readFile;
 
-    shared_ptr<ActiveStatus> activeStatus =
-            shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
+    shared_ptr<FileActiveStatus> activeStatus =
+            shared_ptr<FileActiveStatus>(new FileActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       mThreadPool,
                                                       false, /* isCreate*/
@@ -63,9 +63,9 @@ shared_ptr<ActiveStatus> ActiveStatusContext::openFileActiveStatus(FileId fileId
     return activeStatus;
 }
 
-shared_ptr<ActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId fileId, int localSpaceFD) {
-    shared_ptr<ActiveStatus> activeStatus =
-            shared_ptr<ActiveStatus>(new ActiveStatus(fileId,
+shared_ptr<FileActiveStatus> ActiveStatusContext::deleteFileActiveStatus(FileId fileId, int localSpaceFD) {
+    shared_ptr<FileActiveStatus> activeStatus =
+            shared_ptr<FileActiveStatus>(new FileActiveStatus(fileId,
                                                       mSharedMemoryContext,
                                                       mThreadPool,
                                                       false, /* isCreate*/
