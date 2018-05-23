@@ -58,6 +58,8 @@ public:
 
     void getStatistics(GWSysInfo* sysInfo);
 
+    int32_t preEvictNumOfBlocks(int num);
+
     ~FileSystem();
 
 private:

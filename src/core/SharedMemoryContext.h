@@ -71,7 +71,8 @@ public:
 
     /* evict/load logic related APIs*/
     BlockInfo markBucketEvicting(int16_t activeId);
-    int evictBucketFinish(int32_t bucketId, int16_t activeId, FileId fileId, int isWrite);
+    int evictBucketFinishAndTryAcquire(int32_t bucketId, int16_t activeId, FileId fileId, int isWrite);
+    int evictBucketFinishAndTryFree(int32_t bucketId, int16_t activeId);
     bool markBucketLoading(int32_t bucketId, int32_t blockId, int16_t activeId, FileId fileId);
     void markLoadFinish(int32_t bucketId, int16_t activeId, FileId fileId);
     bool isBlockLoading(FileId fileId, int32_t blockId);

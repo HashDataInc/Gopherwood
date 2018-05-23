@@ -93,7 +93,7 @@ typedef struct BlockInfo {
     void reset(){
         fileId.reset();
         blockId = InvalidBlockId;
-        bucketId = -1;
+        bucketId = InvalidBucketId;
         offset = InvalidBlockOffset;
         dataSize = 0;
     }

@@ -25,6 +25,7 @@
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
 #include "common/Logger.h"
+#include "core/Manifest.h"
 
 namespace Gopherwood {
 namespace Internal {
@@ -88,6 +89,56 @@ void AdminActiveStatus::getShareMemStatistic(GWSysInfo* sysInfo) {
     SHARED_MEM_END
 }
 
+int32_t AdminActiveStatus::evictNumOfBlocks(int num) {
+    int numToEvict = num;
+    int numEvicted = 0;
+    BlockInfo   evictBlockInfo;
+    bool found = false;
+
+    while (numToEvict > 0) {
+        SHARED_MEM_BEGIN
+            if (mSharedMemoryContext->getUsedBucketNum() > 0) {
+                evictBlockInfo = mSharedMemoryContext->markBucketEvicting(mActiveId);
+                found = true;
+            }
+        SHARED_MEM_END
+
+        if (found) {
+            mOssWorker->writeBlock(evictBlockInfo);
+        }
+
+        SHARED_MEM_BEGIN
+            int rc = mSharedMemoryContext->evictBucketFinishAndTryFree(evictBlockInfo.bucketId, mActiveId);
+
+            if (rc == 0) {
+                logEvictBlock(evictBlockInfo);
+                mNumEvicted ++;
+            } else if (rc == 1 || rc == 2) {
+                /* the evicted bucket has been activated by it's file owner, give up this one */
+                mOssWorker->deleteBlock(evictBlockInfo);
+            }
+        SHARED_MEM_END
+    }
+
+    return numEvicted;
+}
+
+
+void AdminActiveStatus::logEvictBlock(BlockInfo info) {
+    Block block(InvalidBucketId, info.blockId, false, BUCKET_FREE);
+
+        /* check file exist */
+        std::string manifestFileName = Manifest::getManifestFileName(mSharedMemoryContext->getWorkDir(), info.fileId);
+        if (access(manifestFileName.c_str(), F_OK) == -1) {
+            THROW(GopherwoodInvalidParmException,
+                  "[ActiveStatus::ActiveStatus] File does not exist %s",
+                  manifestFileName.c_str());
+        }
+        Manifest *manifest = new Manifest(manifestFileName);
+        manifest->mfSeek(0, SEEK_END);
+        manifest->logEvcitBlock(block);
+
+}
 
 AdminActiveStatus::~AdminActiveStatus() {
     unregistInSharedMem();

@@ -489,10 +489,10 @@ void FileActiveStatus::acquireNewBlocks() {
         SHARED_MEM_BEGIN
             /* mark evict finish */
             if (evicting) {
-                int rc = mSharedMemoryContext->evictBucketFinish(evictBlockInfo.bucketId,
-                                                                 mActiveId,
-                                                                 mFileId,
-                                                                 mIsWrite);
+                int rc = mSharedMemoryContext->evictBucketFinishAndTryAcquire(evictBlockInfo.bucketId,
+                                                                              mActiveId,
+                                                                              mFileId,
+                                                                              mIsWrite);
                 if (rc == 0 || rc == 1) {
                     Block newBlock(evictBlockInfo.bucketId, InvalidBlockId, LocalBlock, BUCKET_ACTIVE);
                     LOG(DEBUG1, "[ActiveStatus]          |"

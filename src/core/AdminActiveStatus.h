@@ -35,14 +35,15 @@ public:
 
     void getShareMemStatistic(GWSysInfo* sysInfo);
 
-
-
+    int32_t evictNumOfBlocks(int num);
 
     ~AdminActiveStatus();
 
 private:
     void registInSharedMem();
     void unregistInSharedMem();
+
+    void logEvictBlock(BlockInfo info);
 };
 
 }

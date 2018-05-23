@@ -232,6 +232,7 @@ std::vector<int32_t> SharedMemoryContext::acquireFreeBucket(int16_t activeId, in
  * 2. evictBlockFinish -- finally reset evicting ActiveStatus and activate the bucket */
 BlockInfo SharedMemoryContext::markBucketEvicting(int16_t activeId) {
     BlockInfo info;
+    info.reset();
 
     /* Run the "clock sweep" algorithm */
     int32_t trycounter = header->numBuckets;
@@ -294,7 +295,7 @@ BlockInfo SharedMemoryContext::markBucketEvicting(int16_t activeId) {
  * 1 -- the evicted block has been deleted during the eviction
  * 2 -- the evicted bucket has been activated by it's file owner, give up this one
  */
-int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int16_t activeId, FileId fileId, int isWrite) {
+int SharedMemoryContext::evictBucketFinishAndTryAcquire(int32_t bucketId, int16_t activeId, FileId fileId, int isWrite) {
     int rc = 0;
 
     /* reset activestatus evict info  */
@@ -328,7 +329,40 @@ int SharedMemoryContext::evictBucketFinish(int32_t bucketId, int16_t activeId, F
     header->numActiveBuckets++;
 
     LOG(DEBUG1, "[SharedMemoryContext]   |"
-              "Bucket %d evict finished.", bucketId);
+              "Bucket %d evict finished, successful acquired.", bucketId);
+    printStatistics();
+
+    return rc;
+}
+
+int SharedMemoryContext::evictBucketFinishAndTryFree(int32_t bucketId, int16_t activeId) {
+    int rc = 0;
+
+    /* reset activestatus evict info  */
+    activeStatus[activeId].evictFileId.reset();
+    activeStatus[activeId].fileBlockIndex = InvalidBlockId;
+    activeStatus[activeId].unsetEvicting();
+
+    if (activeStatus[activeId].isEvictBucketStolen()) {
+        activeStatus[activeId].unsetBucketStolen();
+        return 2;
+    }
+
+    /* check whether the evicted block been deleted during evicting */
+    if (buckets[bucketId].isDeletedBucket()) {
+        rc = 1;
+    }
+
+    /* clear bucket info */
+    buckets[bucketId].reset();
+    buckets[bucketId].setBucketFree();
+
+    /* update statistics */
+    header->numEvictingBuckets--;
+    header->numFreeBuckets++;
+
+    LOG(DEBUG1, "[SharedMemoryContext]   |"
+            "Bucket %d evict finished, set to free.", bucketId);
     printStatistics();
 
     return rc;

@@ -399,7 +399,15 @@ int gwEvictBlocks(gopherwoodFS fs, int num) {
     LOG(Gopherwood::Internal::DEBUG1, "------------------gwEvictBlocks start------------------");
     PARAMETER_ASSERT(num > 0 && num < Configuration::NUMBER_OF_BLOCKS, -1, EINVAL);
 
-    return 0;
+    int retVal = 0;
+    try{
+        return fs->getFilesystem().preEvictNumOfBlocks(num);
+    }catch (...) {
+        SetLastException(Gopherwood::current_exception());
+        handleException(Gopherwood::current_exception());
+        retVal = -1;
+    }
+    return retVal;
 }
 
 int gwHealthCheck(gopherwoodFS fs) {

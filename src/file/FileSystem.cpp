@@ -161,6 +161,10 @@ void FileSystem::getStatistics(GWSysInfo* sysInfo) {
     mAdminActiveStatus->getShareMemStatistic(sysInfo);
 }
 
+int32_t FileSystem::preEvictNumOfBlocks(int num) {
+    return mAdminActiveStatus->evictNumOfBlocks(num);
+}
+
 
 FileSystem::~FileSystem() {
     if (mLocalSpaceFile > 0) {
