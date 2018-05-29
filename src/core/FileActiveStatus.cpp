@@ -19,7 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <common/OssBuilder.h>
+#include "common/OssBuilder.h"
 #include "common/Configuration.h"
 #include "common/Exception.h"
 #include "common/ExceptionInternal.h"
@@ -287,7 +287,7 @@ void FileActiveStatus::adjustActiveBlock(int curBlockId) {
         mLoadMutex.unlock();
 
         if (needWait) {
-            sleep_for(seconds(1));
+            sleep_for(std::chrono::milliseconds(200));
         }
     }
 }
@@ -599,7 +599,7 @@ void FileActiveStatus::loadBlock(BlockInfo info) {
     int64_t blockSize = -1;
 
     try {
-        ossContext ctx = ossRootBuilder.buildContext();
+        ossContext ctx = OssBuilder::getInstance()->buildContext();
         OssBlockWorker* worker = new OssBlockWorker(ctx, mLocalSpaceFD);
 
         /* load the block back */

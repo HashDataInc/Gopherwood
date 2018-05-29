@@ -80,8 +80,8 @@ FileSystem::FileSystem(const char *workDir) :
 }
 
 void FileSystem::initOssContext() {
-    OSS_CONTEXT = ossRootBuilder.buildContext();
-    OSS_BUCKET = ossRootBuilder.getBucketName();
+    OSS_CONTEXT = OssBuilder::getInstance()->buildContext();
+    OSS_BUCKET = OssBuilder::getInstance()->getBucketName();
 }
 
 FileId FileSystem::makeFileId(const std::string filePath) {

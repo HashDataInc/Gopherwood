@@ -24,19 +24,25 @@
 
 #include "common/ObjectStorInfo.h"
 #include "oss/oss.h"
+#include "common/Memory.h"
 
 namespace Gopherwood {
 namespace Internal {
 
 class OssBuilder {
 public:
+    static shared_ptr<OssBuilder> instance;
+
     OssBuilder();
+
+    static shared_ptr<OssBuilder> getInstance();
 
     ossContext buildContext();
 
     std::string getBucketName();
 
     ~OssBuilder();
+
 private:
     void buildOssInfo();
     void setObjectStorInfo();
@@ -44,8 +50,6 @@ private:
     ObjectStorInfo mOssInfo;
     std::string mBucket;
 };
-
-extern OssBuilder ossRootBuilder;
 
 }
 }

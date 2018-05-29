@@ -31,11 +31,17 @@
 namespace Gopherwood {
 namespace Internal {
 
-OssBuilder ossRootBuilder;
-
 OssBuilder::OssBuilder() {
     buildOssInfo();
     setObjectStorInfo();
+}
+
+shared_ptr<OssBuilder> OssBuilder::instance = NULL;
+
+shared_ptr<OssBuilder> OssBuilder::getInstance() {
+    if (!instance)
+        instance = shared_ptr<OssBuilder>(new OssBuilder());
+    return instance;
 }
 
 ossContext OssBuilder::buildContext() {
