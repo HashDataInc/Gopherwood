@@ -625,9 +625,11 @@ void FileActiveStatus::loadBlock(BlockInfo info) {
         /* mark block load finish */
         for (uint32_t i=0; i<mLoadingBuckets.size(); i++){
             if (mLoadingBuckets[i].blockId == info.blockId){
-                /* update the SharedMem */
-                mSharedMemoryContext->markLoadFinish(info.bucketId, mActiveId, mFileId);
-                mSharedMemoryContext->updateBucketDataSize(info.bucketId, blockSize, mFileId, mActiveId);
+                SHARED_MEM_BEGIN
+                    /* update the SharedMem */
+                    mSharedMemoryContext->markLoadFinish(info.bucketId, mActiveId, mFileId);
+                    mSharedMemoryContext->updateBucketDataSize(info.bucketId, blockSize, mFileId, mActiveId);
+                SHARED_MEM_END
                 /* move out of loading Buckets */
                 Block theBlock = mLoadingBuckets[i];
                 mLoadingBuckets.erase(mLoadingBuckets.begin() + i);
@@ -641,14 +643,17 @@ void FileActiveStatus::loadBlock(BlockInfo info) {
                 LOG(DEBUG1, "[ActiveStatus]          |"
                         "Load block success, BucketId=%d, BlockId=%d, BlockEof=%ld",
                     info.bucketId, info.blockId, blockSize);
+                break;
             }
         }
     } else {
         /* mark block failed, release back to preAllcoateList */
         for (uint32_t i=0; i<mLoadingBuckets.size(); i++){
             if (mLoadingBuckets[i].blockId == info.blockId){
-                /* update the SharedMem */
-                mSharedMemoryContext->markLoadFinish(info.bucketId, mActiveId, mFileId);
+                SHARED_MEM_BEGIN
+                    /* update the SharedMem */
+                    mSharedMemoryContext->markLoadFinish(info.bucketId, mActiveId, mFileId);
+                SHARED_MEM_END
                 /* move out of loading Buckets */
                 Block theBlock = mLoadingBuckets[i];
                 theBlock.blockId = InvalidBlockId;
@@ -658,6 +663,7 @@ void FileActiveStatus::loadBlock(BlockInfo info) {
                 LOG(DEBUG1, "[ActiveStatus]          |"
                         "Load block failed, BucketId=%d, BlockId=%d, BlockEof=%ld",
                     info.bucketId, info.blockId, blockSize);
+                break;
             }
         }
     }

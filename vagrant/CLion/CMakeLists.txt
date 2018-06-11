@@ -115,6 +115,9 @@ set(SOURCE_FILES
         src/block/LocalBlockReader.cpp
         test/hello.cpp
         test/function/TestActiveStatusLocal.cpp
+        test/function/TestActiveStatusRemote.cpp
+        test/function/TestCInterface.cpp
+        test/function/TestIctCases.cpp
         src/core/BlockStatus.h
         src/core/Manifest.h
         src/core/Manifest.cpp
