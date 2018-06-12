@@ -483,7 +483,9 @@ void FileActiveStatus::acquireNewBlocks() {
     while (numToAcquire > 0 || evicting) {
         /* evict the bucket */
         if (evicting) {
+            mLoadMutex.unlock();
             mOssWorker->writeBlock(evictBlockInfo);
+            mLoadMutex.lock();
         }
 
         SHARED_MEM_BEGIN
@@ -667,6 +669,11 @@ void FileActiveStatus::loadBlock(BlockInfo info) {
             }
         }
     }
+    if (isBlockLoading(info.blockId)) {
+        mLoadMutex.unlock();
+        THROW(GopherwoodInternalException,
+              "[ActiveStatus] Block %d should not in loading state!", info.blockId);
+    }
     mLoadMutex.unlock();
 }
 
@@ -675,7 +682,7 @@ void FileActiveStatus::loadBlock(BlockInfo info) {
  * 3    start loading
  * -1   error */
 int FileActiveStatus::activateBlock(int blockId) {
-    Block *theLoadingBlock = NULL;
+    Block theLoadingBlock(InvalidBucketId, InvalidBlockId, LocalBlock, BUCKET_FREE);
     bool isLoadBlock = false;
     int rc = -1;
     int returnType = -1;
@@ -695,14 +702,14 @@ int FileActiveStatus::activateBlock(int blockId) {
             bool markSuccess;
 
             /* build the block */
-            theLoadingBlock = &mPreAllocatedBuckets.front();
+            theLoadingBlock = mPreAllocatedBuckets.front();
 
             /* If the markBucketLoading failed, then it means the block is loading by others */
-            markSuccess = mSharedMemoryContext->markBucketLoading(theLoadingBlock->bucketId, blockId, mActiveId,
+            markSuccess = mSharedMemoryContext->markBucketLoading(theLoadingBlock.bucketId, blockId, mActiveId,
                                                                   mFileId);
             if (markSuccess) {
                 mPreAllocatedBuckets.pop_front();
-                theLoadingBlock->blockId = blockId;
+                theLoadingBlock.blockId = blockId;
                 isLoadBlock = true;
             } else {
                 returnType = 2;
@@ -784,14 +791,19 @@ int FileActiveStatus::activateBlock(int blockId) {
         BlockInfo info;
         info.fileId = mFileId;
         info.blockId = blockId;
-        info.bucketId = theLoadingBlock->bucketId;
+        info.bucketId = theLoadingBlock.bucketId;
         info.isLocal = false;
         info.offset = InvalidBlockOffset;
 
         /* acquire a thread to load this block */
         mThreadPool->enqueue([this](BlockInfo info) { loadBlock(info); }, info);
         /* add the block to loading list */
-        mLoadingBuckets.push_back(*theLoadingBlock);
+        mLoadingBuckets.push_back(theLoadingBlock);
+
+        if (!isBlockLoading(blockId)) {
+            THROW(GopherwoodInternalException,
+                  "[ActiveStatus] Block %d should in loading state!", blockId);
+        }
     }
 
     return returnType;
