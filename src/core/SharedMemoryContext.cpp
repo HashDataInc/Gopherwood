@@ -373,16 +373,21 @@ int SharedMemoryContext::evictBucketFinishAndTryFree(int32_t bucketId, int16_t a
  * return false -- The block is loading by some others
  * */
 bool SharedMemoryContext::markBucketLoading(int32_t bucketId, int32_t blockId, int16_t activeId, FileId fileId) {
-    assert(buckets[bucketId].isActiveBucket());
-    assert(buckets[bucketId].fileId == fileId);
+    if (!buckets[bucketId].isActiveBucket() ||
+         buckets[bucketId].fileId != fileId ||
+         buckets[bucketId].isLoadingBucket()) {
+        THROW(
+                GopherwoodSharedMemException,
+                "[SharedMemoryContext::markBucketLoading] bucket stat mismatch");
+    }
 
-    for (int i = 0; i < header->numMaxActiveStatus; i++) {
-        if (activeStatus[i].isLoading() &&
-            activeStatus[i].fileId == fileId &&
-            activeStatus[i].fileBlockIndex == blockId) {
+    for (int i = 0; i < header->numBuckets; i++) {
+        if (buckets[i].isLoadingBucket() &&
+            buckets[i].fileId == fileId &&
+            buckets[i].fileBlockIndex == blockId) {
             LOG(DEBUG1, "[SharedMemoryContext]   |"
-                    "FileId %s, BlockId %d is loading by activeStatus %d, pid %d",
-                fileId.toString().c_str(), blockId, i, activeStatus[i].pid);
+                    "FileId %s, BlockId %d is loading by pid %d",
+                fileId.toString().c_str(), blockId, buckets[i].evictLoadActiveId);
             return false;
         }
     }
@@ -412,6 +417,7 @@ void SharedMemoryContext::markLoadFinish(int32_t bucketId, int16_t activeId, Fil
     assert(buckets[bucketId].isLoadingBucket());
     /* update the bucket info */
     buckets[bucketId].setBucketLoadFinish();
+    buckets[bucketId].evictLoadActiveId = InvalidActiveId;
 
     /* clear ActiveStatus loading info */
     activeStatus[activeId].fileBlockIndex = InvalidBlockId;
