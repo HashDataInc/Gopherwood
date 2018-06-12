@@ -483,9 +483,7 @@ void FileActiveStatus::acquireNewBlocks() {
     while (numToAcquire > 0 || evicting) {
         /* evict the bucket */
         if (evicting) {
-            mLoadMutex.unlock();
             mOssWorker->writeBlock(evictBlockInfo);
-            mLoadMutex.lock();
         }
 
         SHARED_MEM_BEGIN
